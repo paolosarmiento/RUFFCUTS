@@ -530,7 +530,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
   const[petModal,setPetModal]=useState(null);
   const[staffDetailId,setStaffDetailId]=useState(null);
   const[commDetailId,setCommDetailId]=useState(null);
-  const[sync,setSync]=useState("Syncing...");
+  const[sync,setSync]=useState("Synced");
   const lastR=useRef(null);
   const calRef=useRef(null);
 
@@ -599,8 +599,8 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
   const togglePay=(key,amount)=>setPaymentStatus(p=>({...p,[key]:isPaid(key)?{status:"unpaid",paidAmount:0,paidOn:null}:{status:"paid",paidAmount:amount,paidOn:tod()}}));
 
   const togStaff=sm=>{
-    const curr=gSt(selDate);const has=curr.find(s=>s.staffId===sm.id);
-    if(has)setStaffByDate(p=>({...p,[selDate]:curr.filter(s=>s.staffId!==sm.id)}));
+    const curr=gSt(selDate);const has=curr.find(s=>String(s.staffId)===String(sm.id));
+    if(has)setStaffByDate(p=>({...p,[selDate]:curr.filter(s=>String(s.staffId)!==String(sm.id))}));
     else setStaffByDate(p=>({...p,[selDate]:[...curr,{staffId:sm.id,name:sm.name,designation:sm.designation}]}));
   };
 
@@ -621,7 +621,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
     const cl=clients.find(c=>c.id===Number(aForm.clientId));
     const newA=aForm.pets.filter(p=>p.petId&&p.service&&p.cost).map(p=>{
       const pt=cl&&cl.pets.find(pet=>pet.id===Number(p.petId));
-      return{id:Date.now()+Math.random(),clientId:Number(aForm.clientId),petId:Number(p.petId),clientName:cl?cl.name:"",address:cl?cl.address:"",mobile:cl?cl.mobile:"",petName:pt?pt.name:"",breed:pt?pt.breed:"",petSize:pt?pt.size:"",furLength:p.furLength,service:p.service,cost:Number(p.cost),notes:p.notes,time:aForm.time,duration:aForm.duration||60,groomerId:aForm.groomerId||null,paymentMode:aForm.paymentMode||"",status:aForm.status||"pending"};
+      return{id:Date.now()+Math.random(),clientId:Number(aForm.clientId),petId:Number(p.petId),clientName:cl?cl.name:"",address:cl?cl.address:"",mobile:cl?cl.mobile:"",petName:pt?pt.name:"",breed:pt?pt.breed:"",petSize:pt?pt.size:"",furLength:p.furLength,service:p.service,cost:Number(p.cost),notes:p.notes,time:aForm.time,duration:aForm.duration||60,groomerId:aForm.groomerId?Number(aForm.groomerId)||aForm.groomerId:null,paymentMode:aForm.paymentMode||"",status:aForm.status||"pending"};
     });
     if(!newA.length)return;
     setSchedules(prev=>{const ex=actA?(prev[selDate]||[]).filter(a=>a.id!==actA.id):prev[selDate]||[];return{...prev,[selDate]:[...ex,...newA].sort((a,b)=>(a.time||"").localeCompare(b.time||""))};});
@@ -661,8 +661,8 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
   const commByGroomer={};
   trkDates.forEach(d=>{
     gA(d).filter(a=>a.groomerId&&a.status!=="cancelled").forEach(a=>{
-      const member=staffMembers.find(m=>String(m.id)===String(a.groomerId));
-      const name=member?member.name:(gSt(d).find(s=>String(s.staffId)===String(a.groomerId))||{name:"Unknown"}).name;
+      const member=staffMembers.find(m=>m.id===a.groomerId);
+      const name=member?member.name:(gSt(d).find(s=>s.staffId===a.groomerId)||{name:"Unknown"}).name;
       if(!commByGroomer[a.groomerId])commByGroomer[a.groomerId]={staffId:a.groomerId,name,total:0,pets:0,breakdown:[]};
       const comm=Number(a.cost||0)*0.1;
       commByGroomer[a.groomerId].total+=comm;commByGroomer[a.groomerId].pets++;
@@ -713,14 +713,14 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
       const pct=total>0?Math.round(done.length/total*100):0;
       const groomerCommToday={};
       todAppts.filter(a=>a.groomerId&&a.status!=="cancelled").forEach(a=>{
-        const member=staffMembers.find(m=>String(m.id)===String(a.groomerId));const name=member?member.name:"Unknown";
+        const member=staffMembers.find(m=>m.id===a.groomerId);const name=member?member.name:"Unknown";
         if(!groomerCommToday[a.groomerId])groomerCommToday[a.groomerId]={name,comm:0,pets:0};
         groomerCommToday[a.groomerId].comm+=Number(a.cost||0)*0.1;groomerCommToday[a.groomerId].pets++;
       });
 
       function TodayApptCard({a,date,showAssign}){
         const c=aColor(a.service);const sc=sConf(a.status||"pending");
-        const groomer=todSt.find(s=>s.staffId===a.groomerId);
+        const groomer=todSt.find(s=>String(s.staffId)===String(a.groomerId));
         const groomersAvail=todSt.filter(s=>s.designation==="Groomer");
         return(
           <div className="today-card" style={{borderLeftColor:c.bd}}>
@@ -889,7 +889,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                   return(
                     <div key={a.id} style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,.07)",borderRadius:8,padding:"6px 10px",border:"1px solid "+c.bd}}>
                       <span style={{fontSize:12,fontWeight:700,color:c.tx,background:c.bg,padding:"2px 8px",borderRadius:6}}>{a.petName} ({a.breed||"?"})</span>
-                      <select onChange={e=>quickAssign(selDate,a.id,e.target.value||null)} value={a.groomerId||""} style={{fontSize:12,padding:"4px 8px",borderRadius:6,border:"none",background:"rgba(255,255,255,.15)",color:"#fff",fontFamily:"inherit",minHeight:"auto",cursor:"pointer"}}>
+                      <select onChange={e=>e.target.value&&quickAssign(selDate,a.id,e.target.value||null)} value={a.groomerId||""} style={{fontSize:12,padding:"4px 8px",borderRadius:6,border:"none",background:"rgba(255,255,255,.15)",color:"#fff",fontFamily:"inherit",minHeight:"auto",cursor:"pointer"}}>
                         <option value="" style={{color:"#000"}}>Unassigned</option>
                         {dSt.filter(s=>s.designation==="Groomer").map(g=><option key={g.staffId} value={g.staffId} style={{color:"#000"}}>{g.name}</option>)}
                       </select>
@@ -966,7 +966,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                   <p style={{fontSize:11,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.4,marginBottom:12}}>{appts.length} Appointments - {fmtD(selDate)}</p>
                   {[...appts].sort((a,b)=>(a.time||"zz").localeCompare(b.time||"zz")).map(a=>{
                     const c=aColor(a.service);const sc=sConf(a.status||"pending");
-                    const groomer=dSt.find(s=>s.staffId===a.groomerId);const groomersAvail=dSt.filter(s=>s.designation==="Groomer");
+                    const groomer=dSt.find(s=>String(s.staffId)===String(a.groomerId));const groomersAvail=dSt.filter(s=>s.designation==="Groomer");
                     const endT=a.time&&a.duration?fmtT(minsToTime(timeToMins(a.time)+a.duration)):"";
                     return(
                       <div key={a.id} onClick={()=>openEditAppt(a)} style={{background:"#fff",borderRadius:12,padding:"12px 14px",marginBottom:8,borderLeft:"4px solid "+c.bd,boxShadow:"0 1px 4px rgba(0,0,0,.06)",cursor:"pointer"}}>
@@ -1281,7 +1281,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                   {trkDates.flatMap(d=>{
                     const dayComm={};
                     gA(d).filter(a=>a.groomerId&&a.status!=="cancelled").forEach(a=>{
-                      if(!dayComm[a.groomerId])dayComm[a.groomerId]={name:(staffMembers.find(m=>String(m.id)===String(a.groomerId))||{name:"Unknown"}).name,pets:0,comm:0};
+                      if(!dayComm[a.groomerId])dayComm[a.groomerId]={name:(staffMembers.find(m=>m.id===a.groomerId)||{name:"Unknown"}).name,pets:0,comm:0};
                       dayComm[a.groomerId].pets++;dayComm[a.groomerId].comm+=Number(a.cost||0)*0.1;
                     });
                     return Object.entries(dayComm).map(([sid,dc],i)=>{
