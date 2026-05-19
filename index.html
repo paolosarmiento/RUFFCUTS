@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -531,7 +530,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
   const[petModal,setPetModal]=useState(null);
   const[staffDetailId,setStaffDetailId]=useState(null);
   const[commDetailId,setCommDetailId]=useState(null);
-  const[sync,setSync]=useState("Synced");
+  const[sync,setSync]=useState("Syncing...");
   const lastR=useRef(null);
   const calRef=useRef(null);
 
@@ -842,7 +841,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
     if(tab==="schedule"){
       const selDayName=DNAMES[new Date(selDate+"T12:00:00").getDay()];
       const totalPets=appts.filter(a=>a.status!=="cancelled").length;
-      const todayPets=appts.filter(a=>a.status!=="cancelled");const columns=[...dSt,{staffId:"unassigned",name:"Unassigned",designation:""}];
+      const columns=[...dSt,{staffId:"unassigned",name:"Unassigned",designation:""}];
       const getColAppts=staffId=>appts.filter(a=>staffId==="unassigned"?!a.groomerId:String(a.groomerId)===String(staffId));
       const getColCount=staffId=>getColAppts(staffId).filter(a=>a.status!=="cancelled").length;
       const getColRev=staffId=>getColAppts(staffId).filter(a=>a.status!=="cancelled").reduce((s,a)=>s+Number(a.cost||0),0);
@@ -856,7 +855,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
       const nowY=selDate===todStr&&nowH>=CAL_START&&nowH<CAL_END?((nowH-CAL_START)+nowM/60)*SLOT_H:-1;
       const HDR_H=62;
       return(
-        <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 52px)",minHeight:0}}>
+        <div style={{display:"flex",flexDirection:"column",height:"calc(100dvh - calc(54px + env(safe-area-inset-top)))",minHeight:0}}>
           {apptFormModal}
           <div style={{background:"#111",flexShrink:0}}>
             <div style={{display:"flex",alignItems:"center",padding:"10px 14px 6px",gap:8}}>
@@ -882,7 +881,25 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
               return(<button key={sm.id} onClick={()=>togStaff(sm)} style={{display:"inline-flex",alignItems:"center",gap:5,padding:"6px 13px",borderRadius:20,border:"1.5px solid "+(on?dc:"rgba(255,255,255,.15)"),background:on?dc+"22":"transparent",color:on?dc:"rgba(255,255,255,.4)",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer",minHeight:"auto",flexShrink:0}}>{sm.name.split(" ")[0]}{on?" ON":""}</button>);
             })}
           </div>
-          {calView==="day"&&(
+          <div style={{background:"#222",padding:"8px 14px",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,.06)"}}>
+              <p style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,.4)",textTransform:"uppercase",letterSpacing:.5,marginBottom:6}}>Quick Assign Pet to Groomer</p>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {appts.filter(a=>a.status!=="cancelled").map(a=>{
+                  const c=aColor(a.service);
+                  return(
+                    <div key={a.id} style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,.07)",borderRadius:8,padding:"6px 10px",border:"1px solid "+c.bd}}>
+                      <span style={{fontSize:12,fontWeight:700,color:c.tx,background:c.bg,padding:"2px 8px",borderRadius:6}}>{a.petName} ({a.breed||"?"})</span>
+                      <select onChange={e=>e.target.value&&quickAssign(selDate,a.id,e.target.value||null)} value={a.groomerId||""} style={{fontSize:12,padding:"4px 8px",borderRadius:6,border:"none",background:"rgba(255,255,255,.15)",color:"#fff",fontFamily:"inherit",minHeight:"auto",cursor:"pointer"}}>
+                        <option value="" style={{color:"#000"}}>Unassigned</option>
+                        {dSt.filter(s=>s.designation==="Groomer").map(g=><option key={g.staffId} value={g.staffId} style={{color:"#000"}}>{g.name}</option>)}
+                      </select>
+                    </div>
+                  );
+                })}
+                {appts.filter(a=>a.status!=="cancelled").length===0&&<span style={{fontSize:12,color:"rgba(255,255,255,.3)"}}>No pets scheduled today</span>}
+              </div>
+            </div>
+            {calView==="day"&&(
             <div ref={calRef} className="cal-wrap">
               <div style={{minWidth:52+Math.max(columns.length,1)*130,position:"relative"}}>
                 <div className="cal-col-hdr" style={{height:HDR_H}}>
