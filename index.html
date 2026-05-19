@@ -843,7 +843,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
       const selDayName=DNAMES[new Date(selDate+"T12:00:00").getDay()];
       const totalPets=appts.filter(a=>a.status!=="cancelled").length;
       const columns=[...dSt,{staffId:"unassigned",name:"Unassigned",designation:""}];
-      const getColAppts=staffId=>appts.filter(a=>staffId==="unassigned"?(!a.groomerId||!dSt.some(s=>s.staffId===a.groomerId)):a.groomerId==staffId);
+      const getColAppts=staffId=>appts.filter(a=>staffId==="unassigned"?!a.groomerId:String(a.groomerId)===String(staffId));
       const getColCount=staffId=>getColAppts(staffId).filter(a=>a.status!=="cancelled").length;
       const getColRev=staffId=>getColAppts(staffId).filter(a=>a.status!=="cancelled").reduce((s,a)=>s+Number(a.cost||0),0);
       const colBarColor=col=>{if(!col.designation)return"#e8e8ed";if(col.designation==="Groomer")return"#34c759";if(col.designation==="Driver")return"#0071e3";return"#ff9f0a";};
