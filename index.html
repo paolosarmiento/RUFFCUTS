@@ -661,8 +661,8 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
   const commByGroomer={};
   trkDates.forEach(d=>{
     gA(d).filter(a=>a.groomerId&&a.status!=="cancelled").forEach(a=>{
-      const member=staffMembers.find(m=>m.id===a.groomerId);
-      const name=member?member.name:(gSt(d).find(s=>s.staffId===a.groomerId)||{name:"Unknown"}).name;
+      const member=staffMembers.find(m=>String(m.id)===String(a.groomerId));
+      const name=member?member.name:(gSt(d).find(s=>String(s.staffId)===String(a.groomerId))||{name:"Unknown"}).name;
       if(!commByGroomer[a.groomerId])commByGroomer[a.groomerId]={staffId:a.groomerId,name,total:0,pets:0,breakdown:[]};
       const comm=Number(a.cost||0)*0.1;
       commByGroomer[a.groomerId].total+=comm;commByGroomer[a.groomerId].pets++;
@@ -713,7 +713,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
       const pct=total>0?Math.round(done.length/total*100):0;
       const groomerCommToday={};
       todAppts.filter(a=>a.groomerId&&a.status!=="cancelled").forEach(a=>{
-        const member=staffMembers.find(m=>m.id===a.groomerId);const name=member?member.name:"Unknown";
+        const member=staffMembers.find(m=>String(m.id)===String(a.groomerId));const name=member?member.name:"Unknown";
         if(!groomerCommToday[a.groomerId])groomerCommToday[a.groomerId]={name,comm:0,pets:0};
         groomerCommToday[a.groomerId].comm+=Number(a.cost||0)*0.1;groomerCommToday[a.groomerId].pets++;
       });
@@ -1281,7 +1281,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                   {trkDates.flatMap(d=>{
                     const dayComm={};
                     gA(d).filter(a=>a.groomerId&&a.status!=="cancelled").forEach(a=>{
-                      if(!dayComm[a.groomerId])dayComm[a.groomerId]={name:(staffMembers.find(m=>m.id===a.groomerId)||{name:"Unknown"}).name,pets:0,comm:0};
+                      if(!dayComm[a.groomerId])dayComm[a.groomerId]={name:(staffMembers.find(m=>String(m.id)===String(a.groomerId))||{name:"Unknown"}).name,pets:0,comm:0};
                       dayComm[a.groomerId].pets++;dayComm[a.groomerId].comm+=Number(a.cost||0)*0.1;
                     });
                     return Object.entries(dayComm).map(([sid,dc],i)=>{
