@@ -889,7 +889,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                   return(
                     <div key={a.id} style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,.07)",borderRadius:8,padding:"6px 10px",border:"1px solid "+c.bd}}>
                       <span style={{fontSize:12,fontWeight:700,color:c.tx,background:c.bg,padding:"2px 8px",borderRadius:6}}>{a.petName} ({a.breed||"?"})</span>
-                      <select onChange={e=>e.target.value&&quickAssign(selDate,a.id,e.target.value||null)} value={a.groomerId||""} style={{fontSize:12,padding:"4px 8px",borderRadius:6,border:"none",background:"rgba(255,255,255,.15)",color:"#fff",fontFamily:"inherit",minHeight:"auto",cursor:"pointer"}}>
+                      <select onChange={e=>quickAssign(selDate,a.id,e.target.value||null)} value={a.groomerId||""} style={{fontSize:12,padding:"4px 8px",borderRadius:6,border:"none",background:"rgba(255,255,255,.15)",color:"#fff",fontFamily:"inherit",minHeight:"auto",cursor:"pointer"}}>
                         <option value="" style={{color:"#000"}}>Unassigned</option>
                         {dSt.filter(s=>s.designation==="Groomer").map(g=><option key={g.staffId} value={g.staffId} style={{color:"#000"}}>{g.name}</option>)}
                       </select>
