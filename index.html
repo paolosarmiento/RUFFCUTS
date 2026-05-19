@@ -1,0 +1,1438 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Ruff Cuts"/>
+<meta name="theme-color" content="#000"/>
+<link rel="apple-touch-icon" href="https://i.imgur.com/NWOIvxv.png"/>
+<title>Ruff Cuts</title>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.22.9/babel.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{height:100%;height:-webkit-fill-available;}
+body{height:100%;height:-webkit-fill-available;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#f2f2f7;color:#1c1c1e;-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;overscroll-behavior:none;min-height:100vh;overflow-x:hidden;}
+input,select,textarea,button{font-family:inherit;font-size:16px;outline:none;-webkit-appearance:none;appearance:none;border-radius:0;}
+input,select,textarea{border-radius:10px;border:none;background:#f5f5f7;color:#1c1c1e;padding:12px 14px;width:100%;min-height:44px;}
+input:focus,select:focus,textarea:focus{background:#e8e8ed;}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;min-height:44px;border:none;background:none;}
+textarea{resize:vertical;min-height:80px;}
+::placeholder{color:#aeaeb2;}
+::-webkit-scrollbar{display:none;}
+*{scrollbar-width:none;}
+.shell{display:block;min-height:100vh;min-height:-webkit-fill-available;width:100%;}
+.sidebar{display:none;width:220px;background:#000;flex-direction:column;position:fixed;top:0;left:0;height:100%;z-index:100;overflow-y:auto;padding-top:env(safe-area-inset-top);}
+.sidebar-logo{padding:20px;border-bottom:.5px solid rgba(255,255,255,.1);display:flex;justify-content:center;}
+.sidebar-logo img{height:90px;width:auto;object-fit:contain;}
+.snav{display:flex;align-items:center;padding:0 20px;height:48px;font-size:15px;font-weight:500;color:rgba(255,255,255,.5);cursor:pointer;border:none;background:none;width:100%;text-align:left;border-bottom:.5px solid rgba(255,255,255,.06);}
+.snav.on{color:#fff;font-weight:600;background:rgba(255,255,255,.12);}
+.sidebar-footer{padding:16px 20px;border-top:.5px solid rgba(255,255,255,.1);margin-top:auto;}
+.main{flex:1;background:#f2f2f7;min-height:100vh;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:calc(54px + env(safe-area-inset-top));}
+.mob-hdr{display:flex;align-items:center;background:rgba(0,0,0,.95);position:fixed;top:0;left:0;right:0;z-index:90;width:100%;padding-top:env(safe-area-inset-top);padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));padding-bottom:10px;min-height:calc(44px + env(safe-area-inset-top));}
+.dbk{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;}
+.drw{position:fixed;top:0;right:0;bottom:0;width:min(300px,75vw);background:#000;z-index:300;display:flex;flex-direction:column;box-shadow:-8px 0 40px rgba(0,0,0,.6);padding-top:env(safe-area-inset-top);}
+.drw-top{padding:12px 16px;border-bottom:.5px solid rgba(255,255,255,.1);display:flex;align-items:center;min-height:52px;}
+.drw-nav{flex:1;overflow-y:auto;padding:4px 0;}
+.drw-item{display:block;width:100%;padding:0 20px;height:52px;font-size:17px;font-weight:500;color:rgba(255,255,255,.55);border:none;background:none;text-align:left;cursor:pointer;border-bottom:.5px solid rgba(255,255,255,.06);line-height:52px;}
+.drw-item.on{font-weight:700;color:#fff;background:rgba(255,255,255,.1);}
+.drw-foot{padding:20px;border-top:.5px solid rgba(255,255,255,.1);}
+.sec{padding:16px;padding-bottom:max(24px,env(safe-area-inset-bottom));}
+.card{background:#fff;border-radius:13px;overflow:hidden;margin-bottom:12px;}
+.crow{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:.5px solid rgba(0,0,0,.08);min-height:48px;}
+.crow:last-child{border-bottom:none;}
+.phdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:12px;flex-wrap:wrap;}
+.phdr h1{font-size:26px;font-weight:700;letter-spacing:-.02em;}
+.phdr p{font-size:13px;color:#8e8e93;margin-top:3px;}
+.phdr-r{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.fbox{background:#fff;border-radius:13px;padding:16px;margin-bottom:14px;}
+.pbox{background:#f9f9f9;border-radius:10px;padding:14px;margin-bottom:10px;border:.5px solid rgba(0,0,0,.08);}
+.twrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:13px;background:#fff;}
+.th{text-align:left;padding:9px 13px;border-bottom:.5px solid rgba(0,0,0,.1);font-size:11px;color:#8e8e93;font-weight:600;letter-spacing:.3px;text-transform:uppercase;background:#f9f9f9;white-space:nowrap;}
+.td{padding:11px 13px;border-bottom:.5px solid rgba(0,0,0,.06);color:#1c1c1e;font-size:14px;vertical-align:top;}
+.sc{background:#fff;border-radius:13px;padding:14px;text-align:center;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.gm{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.gw{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.gf{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;}
+.mdbg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;display:flex;align-items:flex-end;justify-content:center;}
+.md{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:640px;max-height:92vh;overflow-y:auto;padding:8px 20px max(24px,env(safe-area-inset-bottom));}
+.mdh{width:36px;height:5px;background:#d1d1d6;border-radius:3px;margin:0 auto 14px;}
+@media(min-width:640px){.mdbg{align-items:center;}.md{border-radius:16px;margin:20px;padding:20px;max-height:88vh;}}
+.cal-wrap{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;background:#fff;}
+.cal-col-hdr{position:sticky;top:0;z-index:20;display:flex;background:#fff;border-bottom:1px solid #e8e8ed;}
+.cal-time-hdr{width:52px;flex-shrink:0;position:sticky;left:0;z-index:25;background:#fff;border-right:.5px solid #e8e8ed;display:flex;align-items:center;justify-content:center;}
+.cal-staff-hdr{flex:1 0 120px;padding:7px 6px;text-align:center;border-right:.5px solid #e8e8ed;}
+.cal-grid{display:flex;position:relative;}
+.cal-time-col{width:52px;flex-shrink:0;position:sticky;left:0;z-index:10;background:#fafafa;border-right:.5px solid #e8e8ed;}
+.cal-time-lbl{position:absolute;right:7px;font-size:10px;color:#aeaeb2;font-weight:600;transform:translateY(-50%);}
+.cal-abs-col{flex:1 0 120px;position:relative;border-right:.5px solid #f0f0f0;cursor:pointer;}
+.cal-abs-col:active{background:rgba(0,0,0,.02);}
+.sp{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;border:none;font-family:inherit;}
+.today-card{background:#fff;border-radius:12px;padding:13px 14px;margin-bottom:8px;border-left:4px solid #e8e8ed;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.today-card-primary{background:#fff;border-radius:12px;padding:14px;margin-bottom:8px;border:1.5px solid #e8e8ed;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.att-dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
+#boot{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;}
+#boot img{height:90px;object-fit:contain;margin-bottom:16px;}
+#boot p{font-size:14px;color:rgba(255,255,255,.35);}
+@media(max-width:767px){
+  .sidebar{display:none!important;}.mob-hdr{display:flex!important;}.main{margin-left:0!important;}
+  .sec{padding:12px;padding-bottom:max(20px,env(safe-area-inset-bottom));}
+  .phdr h1{font-size:22px;}.g2{grid-template-columns:1fr;}.g3{grid-template-columns:1fr 1fr;}
+  .g4{grid-template-columns:1fr 1fr;}.gm{grid-template-columns:1fr 1fr;}.gw{gap:3px;}.gf{grid-template-columns:1fr 1fr;}
+}
+@media(min-width:768px){
+  .shell{flex-direction:row;}.sidebar{display:flex!important;}.mob-hdr{display:none!important;}.main{margin-left:220px;}
+  .sec{padding:24px 28px;}.gm{grid-template-columns:repeat(3,1fr);}.g4{grid-template-columns:1fr 1fr;}
+}
+@media(min-width:1024px){.sec{padding:28px 36px;}.gm{grid-template-columns:repeat(4,1fr);}}
+@media(min-width:1400px){
+  .sidebar{width:260px;}.sidebar-logo img{height:110px;}.main{margin-left:260px;}
+  .sec{padding:40px 52px;}.gm{grid-template-columns:repeat(5,1fr);}
+}
+</style>
+</head>
+<body>
+<div id="boot">
+  <img src="https://i.imgur.com/UXTLxqT.png" alt="Ruff Cuts"/>
+  <p id="boot-msg">Loading...</p>
+</div>
+<div id="root"></div>
+<script>
+setTimeout(function(){
+  var m=document.getElementById('boot-msg');
+  if(m)m.textContent='Taking longer than usual... please wait.';
+},15000);
+</script>
+<script type="text/babel">
+const {useState,useEffect,useRef,Component}=React;
+
+let db=null,DOC=null;
+try{
+  const cfg={apiKey:"AIzaSyByMaYOwnUNhT9QpVwWUrvNJ5l_ypGV6RI",authDomain:"ruff-cuts-b935f.firebaseapp.com",projectId:"ruff-cuts-b935f",storageBucket:"ruff-cuts-b935f.firebasestorage.app",messagingSenderId:"74298911810",appId:"1:74298911810:web:627341170ba007779ad1db"};
+  if(!firebase.apps.length)firebase.initializeApp(cfg);
+  db=firebase.firestore();
+  db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+  DOC=db.collection("ruffcuts").doc("appdata");
+}catch(e){console.warn("Firebase:",e.message);}
+
+const OWN_PASS="owner1234";
+const STF_PASS="ruffcuts2024";
+const DEF_SVC=[
+  {id:1,name:"Ruff Ready - Small (10kg and below)",price:650},
+  {id:2,name:"Ruff Ready - Medium (11-20kg)",price:750},
+  {id:3,name:"Ruff Ready - Large (21-40kg)",price:900},
+  {id:4,name:"Ruff Ready - Giant (Over 40kg)",price:1100},
+  {id:5,name:"Ruff Ready - Cats (All Breeds)",price:750},
+  {id:6,name:"Ruff Revive Smooth - Small (10kg and below)",price:800},
+  {id:7,name:"Ruff Revive Smooth - Medium (11-20kg)",price:950},
+  {id:8,name:"Ruff Revive Smooth - Large (21-40kg)",price:1200},
+  {id:9,name:"Ruff Revive Smooth - Giant (Over 40kg)",price:1400},
+  {id:10,name:"Ruff Revive Long - Small (10kg and below)",price:925},
+  {id:11,name:"Ruff Revive Long - Medium (11-20kg)",price:1050},
+  {id:12,name:"Ruff Revive Long - Large (21-40kg)",price:1450},
+  {id:13,name:"Ruff Revive Long - Giant (Over 40kg)",price:1750},
+  {id:14,name:"Ruff Revive Long - Cats (All Breeds)",price:950},
+  {id:15,name:"Ruff Royale - Small (10kg and below)",price:1150},
+  {id:16,name:"Ruff Royale - Medium (11-20kg)",price:1300},
+  {id:17,name:"Ruff Royale - Large (21-40kg)",price:1750},
+  {id:18,name:"Ruff Royale - Giant (Over 40kg)",price:2100},
+];
+const FURS=["Smooth","Long"];
+const EXP_CATS=["Gas","Shampoo","Grooming Tools","Perfume","Powder","Other"];
+const DESIGS=["Groomer","Driver","Apprentice Groomer"];
+const PAY_MODES=["Cash","GCash"];
+const DURATIONS=[{label:"30 min",value:30},{label:"45 min",value:45},{label:"1 hr",value:60},{label:"1.5 hr",value:90},{label:"2 hr",value:120},{label:"2.5 hr",value:150},{label:"3 hr",value:180}];
+const MN=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const MS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const SZ=["Small","Medium","Large","Giant"];
+const DAYS=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const DNAMES=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const PC=["#1c1c1e","#0071e3","#34c759","#ff9f0a","#ff375f","#5e5ce6","#32ade6","#30d158"];
+const CAL_START=7;
+const CAL_END=21;
+const PX_PER_MIN=1.5;
+const SLOT_H=PX_PER_MIN*60;
+const TOTAL_H=(CAL_END-CAL_START)*SLOT_H;
+
+const STATUS_CONFIG={
+  "pending":{bg:"#f5f5f7",bd:"#aeaeb2",tx:"#636366",label:"Pending"},
+  "confirmed":{bg:"#e8f4fd",bd:"#0071e3",tx:"#0071e3",label:"Confirmed"},
+  "in-progress":{bg:"#fff8e6",bd:"#ff9f0a",tx:"#c97600",label:"Active"},
+  "completed":{bg:"#f0fff4",bd:"#34c759",tx:"#1a7a34",label:"Done"},
+  "cancelled":{bg:"#fff0f3",bd:"#ff375f",tx:"#cc0022",label:"Cancelled"},
+};
+const STATUS_ORDER=["pending","confirmed","in-progress","completed","cancelled"];
+
+const tod=()=>new Date().toISOString().split("T")[0];
+const fmt=n=>"P"+Number(n).toLocaleString("en-PH",{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtD=d=>{if(!d)return"";const p=d.split("-");return MN[parseInt(p[1])-1]+" "+parseInt(p[2])+", "+p[0];};
+const fmtT=t=>{if(!t)return"";const p=t.split(":");const h=parseInt(p[0]);return(h%12||12)+":"+p[1]+" "+(h<12?"AM":"PM");};
+const dsgC=d=>d==="Groomer"?"green":d==="Driver"?"blue":"orange";
+const normSt=s=>typeof s==="string"?{staffId:null,name:s,designation:"Driver"}:s;
+const getPayE=e=>{if(!e)return{status:"unpaid",paidAmount:0,paidOn:null};if(typeof e==="string")return{status:e,paidAmount:0,paidOn:null};return{status:e.status||"unpaid",paidAmount:e.paidAmount||0,paidOn:e.paidOn||null};};
+const pmColor=m=>m==="Cash"?"#34c759":m==="GCash"?"#0071e3":"#aeaeb2";
+const timeToMins=t=>{if(!t)return -1;const p=t.split(":");return parseInt(p[0])*60+parseInt(p[1]);};
+const minsToTime=m=>{const h=Math.floor(m/60);const mn=m%60;return String(h).padStart(2,"0")+":"+String(mn).padStart(2,"0");};
+const nextStatus=s=>{const i=STATUS_ORDER.indexOf(s||"pending");return STATUS_ORDER[(i+1)%STATUS_ORDER.length];};
+const sConf=s=>STATUS_CONFIG[s||"pending"]||STATUS_CONFIG["pending"];
+const tToY=t=>{const m=timeToMins(t);if(m<0)return -1;const start=CAL_START*60;const end=CAL_END*60;if(m<start||m>=end)return -1;return(m-start)*PX_PER_MIN;};
+const fmtHour=h=>h===12?"12 PM":h<12?h+" AM":(h-12)+" PM";
+const hours=Array.from({length:CAL_END-CAL_START},(_,i)=>CAL_START+i);
+const compress=file=>new Promise(res=>{const r=new FileReader();r.onload=e=>{const img=new Image();img.onload=()=>{const max=500,ratio=Math.min(max/img.width,max/img.height,1);const c=document.createElement("canvas");c.width=Math.round(img.width*ratio);c.height=Math.round(img.height*ratio);c.getContext("2d").drawImage(img,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",0.7));};img.src=e.target.result;};r.readAsDataURL(file);});
+function getWeek(off=0){const n=new Date();const dy=n.getDay();const mo=new Date(n);mo.setDate(n.getDate()-(dy===0?6:dy-1)+off*7);return Array.from({length:7},(_,i)=>{const d=new Date(mo);d.setDate(mo.getDate()+i);return d.toISOString().split("T")[0];});}
+const bC=()=>({name:"",address:"",mobile:"",pets:[{id:Date.now(),name:"",breed:"",age:"",weight:"",knownIssues:"",notes:"",size:"",furLength:""}]});
+const bA=()=>({clientId:"",time:"",groomerId:"",paymentMode:"",duration:60,status:"pending",pets:[{petId:"",furLength:"",service:"",cost:"",notes:""}]});
+
+const aColor=svc=>{
+  if(!svc)return{bg:"#f2f2f7",bd:"#aeaeb2",tx:"#3c3c43",acc:"#8e8e93"};
+  const s=svc.toLowerCase();
+  if(s.includes("royale"))return{bg:"#fffbeb",bd:"#f59e0b",tx:"#92400e",acc:"#d97706"};
+  if(s.includes("long"))return{bg:"#f5f3ff",bd:"#7c3aed",tx:"#4c1d95",acc:"#7c3aed"};
+  if(s.includes("smooth"))return{bg:"#eff6ff",bd:"#2563eb",tx:"#1e3a8a",acc:"#2563eb"};
+  return{bg:"#f0fdf4",bd:"#16a34a",tx:"#14532d",acc:"#16a34a"};
+};
+
+const A={bl:"#1c1c1e",wh:"#fff",bu:"#0071e3",g1:"#f5f5f7",g2:"#e8e8ed",g3:"#aeaeb2",g4:"#8e8e93",ok:"#34c759",er:"#ff375f",wn:"#ff9f0a",sbg:"#f0fff4",dbg:"#fff0f3",wbg:"#fffaf0",pill:"980px"};
+const iS={background:A.g1,borderRadius:10,border:"none",fontSize:16,padding:"12px 14px",color:A.bl,width:"100%",fontFamily:"inherit",minHeight:44};
+
+function Btn({children,onClick,v="pri",sm=false,style={}}){
+  const b={display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,padding:sm?"9px 16px":"12px 20px",borderRadius:A.pill,border:"none",fontSize:sm?14:16,fontWeight:500,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",minHeight:sm?38:44,...style};
+  const vs={pri:{background:A.bl,color:A.wh},sec:{background:A.g1,color:A.bl},dan:{background:A.dbg,color:A.er},can:{background:A.g1,color:A.er},gho:{background:"transparent",color:A.er},blue:{background:A.bu,color:A.wh},ok:{background:A.sbg,color:A.ok}};
+  return <button style={{...b,...(vs[v]||vs.pri)}} onClick={onClick}>{children}</button>;
+}
+function Lbl({c}){return <p style={{fontSize:12,fontWeight:600,color:A.g4,marginBottom:6,letterSpacing:.3,textTransform:"uppercase"}}>{c}</p>;}
+function Shdr({c,style={}}){return <p style={{fontSize:12,fontWeight:600,color:A.g4,textTransform:"uppercase",letterSpacing:.3,marginBottom:8,...style}}>{c}</p>;}
+function Inp({style={},...p}){return <input autoComplete="on" style={{...iS,...style}} {...p}/>;}
+function Sel({children,style={},...p}){return <select style={{...iS,...style}} {...p}>{children}</select>;}
+function Bdg({children,color="gray"}){
+  const cs={gray:{bg:A.g1,t:A.g4},blue:{bg:"#e8f0fe",t:A.bu},green:{bg:A.sbg,t:A.ok},red:{bg:A.dbg,t:A.er},orange:{bg:A.wbg,t:A.wn}};
+  const c=cs[color]||cs.gray;
+  return <span style={{fontSize:12,padding:"3px 10px",borderRadius:A.pill,fontWeight:600,display:"inline-block",background:c.bg,color:c.t}}>{children}</span>;
+}
+function StatusPill({status,onClick}){
+  const sc=sConf(status);
+  return(
+    <button className="sp" onClick={onClick} style={{background:sc.bg,color:sc.tx,border:"1px solid "+sc.bd}}>
+      {sc.label}
+    </button>
+  );
+}
+
+class ErrB extends Component{
+  constructor(p){super(p);this.state={err:null};}
+  static getDerivedStateFromError(e){return{err:e};}
+  render(){
+    if(this.state.err)return(
+      <div style={{minHeight:"100vh",background:"#000",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:32}}>
+        <img src="https://i.imgur.com/UXTLxqT.png" style={{height:80,marginBottom:24}} alt=""/>
+        <p style={{color:A.er,fontSize:16,fontWeight:600,marginBottom:12,textAlign:"center"}}>Something went wrong</p>
+        <p style={{color:"rgba(255,255,255,.5)",fontSize:13,marginBottom:24,textAlign:"center",maxWidth:300,lineHeight:1.6}}>{this.state.err.message}</p>
+        <button onClick={()=>window.location.reload()} style={{background:"#fff",color:"#000",border:"none",borderRadius:"980px",padding:"12px 28px",fontSize:15,fontWeight:600,cursor:"pointer"}}>Reload</button>
+      </div>
+    );
+    return this.props.children;
+  }
+}
+
+function polarToCart(cx,cy,r,deg){const rad=(deg-90)*Math.PI/180;return{x:cx+r*Math.cos(rad),y:cy+r*Math.sin(rad)};}
+function PieChart({data,title}){
+  const total=data.reduce((s,d)=>s+d.value,0);
+  if(!total)return <p style={{fontSize:14,color:A.g4,padding:"12px 0"}}>No data yet.</p>;
+  let angle=0;
+  const slices=data.map((d,i)=>{const pct=d.value/total;const s=polarToCart(80,80,70,angle*360);angle+=pct;const e=polarToCart(80,80,70,angle*360);return{path:"M80 80 L"+s.x+" "+s.y+" A70 70 0 "+(pct>.5?1:0)+" 1 "+e.x+" "+e.y+"Z",color:PC[i%PC.length],label:d.label,pct:Math.round(pct*100)};});
+  return(
+    <div>
+      <p style={{fontWeight:600,fontSize:14,marginBottom:14}}>{title}</p>
+      <div style={{display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
+        <svg width={120} height={120} viewBox="0 0 160 160" style={{flexShrink:0}}>
+          {slices.map((sl,i)=><path key={i} d={sl.path} fill={sl.color} stroke="#fff" strokeWidth={2.5}/>)}
+        </svg>
+        <div style={{flex:1,minWidth:90}}>
+          {slices.map((sl,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:7,paddingBottom:6,marginBottom:6,borderBottom:i<slices.length-1?"0.5px solid "+A.g2:"none"}}>
+              <div style={{width:8,height:8,borderRadius:"50%",background:sl.color,flexShrink:0}}/>
+              <span style={{fontSize:12,flex:1}}>{sl.label}</span>
+              <span style={{fontSize:12,fontWeight:600}}>{sl.pct}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+function LineChart({data,color,title}){
+  if(!data.length||data.every(d=>d.value===0))return <p style={{fontSize:14,color:A.g4,padding:"12px 0"}}>No data yet.</p>;
+  const W=440,H=140,PX=68,PY=18;
+  const vals=data.map(d=>d.value);const max=Math.max(...vals,1);const min=Math.min(0,...vals);const range=max-min||1;
+  const toX=i=>PX+(i/Math.max(data.length-1,1))*(W-PX-PY);
+  const toY=v=>H-PY-((v-min)/range)*(H-PY*2);
+  const pts=data.map((d,i)=>({x:toX(i),y:toY(d.value),...d}));
+  const line=pts.map((p,i)=>(i===0?"M":"L")+p.x+" "+p.y).join(" ");
+  const area=line+" L"+pts[pts.length-1].x+" "+toY(min)+" L"+pts[0].x+" "+toY(min)+"Z";
+  const gid="g"+color.replace("#","");
+  return(
+    <div>
+      {title&&<p style={{fontWeight:600,fontSize:14,marginBottom:14}}>{title}</p>}
+      <div style={{overflowX:"auto"}}>
+        <svg width="100%" viewBox={"0 0 "+W+" "+H} style={{minWidth:240}}>
+          <defs><linearGradient id={gid} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={color} stopOpacity=".15"/><stop offset="100%" stopColor={color} stopOpacity="0"/></linearGradient></defs>
+          {[0,.5,1].map((t,i)=>{const v=min+t*range;const y=toY(v);return(<g key={i}><line x1={PX} y1={y} x2={W-PY} y2={y} stroke={A.g2} strokeWidth={1}/><text x={PX-5} y={y+4} fontSize={9} textAnchor="end" fill={A.g3}>{fmt(v)}</text></g>);})}
+          <path d={area} fill={"url(#"+gid+")"}/>
+          <path d={line} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round"/>
+          {pts.map((p,i)=>(<g key={i}><circle cx={p.x} cy={p.y} r={4} fill={color} stroke="#fff" strokeWidth={2}/><text x={p.x} y={H-2} fontSize={9} textAnchor="middle" fill={A.g3}>{p.label}</text></g>))}
+        </svg>
+      </div>
+    </div>
+  );
+}
+function MonthCard({label,data,profit,comm}){
+  const[open,setOpen]=useState(false);
+  const entries=Object.entries(data.breakdown||{}).sort((a,b)=>b[1]-a[1]);
+  return(
+    <div style={{borderBottom:"0.5px solid "+A.g2}}>
+      <div onClick={()=>setOpen(o=>!o)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 0",cursor:"pointer"}}>
+        <span style={{fontWeight:600,fontSize:15}}>{label}</span>
+        <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap"}}>
+          {[["Rev",fmt(data.revenue),A.bl],["Exp",fmt(data.expenses),A.er],["Comm",fmt(comm),A.wn],["Profit",fmt(profit),profit>=0?A.ok:A.er]].map(([l,val,c])=>(
+            <div key={l} style={{textAlign:"right"}}><p style={{fontSize:9,color:A.g4,marginBottom:1,textTransform:"uppercase"}}>{l}</p><p style={{fontSize:11,fontWeight:600,color:c}}>{val}</p></div>
+          ))}
+          <span style={{color:A.g3,fontSize:11}}>{open?"^":"v"}</span>
+        </div>
+      </div>
+      {open&&(
+        <div style={{paddingBottom:16}}>
+          <div className="gm" style={{marginBottom:12}}>
+            {[["Revenue",fmt(data.revenue),A.bu],["Expenses",fmt(data.expenses),A.er],["Commission",fmt(comm),A.wn],["Net Profit",fmt(profit),profit>=0?A.ok:A.er],["Days",data.days.length+" days",A.bl]].map(([l,val,c])=>(
+              <div key={l} style={{background:A.g1,borderRadius:10,padding:"10px 12px"}}><p style={{fontSize:10,color:A.g4,marginBottom:3,textTransform:"uppercase"}}>{l}</p><p style={{fontSize:14,fontWeight:700,color:c}}>{val}</p></div>
+            ))}
+          </div>
+          {entries.map(([cat,amt],i)=>{
+            const pct=data.expenses>0?Math.round(amt/data.expenses*100):0;
+            return(
+              <div key={cat} style={{display:"flex",alignItems:"center",gap:10,paddingBottom:10,marginBottom:10,borderBottom:i<entries.length-1?"0.5px solid "+A.g2:"none"}}>
+                <Bdg color="orange">{cat}</Bdg>
+                <span style={{fontSize:13,fontWeight:600,color:A.er,width:88}}>{fmt(amt)}</span>
+                <div style={{flex:1,background:A.g2,borderRadius:4,height:4}}><div style={{background:A.er,borderRadius:4,height:4,width:pct+"%",opacity:.7}}/></div>
+                <span style={{fontSize:11,color:A.g4,width:30}}>{pct}%</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+function ExpTable({all,expenses,setExpenses}){
+  const[editId,setEditId]=useState(null);
+  const[ef,setEf]=useState({date:"",cat:"",custCat:"",amt:""});
+  const sorted=[...all].sort((a,b)=>b.date.localeCompare(a.date));
+  const startEdit=e=>{setEditId(e.id);const k=EXP_CATS.includes(e.category);setEf({date:e.date,cat:k?e.category:"Other",custCat:k?"":e.category,amt:e.amount});};
+  const saveEdit=e=>{const c=ef.cat==="Other"?ef.custCat:ef.cat;const a=Number(ef.amt);if(!c||!a)return;setExpenses(prev=>{const w={...prev,[e.date]:(prev[e.date]||[]).filter(x=>x.id!==e.id)};return{...w,[ef.date]:[...(w[ef.date]||[]),{id:e.id,category:c,amount:a}]};});setEditId(null);};
+  return(
+    <div style={{marginTop:14}} className="twrap">
+      <table style={{width:"100%",borderCollapse:"collapse"}}>
+        <thead><tr>{["Date","Category","Amount",""].map(h=><th key={h} className="th">{h}</th>)}</tr></thead>
+        <tbody>
+          {sorted.map((e,i)=>{
+            if(editId===e.id)return(
+              <tr key={e.id} style={{background:"#fffbeb"}}>
+                <td className="td"><Inp type="date" value={ef.date} onChange={ev=>setEf(p=>({...p,date:ev.target.value}))} style={{fontSize:16,padding:"8px 10px",minHeight:40}}/></td>
+                <td className="td"><Sel value={ef.cat} onChange={ev=>setEf(p=>({...p,cat:ev.target.value}))} style={{fontSize:16,padding:"8px 10px",minHeight:40}}><option value="">Select...</option>{EXP_CATS.map(c=><option key={c}>{c}</option>)}</Sel>{ef.cat==="Other"&&<Inp value={ef.custCat} onChange={ev=>setEf(p=>({...p,custCat:ev.target.value}))} placeholder="Custom" style={{marginTop:4,fontSize:16,padding:"8px 10px",minHeight:40}}/>}</td>
+                <td className="td"><Inp type="number" value={ef.amt} onChange={ev=>setEf(p=>({...p,amt:ev.target.value}))} style={{fontSize:16,padding:"8px 10px",minHeight:40}}/></td>
+                <td className="td"><div style={{display:"flex",gap:6}}><Btn sm onClick={()=>saveEdit(e)}>Save</Btn><Btn sm v="can" onClick={()=>setEditId(null)}>Cancel</Btn></div></td>
+              </tr>
+            );
+            return(
+              <tr key={e.id} style={{background:i%2===0?"#fff":"#fafafa"}}>
+                <td className="td">{fmtD(e.date)}</td>
+                <td className="td"><Bdg color="orange">{e.category}</Bdg></td>
+                <td className="td" style={{color:A.er,fontWeight:600}}>{fmt(e.amount)}</td>
+                <td className="td"><div style={{display:"flex",gap:6}}><Btn sm v="sec" onClick={()=>startEdit(e)}>Edit</Btn><Btn sm v="gho" onClick={()=>setExpenses(prev=>({...prev,[e.date]:(prev[e.date]||[]).filter(x=>x.id!==e.id)}))}>Del</Btn></div></td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+function PetModal({pet,client,schedules,onClose}){
+  const gc=Object.values(schedules).flat().filter(a=>a.clientId===client.id&&a.petId===pet.id).length;
+  const hist=Object.entries(schedules).flatMap(([date,appts])=>appts.filter(a=>a.clientId===client.id&&a.petId===pet.id).map(a=>({...a,date}))).sort((a,b)=>b.date.localeCompare(a.date));
+  return(
+    <div className="mdbg" onClick={onClose}>
+      <div className="md" onClick={e=>e.stopPropagation()}>
+        <div className="mdh"/>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <div><p style={{fontSize:22,fontWeight:700,color:A.wn}}>{pet.name}</p><p style={{fontSize:14,color:A.g4}}>{pet.breed}</p></div>
+          <button onClick={onClose} style={{background:A.g1,borderRadius:"50%",width:32,height:32,fontSize:16,cursor:"pointer",color:A.g4,display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto"}}>X</button>
+        </div>
+        <div className="g4" style={{marginBottom:14}}>
+          {[["Size",pet.size||"-"],["Coat",pet.furLength||"-"],["Age",pet.age?pet.age+" yrs":"-"],["Weight",pet.weight?pet.weight+" kg":"-"]].map(([l,val])=>(
+            <div key={l} style={{background:A.g1,borderRadius:10,padding:"10px",textAlign:"center"}}><p style={{fontSize:10,color:A.g4,textTransform:"uppercase",fontWeight:600,marginBottom:3}}>{l}</p><p style={{fontSize:14,fontWeight:700}}>{val}</p></div>
+          ))}
+        </div>
+        {pet.knownIssues&&<div style={{background:A.dbg,borderRadius:10,padding:"11px 14px",marginBottom:10}}><p style={{fontSize:11,fontWeight:700,color:A.er,textTransform:"uppercase",marginBottom:3}}>Known Issues</p><p style={{fontSize:14}}>{pet.knownIssues}</p></div>}
+        {pet.notes&&<div style={{background:A.wbg,borderRadius:10,padding:"11px 14px",marginBottom:10}}><p style={{fontSize:11,fontWeight:700,color:A.wn,textTransform:"uppercase",marginBottom:3}}>Notes</p><p style={{fontSize:14}}>{pet.notes}</p></div>}
+        <div style={{background:A.sbg,borderRadius:10,padding:"12px 14px",marginBottom:16,display:"flex",alignItems:"center",gap:12}}>
+          <div><p style={{fontSize:13,color:A.g4,marginBottom:2}}>Total sessions</p><p style={{fontSize:22,fontWeight:700,color:A.ok}}>{gc} time{gc!==1?"s":""}</p></div>
+        </div>
+        {hist.length>0&&(
+          <div>
+            <p style={{fontSize:12,fontWeight:600,color:A.g4,textTransform:"uppercase",letterSpacing:.3,marginBottom:8}}>History</p>
+            <div className="twrap">
+              <table style={{width:"100%",borderCollapse:"collapse"}}>
+                <thead><tr>{["Date","Service","Cost","Payment"].map(h=><th key={h} className="th">{h}</th>)}</tr></thead>
+                <tbody>{hist.map((a,i)=><tr key={a.id} style={{background:i%2===0?"#fff":"#fafafa"}}><td className="td">{fmtD(a.date)}</td><td className="td" style={{fontSize:12}}>{a.service}</td><td className="td" style={{color:A.ok,fontWeight:600}}>{fmt(a.cost)}</td><td className="td" style={{color:pmColor(a.paymentMode),fontWeight:600,fontSize:12}}>{a.paymentMode||"-"}</td></tr>)}</tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+function OwnPwEdit({ownerPass,setOwnerPass}){
+  const[editing,setEditing]=useState(false);const[form,setForm]=useState({c:"",n:"",cf:""});const[msg,setMsg]=useState("");
+  if(!editing)return(<div className="crow"><div style={{display:"flex",alignItems:"center",gap:12}}><div style={{width:40,height:40,borderRadius:"50%",background:A.bl,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:12,fontWeight:700}}>OWN</div><div><p style={{fontWeight:600}}>Owner</p><p style={{fontSize:13,color:A.g4}}>Full access</p></div></div><Btn sm v="sec" onClick={()=>setEditing(true)}>Change</Btn></div>);
+  return(<div style={{padding:16}}><div className="g3" style={{marginBottom:12}}>{[["c","Current"],["n","New"],["cf","Confirm"]].map(([k,l])=>(<div key={k}><Lbl c={l}/><Inp type="password" value={form[k]} onChange={e=>{setForm(p=>({...p,[k]:e.target.value}));setMsg("");}} placeholder="...."/></div>))}</div>{msg&&<p style={{fontSize:14,color:msg.includes("OK")?A.ok:A.er,marginBottom:12}}>{msg}</p>}<div style={{display:"flex",gap:8}}><Btn onClick={()=>{if(form.c!==ownerPass)return setMsg("Incorrect.");if(form.n.length<4)return setMsg("Min 4 chars.");if(form.n!==form.cf)return setMsg("No match.");setOwnerPass(form.n);setMsg("OK Updated");setForm({c:"",n:"",cf:""});setTimeout(()=>setEditing(false),1200);}}>Save</Btn><Btn v="can" onClick={()=>{setEditing(false);setForm({c:"",n:"",cf:""});setMsg("");}}>Cancel</Btn></div></div>);
+}
+function StfPwRow({staff,onSave,onDelete}){
+  const[editing,setEditing]=useState(!staff.name);const[form,setForm]=useState({name:staff.name,password:staff.password});const[msg,setMsg]=useState("");
+  if(!editing)return(<div className="crow"><div style={{display:"flex",alignItems:"center",gap:12}}><div style={{width:40,height:40,borderRadius:"50%",background:"#e8f0fe",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:A.bu}}>STF</div><div><p style={{fontWeight:600}}>{staff.name}</p><p style={{fontSize:13,color:A.g4}}>Staff access</p></div></div><div style={{display:"flex",gap:8}}><Btn sm v="sec" onClick={()=>setEditing(true)}>Edit</Btn><Btn sm v="dan" onClick={onDelete}>Delete</Btn></div></div>);
+  return(<div style={{padding:16}}><div className="g2" style={{marginBottom:12}}><div><Lbl c="Name"/><Inp value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} placeholder="e.g. Ana"/></div><div><Lbl c="Password"/><Inp value={form.password} onChange={e=>setForm(p=>({...p,password:e.target.value}))} placeholder="e.g. ana2024"/></div></div>{msg&&<p style={{fontSize:14,color:msg.includes("OK")?A.ok:A.er,marginBottom:10}}>{msg}</p>}<div style={{display:"flex",gap:8}}><Btn sm onClick={()=>{if(!form.name.trim())return setMsg("Name required.");if(form.password.length<4)return setMsg("Min 4 chars.");onSave({...staff,...form});setMsg("OK Saved");setTimeout(()=>setEditing(false),800);}}>Save</Btn>{staff.name&&<Btn sm v="can" onClick={()=>{setEditing(false);setForm({name:staff.name,password:staff.password});setMsg("");}}>Cancel</Btn>}<Btn sm v="dan" onClick={onDelete}>Delete</Btn></div></div>);
+}
+
+function ApptForm({actA,aForm,setAForm,clients,services,staffOnDuty,lastVisitData,onSave,onClose}){
+  const selClient=clients.find(c=>c.id===Number(aForm.clientId));
+  const avPets=selClient?selClient.pets:[];
+  const handleClientChange=cid=>{
+    const lv=lastVisitData[Number(cid)];
+    if(lv){setAForm(p=>({...p,clientId:cid,groomerId:lv.groomerId||"",paymentMode:lv.paymentMode||"",duration:lv.duration||60,pets:[{petId:lv.petId,furLength:lv.furLength||"",service:lv.service||"",cost:lv.cost||"",notes:""}]}));}
+    else{setAForm(p=>({...p,clientId:cid,pets:[{petId:"",furLength:"",service:"",cost:"",notes:""}]}));}
+  };
+  const endTime=aForm.time&&aForm.duration?fmtT(minsToTime(timeToMins(aForm.time)+aForm.duration)):"";
+  const isAutofilled=aForm.clientId&&lastVisitData[Number(aForm.clientId)];
+  return(
+    <div className="mdbg" onClick={onClose}>
+      <div className="md" onClick={e=>e.stopPropagation()}>
+        <div className="mdh"/>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <p style={{fontSize:17,fontWeight:700}}>{actA?"Edit Appointment":"New Appointment"}</p>
+          <button onClick={onClose} style={{background:A.g1,borderRadius:"50%",width:32,height:32,border:"none",fontSize:16,color:A.g4,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto"}}>X</button>
+        </div>
+        <div className="g2" style={{marginBottom:10}}>
+          <div><Lbl c="Start Time"/><Inp type="time" step="900" value={aForm.time} onChange={e=>setAForm(p=>({...p,time:e.target.value}))}/>{endTime&&<p style={{fontSize:11,color:A.g4,marginTop:4}}>Ends {endTime}</p>}</div>
+          <div><Lbl c="Duration"/><Sel value={aForm.duration} onChange={e=>setAForm(p=>({...p,duration:Number(e.target.value)}))}>{DURATIONS.map(d=><option key={d.value} value={d.value}>{d.label}</option>)}</Sel></div>
+        </div>
+        <div style={{marginBottom:10}}>
+          <Lbl c="Client"/>
+          <Sel value={aForm.clientId} onChange={e=>handleClientChange(e.target.value)}>
+            <option value="">Select client...</option>
+            {clients.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+          </Sel>
+          {isAutofilled&&<p style={{fontSize:11,color:A.bu,marginTop:4,fontWeight:600}}>Auto-filled from last visit</p>}
+        </div>
+        <div style={{marginBottom:10}}>
+          <Lbl c="Status"/>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            {STATUS_ORDER.map(s=>{const sc=sConf(s);return(<button key={s} onClick={()=>setAForm(p=>({...p,status:s}))} style={{padding:"7px 14px",borderRadius:20,border:"1.5px solid "+(aForm.status===s?sc.bd:A.g2),background:aForm.status===s?sc.bg:"transparent",color:aForm.status===s?sc.tx:A.g4,fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer",minHeight:"auto"}}>{sc.label}</button>);})}
+          </div>
+        </div>
+        <div className="g2" style={{marginBottom:12}}>
+          <div><Lbl c="Payment Mode"/><Sel value={aForm.paymentMode} onChange={e=>setAForm(p=>({...p,paymentMode:e.target.value}))}><option value="">Select...</option>{PAY_MODES.map(m=><option key={m} value={m}>{m}</option>)}</Sel>{aForm.paymentMode&&<p style={{fontSize:12,fontWeight:700,color:pmColor(aForm.paymentMode),marginTop:4}}>{aForm.paymentMode}</p>}</div>
+          <div><Lbl c="Groomer"/><Sel value={aForm.groomerId} onChange={e=>setAForm(p=>({...p,groomerId:e.target.value}))}><option value="">Unassigned</option>{staffOnDuty.map(s=><option key={s.staffId} value={s.staffId}>{s.name}</option>)}</Sel></div>
+        </div>
+        {aForm.pets.map((pet,idx)=>{
+          const upd=(f,v)=>setAForm(p=>({...p,pets:p.pets.map((pt,i)=>i===idx?{...pt,[f]:v}:pt)}));
+          return(
+            <div key={idx} className="pbox">
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <span style={{fontSize:12,fontWeight:700,color:A.wn,textTransform:"uppercase"}}>Pet {idx+1}</span>
+                {aForm.pets.length>1&&<Btn sm v="dan" onClick={()=>setAForm(p=>({...p,pets:p.pets.filter((_,i)=>i!==idx)}))}>Remove</Btn>}
+              </div>
+              <div className="gf" style={{marginBottom:8}}>
+                <div><Lbl c="Pet"/><Sel value={pet.petId} onChange={e=>upd("petId",e.target.value)} disabled={!aForm.clientId}><option value="">{aForm.clientId?"Select pet...":"Pick client first"}</option>{avPets.map(p=><option key={p.id} value={p.id}>{p.name} ({p.breed})</option>)}</Sel></div>
+                <div><Lbl c="Coat"/><Sel value={pet.furLength} onChange={e=>upd("furLength",e.target.value)}><option value="">Select...</option>{FURS.map(f=><option key={f}>{f}</option>)}</Sel></div>
+                <div><Lbl c="Service"/><Sel value={pet.service} onChange={e=>{const sv=services.find(sv=>sv.name===e.target.value);upd("service",e.target.value);if(sv&&sv.price>0)upd("cost",sv.price);}}><option value="">Select...</option>{services.map(sv=><option key={sv.id} value={sv.name}>{sv.name}{sv.price>0?" - "+fmt(sv.price):""}</option>)}</Sel></div>
+                <div><Lbl c="Cost (P)"/><Inp type="number" value={pet.cost} onChange={e=>upd("cost",e.target.value)} placeholder="0"/></div>
+              </div>
+              <div><Lbl c="Notes"/><textarea value={pet.notes} onChange={e=>upd("notes",e.target.value)} rows={2} placeholder="e.g. Sensitive skin" style={{...iS,minHeight:"auto"}}/></div>
+            </div>
+          );
+        })}
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:10,paddingBottom:8}}>
+          <Btn v="sec" onClick={()=>setAForm(p=>({...p,pets:[...p.pets,{petId:"",furLength:"",service:"",cost:"",notes:""}]}))}>+ Pet</Btn>
+          <Btn onClick={onSave}>Save</Btn>
+          <Btn v="can" onClick={onClose}>Cancel</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LoginScreen({ownerPass,staffAccounts,onLogin}){
+  const[pass,setPass]=useState("");const[err,setErr]=useState("");
+  const tryLogin=()=>{if(pass===ownerPass)onLogin("owner");else if(staffAccounts.some(s=>s.password===pass))onLogin("staff");else setErr("Incorrect password.");};
+  return(
+    <div style={{minHeight:"100vh",background:"#000",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"20px 24px"}}>
+      <img src="https://i.imgur.com/UXTLxqT.png" alt="Ruff Cuts" style={{height:110,objectFit:"contain",marginBottom:8}}/>
+      <p style={{fontSize:12,color:"rgba(255,255,255,.3)",letterSpacing:2,textTransform:"uppercase",marginBottom:44}}>Pet Groomers</p>
+      <div style={{width:"100%",maxWidth:340}}>
+        <h2 style={{fontSize:26,fontWeight:700,color:"#fff",marginBottom:6,textAlign:"center"}}>Welcome back</h2>
+        <p style={{fontSize:15,color:"rgba(255,255,255,.35)",marginBottom:24,textAlign:"center"}}>Sign in to continue</p>
+        <input type="password" value={pass} onChange={e=>{setPass(e.target.value);setErr("");}} onKeyDown={e=>{if(e.key==="Enter")tryLogin();}} placeholder="Enter password"
+          style={{width:"100%",background:"rgba(255,255,255,.08)",border:"1px solid rgba(255,255,255,.12)",borderRadius:14,padding:"15px 18px",fontSize:16,color:"#fff",fontFamily:"inherit",outline:"none",letterSpacing:4,textAlign:"center",marginBottom:12,minHeight:52,WebkitAppearance:"none"}}/>
+        {err&&<div style={{background:"rgba(255,55,95,.12)",border:"1px solid rgba(255,55,95,.2)",borderRadius:10,padding:"11px 14px",marginBottom:12,textAlign:"center"}}><p style={{color:"#ff375f",fontSize:14,fontWeight:500}}>{err}</p></div>}
+        <button onClick={tryLogin} style={{width:"100%",background:"#fff",color:"#000",border:"none",borderRadius:"980px",padding:"15px",fontSize:16,fontWeight:600,cursor:"pointer",fontFamily:"inherit",marginBottom:20,minHeight:52}}>Sign In</button>
+      </div>
+    </div>
+  );
+}
+
+function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAccounts}){
+  const isOwner=role==="owner";
+  const TABS=isOwner
+    ?[["today","Today"],["schedule","Schedule"],["weekly","Weekly"],["clients","Clients"],["services","Services"],["staff","Staff"],["dashboard","Dashboard"],["permissions","Permissions"]]
+    :[["today","Today"],["schedule","Schedule"]];
+  const now=new Date();
+  const[tab,setTab]=useState("today");
+  const[menuOpen,setMenuOpen]=useState(false);
+  const[calView,setCalView]=useState("day");
+  const[clients,setClients]=useState([]);
+  const[schedules,setSchedules]=useState({});
+  const[expenses,setExpenses]=useState({});
+  const[services,setServices]=useState(DEF_SVC);
+  const[staffByDate,setStaffByDate]=useState({});
+  const[staffMembers,setStaffMembers]=useState([]);
+  const[paymentStatus,setPaymentStatus]=useState({});
+  const[weekOff,setWeekOff]=useState(0);
+  const[selDate,setSelDate]=useState(tod());
+  const[cForm,setCForm]=useState(bC());const[editCId,setEditCId]=useState(null);const[showCForm,setShowCForm]=useState(false);
+  const[aForm,setAForm]=useState(bA());const[actA,setActA]=useState(null);const[showAForm,setShowAForm]=useState(false);
+  const[eForm,setEForm]=useState({date:tod(),cat:"",custCat:"",amt:""});const[showEForm,setShowEForm]=useState(false);
+  const[svForm,setSvForm]=useState({name:"",price:""});const[editSvId,setEditSvId]=useState(null);const[showSvForm,setShowSvForm]=useState(false);
+  const[nFilter,setNFilter]=useState("");
+  const[annualYear,setAnnualYear]=useState(now.getFullYear());
+  const[trkStart,setTrkStart]=useState(now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-01");
+  const[trkEnd,setTrkEnd]=useState(tod());
+  const[smForm,setSmForm]=useState({id:null,name:"",age:"",designation:"Groomer",address:"",mobile:"",emergencyContact:"",dailySalary:700,photo:"",idPhoto:""});
+  const[showSmForm,setShowSmForm]=useState(false);
+  const[petModal,setPetModal]=useState(null);
+  const[staffDetailId,setStaffDetailId]=useState(null);
+  const[commDetailId,setCommDetailId]=useState(null);
+  const[sync,setSync]=useState("Syncing...");
+  const lastR=useRef(null);
+  const calRef=useRef(null);
+
+  useEffect(()=>{
+    if(!DOC){setSync("Offline");return;}
+    return DOC.onSnapshot(snap=>{
+      const d=snap.exists?snap.data():{};
+      lastR.current=d;
+      setClients(d.clients||[]);
+      if(d.schedules)setSchedules(d.schedules);
+      if(d.expenses)setExpenses(d.expenses);
+      setServices(d.services||DEF_SVC);
+      if(d.staffByDate)setStaffByDate(d.staffByDate);
+      setStaffMembers(d.staffMembers||[]);
+      setPaymentStatus(d.paymentStatus||{});
+      setSync("Synced");
+    },()=>setSync("Offline"));
+  },[]);
+
+  const sf=(f,v,r)=>{if(!DOC||JSON.stringify(v)===JSON.stringify(r))return;DOC.set({[f]:v},{merge:true}).then(()=>setSync("Synced")).catch(()=>setSync("Error"));};
+  useEffect(()=>{const t=setTimeout(()=>sf("clients",clients,lastR.current&&lastR.current.clients),800);return()=>clearTimeout(t);},[clients]);
+  useEffect(()=>{const t=setTimeout(()=>sf("schedules",schedules,lastR.current&&lastR.current.schedules),800);return()=>clearTimeout(t);},[schedules]);
+  useEffect(()=>{const t=setTimeout(()=>sf("expenses",expenses,lastR.current&&lastR.current.expenses),800);return()=>clearTimeout(t);},[expenses]);
+  useEffect(()=>{const t=setTimeout(()=>sf("services",services,lastR.current&&lastR.current.services),800);return()=>clearTimeout(t);},[services]);
+  useEffect(()=>{const t=setTimeout(()=>sf("staffByDate",staffByDate,lastR.current&&lastR.current.staffByDate),800);return()=>clearTimeout(t);},[staffByDate]);
+  useEffect(()=>{const t=setTimeout(()=>sf("staffMembers",staffMembers,lastR.current&&lastR.current.staffMembers),800);return()=>clearTimeout(t);},[staffMembers]);
+  useEffect(()=>{const t=setTimeout(()=>sf("paymentStatus",paymentStatus,lastR.current&&lastR.current.paymentStatus),800);return()=>clearTimeout(t);},[paymentStatus]);
+
+  useEffect(()=>{
+    if((tab==="schedule"||tab==="today")&&calView==="day"&&calRef.current){
+      const h=now.getHours();
+      if(h>=CAL_START&&h<CAL_END){setTimeout(()=>calRef.current&&calRef.current.scrollTo({top:Math.max(0,(h-CAL_START)*SLOT_H-80),behavior:"smooth"}),150);}
+    }
+  },[tab,calView,selDate]);
+
+  const todStr=tod();
+  const wk=getWeek(weekOff);
+  const gA=d=>schedules[d]||[];
+  const gE=d=>expenses[d]||[];
+  const gSt=d=>(staffByDate[d]||[]).map(normSt);
+  const gSal=d=>{const onDuty=gSt(d);return onDuty.reduce((s,sm)=>{const member=staffMembers.find(m=>m.id===sm.staffId);const rate=member&&member.dailySalary?Number(member.dailySalary):700;return s+rate;},0);};
+  const gRev=d=>gA(d).filter(a=>a.status!=="cancelled").reduce((s,a)=>s+Number(a.cost||0),0);
+  const gExpR=d=>gE(d).reduce((s,e)=>s+Number(e.amount||0),0);
+  const gComm=d=>gA(d).filter(a=>a.groomerId&&a.status!=="cancelled").reduce((s,a)=>s+Number(a.cost||0)*0.1,0);
+  const gExp=d=>gExpR(d)+gSal(d);
+  const gP=d=>gRev(d)-gExp(d)-gComm(d);
+
+  const allD=[...new Set([...Object.keys(schedules),...Object.keys(expenses),...Object.keys(staffByDate).filter(d=>(staffByDate[d]||[]).length>0)])];
+  const totP=ds=>ds.reduce((s,d)=>s+gP(d),0);
+  const thiswk=getWeek(0);
+  const thismo=allD.filter(d=>d.startsWith(now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")));
+  const thisyr=allD.filter(d=>d.startsWith(""+now.getFullYear()));
+  const allAppts=Object.values(schedules).flat();
+  const availYears=[...new Set([...allD.map(d=>parseInt(d.split("-")[0])),now.getFullYear()])].sort((a,b)=>b-a);
+
+  const lastVisitData={};
+  clients.forEach(cl=>{
+    const hist=[];
+    Object.entries(schedules).forEach(([date,appts])=>{appts.filter(a=>a.clientId===cl.id).forEach(a=>hist.push({...a,date}));});
+    hist.sort((a,b)=>b.date.localeCompare(a.date));
+    if(hist.length>0)lastVisitData[cl.id]=hist[0];
+  });
+
+  const getPay=key=>getPayE(paymentStatus[key]);
+  const isPaid=key=>getPay(key).status==="paid";
+  const togglePay=(key,amount)=>setPaymentStatus(p=>({...p,[key]:isPaid(key)?{status:"unpaid",paidAmount:0,paidOn:null}:{status:"paid",paidAmount:amount,paidOn:tod()}}));
+
+  const togStaff=sm=>{
+    const curr=gSt(selDate);const has=curr.find(s=>s.staffId===sm.id);
+    if(has)setStaffByDate(p=>({...p,[selDate]:curr.filter(s=>s.staffId!==sm.id)}));
+    else setStaffByDate(p=>({...p,[selDate]:[...curr,{staffId:sm.id,name:sm.name,designation:sm.designation}]}));
+  };
+
+  const cycleStatus=(date,apptId)=>{setSchedules(prev=>({...prev,[date]:(prev[date]||[]).map(a=>a.id===apptId?{...a,status:nextStatus(a.status||"pending")}:a)}));};
+  const quickAssign=(date,apptId,groomerId)=>{setSchedules(prev=>({...prev,[date]:(prev[date]||[]).map(a=>a.id===apptId?{...a,groomerId:groomerId||null}:a)}));};
+
+  const saveSm=()=>{
+    if(!smForm.name.trim())return;
+    const data={...smForm,dailySalary:Number(smForm.dailySalary)||700};
+    if(smForm.id)setStaffMembers(p=>p.map(s=>s.id===smForm.id?data:s));
+    else setStaffMembers(p=>[...p,{...data,id:Date.now()}]);
+    setSmForm({id:null,name:"",age:"",designation:"Groomer",address:"",mobile:"",emergencyContact:"",dailySalary:700,photo:"",idPhoto:""});
+    setShowSmForm(false);
+  };
+
+  const saveA=()=>{
+    if(!aForm.clientId)return;
+    const cl=clients.find(c=>c.id===Number(aForm.clientId));
+    const newA=aForm.pets.filter(p=>p.petId&&p.service&&p.cost).map(p=>{
+      const pt=cl&&cl.pets.find(pet=>pet.id===Number(p.petId));
+      return{id:Date.now()+Math.random(),clientId:Number(aForm.clientId),petId:Number(p.petId),clientName:cl?cl.name:"",address:cl?cl.address:"",mobile:cl?cl.mobile:"",petName:pt?pt.name:"",breed:pt?pt.breed:"",petSize:pt?pt.size:"",furLength:p.furLength,service:p.service,cost:Number(p.cost),notes:p.notes,time:aForm.time,duration:aForm.duration||60,groomerId:aForm.groomerId||null,paymentMode:aForm.paymentMode||"",status:aForm.status||"pending"};
+    });
+    if(!newA.length)return;
+    setSchedules(prev=>{const ex=actA?(prev[selDate]||[]).filter(a=>a.id!==actA.id):prev[selDate]||[];return{...prev,[selDate]:[...ex,...newA].sort((a,b)=>(a.time||"").localeCompare(b.time||""))};});
+    setAForm(bA());setActA(null);setShowAForm(false);
+  };
+
+  const openEditAppt=a=>{setActA(a);setAForm({clientId:a.clientId,time:a.time||"",groomerId:a.groomerId||"",paymentMode:a.paymentMode||"",duration:a.duration||60,status:a.status||"pending",pets:[{petId:a.petId,furLength:a.furLength||"",service:a.service,cost:a.cost,notes:a.notes||""}]});setShowAForm(true);};
+  const delA=(d,id)=>setSchedules(prev=>({...prev,[d]:(prev[d]||[]).filter(a=>a.id!==id)}));
+  const saveCl=()=>{if(!cForm.name)return;const pets=cForm.pets.map(p=>({...p,id:p.id||Date.now()+Math.random()}));if(editCId)setClients(prev=>prev.map(c=>c.id===editCId?{...c,...cForm,pets}:c));else setClients(prev=>[...prev,{id:Date.now(),...cForm,pets}]);setCForm(bC());setEditCId(null);setShowCForm(false);};
+  const updPet=(i,f,v)=>setCForm(prev=>({...prev,pets:prev.pets.map((p,j)=>i===j?{...p,[f]:v}:p)}));
+  const saveE=()=>{if(!eForm.amt)return;const cat=eForm.cat==="Other"?eForm.custCat:eForm.cat;setExpenses(prev=>({...prev,[eForm.date]:[...(prev[eForm.date]||[]),{id:Date.now(),category:cat,amount:Number(eForm.amt)}]}));setEForm({date:tod(),cat:"",custCat:"",amt:""});setShowEForm(false);};
+  const saveSv=()=>{if(!svForm.name.trim())return;if(editSvId)setServices(prev=>prev.map(sv=>sv.id===editSvId?{...sv,name:svForm.name,price:Number(svForm.price)}:sv));else setServices(prev=>[...prev,{id:Date.now(),name:svForm.name,price:Number(svForm.price)}]);setSvForm({name:"",price:""});setEditSvId(null);setShowSvForm(false);};
+
+  const fCl=clients.filter(c=>c.name.toLowerCase().includes(nFilter.toLowerCase())||c.pets.some(p=>p.name.toLowerCase().includes(nFilter.toLowerCase())));
+  const appts=gA(selDate);
+  const dRev=gRev(selDate);const dExpR=gExpR(selDate);const dP=gP(selDate);const dSt=gSt(selDate);const dSal=gSal(selDate);const dComm=gComm(selDate);
+  const syncDot=sync==="Synced"?"#34c759":sync==="Offline"?"#ff9f0a":"rgba(255,255,255,.4)";
+  const goTab=k=>{setTab(k);setMenuOpen(false);};
+  const prevDay=()=>{const d=new Date(selDate+"T12:00:00");d.setDate(d.getDate()-1);setSelDate(d.toISOString().split("T")[0]);};
+  const nextDay=()=>{const d=new Date(selDate+"T12:00:00");d.setDate(d.getDate()+1);setSelDate(d.toISOString().split("T")[0]);};
+
+  const trkDates=[...new Set([...Object.keys(schedules),...Object.keys(staffByDate)])].filter(d=>d>=trkStart&&d<=trkEnd&&gSt(d).length>0).sort().reverse();
+  const periodKey=trkStart+"_"+trkEnd;
+  const salKey=name=>"sal_"+name+"_"+periodKey;
+  const comKey=sid=>"com_"+sid+"_"+periodKey;
+
+  const salByStaff={};
+  trkDates.forEach(d=>{
+    gSt(d).forEach(s=>{
+      if(!salByStaff[s.name])salByStaff[s.name]={name:s.name,designation:s.designation||"",days:0,total:0,dates:[]};
+      const member=staffMembers.find(m=>m.id===s.staffId);
+      const rate=member&&member.dailySalary?Number(member.dailySalary):700;
+      salByStaff[s.name].days++;salByStaff[s.name].total+=rate;salByStaff[s.name].dates.push({date:d,amount:rate});
+    });
+  });
+
+  const commByGroomer={};
+  trkDates.forEach(d=>{
+    gA(d).filter(a=>a.groomerId&&a.status!=="cancelled").forEach(a=>{
+      const member=staffMembers.find(m=>m.id===a.groomerId);
+      const name=member?member.name:(gSt(d).find(s=>s.staffId===a.groomerId)||{name:"Unknown"}).name;
+      if(!commByGroomer[a.groomerId])commByGroomer[a.groomerId]={staffId:a.groomerId,name,total:0,pets:0,breakdown:[]};
+      const comm=Number(a.cost||0)*0.1;
+      commByGroomer[a.groomerId].total+=comm;commByGroomer[a.groomerId].pets++;
+      commByGroomer[a.groomerId].breakdown.push({date:d,petName:a.petName,service:a.service,cost:Number(a.cost||0),comm});
+    });
+  });
+
+  const salUnsettled=Object.values(salByStaff).filter(s=>!isPaid(salKey(s.name)));
+  const salOutstandingTotal=salUnsettled.reduce((s,x)=>s+x.total,0);
+  const commUnsettled=Object.values(commByGroomer).filter(g=>!isPaid(comKey(g.staffId)));
+  const commOutstandingTotal=commUnsettled.reduce((s,x)=>s+x.total,0);
+  const periodLabel=trkStart===trkEnd?fmtD(trkStart):fmtD(trkStart)+" - "+fmtD(trkEnd);
+
+  const periodSel=(
+    <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+      <div style={{display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:12,color:A.g4}}>From</span><Inp type="date" value={trkStart} onChange={e=>setTrkStart(e.target.value)} style={{width:"auto",padding:"8px 10px",fontSize:16,minHeight:44}}/></div>
+      <div style={{display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:12,color:A.g4}}>To</span><Inp type="date" value={trkEnd} onChange={e=>setTrkEnd(e.target.value)} style={{width:"auto",padding:"8px 10px",fontSize:16,minHeight:44}}/></div>
+    </div>
+  );
+
+  function PayBtn({pkey,amount}){
+    const paid=isPaid(pkey);const entry=getPay(pkey);
+    return(
+      <div style={{marginTop:6}}>
+        <button onClick={()=>togglePay(pkey,amount)} style={{width:"100%",padding:"10px 12px",borderRadius:A.pill,border:"none",fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",background:paid?A.sbg:A.dbg,color:paid?A.ok:A.er,minHeight:44}}>
+          {paid?"Paid":"Mark as Paid"}
+        </button>
+        {paid&&entry.paidOn&&<p style={{fontSize:11,color:A.g4,textAlign:"center",marginTop:3}}>Paid {fmtD(entry.paidOn)}</p>}
+      </div>
+    );
+  }
+
+  const apptFormModal=showAForm&&(
+    <ApptForm actA={actA} aForm={aForm} setAForm={setAForm} clients={clients} services={services} staffOnDuty={dSt} lastVisitData={lastVisitData} onSave={saveA} onClose={()=>{setShowAForm(false);setActA(null);setAForm(bA());}}/>
+  );
+
+  const renderContent=()=>{
+
+    if(tab==="today"){
+      const todAppts=gA(todStr);const todSt=gSt(todStr);
+      const done=todAppts.filter(a=>a.status==="completed");
+      const active=todAppts.filter(a=>a.status==="in-progress");
+      const pending=todAppts.filter(a=>!["completed","cancelled","in-progress"].includes(a.status||"pending"));
+      const unpaid=todAppts.filter(a=>!a.paymentMode&&a.status!=="cancelled");
+      const nextAppt=pending.filter(a=>a.time).sort((a,b)=>a.time.localeCompare(b.time))[0]||active[0]||null;
+      const todRev=gRev(todStr);const todComm=gComm(todStr);const todP=gP(todStr);
+      const total=todAppts.filter(a=>a.status!=="cancelled").length;
+      const pct=total>0?Math.round(done.length/total*100):0;
+      const groomerCommToday={};
+      todAppts.filter(a=>a.groomerId&&a.status!=="cancelled").forEach(a=>{
+        const member=staffMembers.find(m=>m.id===a.groomerId);const name=member?member.name:"Unknown";
+        if(!groomerCommToday[a.groomerId])groomerCommToday[a.groomerId]={name,comm:0,pets:0};
+        groomerCommToday[a.groomerId].comm+=Number(a.cost||0)*0.1;groomerCommToday[a.groomerId].pets++;
+      });
+
+      function TodayApptCard({a,date,showAssign}){
+        const c=aColor(a.service);const sc=sConf(a.status||"pending");
+        const groomer=todSt.find(s=>s.staffId===a.groomerId);
+        const groomersAvail=todSt.filter(s=>s.designation==="Groomer");
+        return(
+          <div className="today-card" style={{borderLeftColor:c.bd}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5,flexWrap:"wrap"}}>
+                  {a.time&&<span style={{fontSize:13,fontWeight:700,color:c.acc}}>{fmtT(a.time)}{a.duration?" ("+a.duration+"m)":""}</span>}
+                  <StatusPill status={a.status||"pending"} onClick={()=>cycleStatus(date||todStr,a.id)}/>
+                  {a.paymentMode&&<span style={{fontSize:11,fontWeight:700,color:pmColor(a.paymentMode)}}>{a.paymentMode}</span>}
+                </div>
+                <p style={{fontSize:17,fontWeight:700,color:A.bl,marginBottom:2}}>{a.petName||"-"}</p>
+                <p style={{fontSize:13,color:A.g4,marginBottom:2}}>{a.clientName}</p>
+                <p style={{fontSize:12,color:A.g4}}>{a.service}</p>
+                {a.notes&&<p style={{fontSize:11,color:"#dc2626",marginTop:3,fontWeight:600}}>{a.notes}</p>}
+                {groomer&&<p style={{fontSize:11,color:A.g4,marginTop:3}}>{groomer.name}</p>}
+                {showAssign&&groomersAvail.length>0&&(
+                  <div style={{marginTop:8}}>
+                    <Sel value={a.groomerId||""} onChange={e=>quickAssign(date||todStr,a.id,e.target.value||null)} style={{fontSize:13,padding:"7px 10px",minHeight:38,background:"#f0f0f5"}}>
+                      <option value="">Unassigned</option>
+                      {groomersAvail.map(g=><option key={g.staffId} value={g.staffId}>{g.name}</option>)}
+                    </Sel>
+                  </div>
+                )}
+              </div>
+              <div style={{textAlign:"right",flexShrink:0}}>
+                <p style={{fontSize:17,fontWeight:700,color:A.ok,marginBottom:8}}>{fmt(a.cost)}</p>
+                <button onClick={()=>openEditAppt(a)} style={{background:A.g1,border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,color:A.bl,cursor:"pointer",fontFamily:"inherit",fontWeight:600,minHeight:"auto",display:"block",marginBottom:6}}>Edit</button>
+                <button onClick={()=>delA(date||todStr,a.id)} style={{background:A.dbg,border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,color:A.er,cursor:"pointer",fontFamily:"inherit",fontWeight:600,minHeight:"auto",display:"block"}}>Del</button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return(
+        <div className="sec">
+          {apptFormModal}
+          <div style={{marginBottom:16}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+              <div><h1 style={{fontSize:28,fontWeight:700,letterSpacing:"-.02em"}}>{DNAMES[now.getDay()]}</h1><p style={{fontSize:14,color:A.g4}}>{fmtD(todStr)}</p></div>
+              <button onClick={()=>{setActA(null);setAForm(bA());setShowAForm(true);}} style={{width:44,height:44,borderRadius:"50%",background:A.bu,border:"none",color:"#fff",fontSize:24,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>+</button>
+            </div>
+          </div>
+          {todSt.length>0&&(
+            <div style={{background:"#111",borderRadius:12,padding:"12px 14px",marginBottom:14,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+              <span style={{fontSize:11,color:"rgba(255,255,255,.4)",fontWeight:600,textTransform:"uppercase",letterSpacing:.4,flexShrink:0}}>On Duty</span>
+              {todSt.map((s,i)=>{const dc=s.designation==="Groomer"?"#34c759":s.designation==="Driver"?"#0071e3":"#ff9f0a";return <span key={i} style={{fontSize:13,fontWeight:700,color:dc,background:dc+"22",padding:"4px 12px",borderRadius:20}}>{s.name}</span>;})}
+            </div>
+          )}
+          {todSt.length===0&&(
+            <div style={{background:"#1c1c1e",borderRadius:12,padding:"12px 14px",marginBottom:14}}>
+              <p style={{fontSize:13,color:"#ff9f0a",fontWeight:600}}>No staff toggled on duty today</p>
+              <p style={{fontSize:12,color:"rgba(255,255,255,.4)",marginTop:2}}>Go to Schedule tab to toggle staff on duty</p>
+            </div>
+          )}
+          {total>0&&(
+            <div style={{background:"#fff",borderRadius:12,padding:"14px",marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <p style={{fontSize:15,fontWeight:700}}>{done.length} / {total} dogs done</p>
+                <p style={{fontSize:15,fontWeight:700,color:A.ok}}>{pct}%</p>
+              </div>
+              <div style={{background:A.g2,borderRadius:6,height:8,overflow:"hidden"}}><div style={{background:A.ok,height:8,borderRadius:6,width:pct+"%",transition:"width .3s"}}/></div>
+              <div style={{display:"flex",gap:12,marginTop:10,flexWrap:"wrap"}}>
+                {[["Done",done.length,"#34c759"],["Active",active.length,"#ff9f0a"],["Pending",pending.length,"#aeaeb2"],["Unpaid",unpaid.length,"#ff375f"]].map(([l,n,c])=>(
+                  <div key={l} style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:8,height:8,borderRadius:"50%",background:c}}/><span style={{fontSize:12,color:A.g4}}>{l}: </span><span style={{fontSize:12,fontWeight:700,color:c}}>{n}</span></div>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="g3" style={{marginBottom:14}}>
+            <div className="sc"><p style={{fontSize:10,color:A.g4,marginBottom:4,textTransform:"uppercase",fontWeight:600}}>Revenue</p><p style={{fontSize:20,fontWeight:700,color:A.bu}}>{fmt(todRev)}</p></div>
+            <div className="sc"><p style={{fontSize:10,color:A.g4,marginBottom:4,textTransform:"uppercase",fontWeight:600}}>Commission</p><p style={{fontSize:20,fontWeight:700,color:A.wn}}>{fmt(todComm)}</p></div>
+            <div className="sc"><p style={{fontSize:10,color:A.g4,marginBottom:4,textTransform:"uppercase",fontWeight:600}}>Profit</p><p style={{fontSize:20,fontWeight:700,color:todP>=0?A.ok:A.er}}>{fmt(todP)}</p></div>
+          </div>
+          {Object.keys(groomerCommToday).length>0&&(
+            <div style={{background:"#fff",borderRadius:12,padding:"12px 14px",marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}>
+              <p style={{fontSize:11,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.4,marginBottom:10}}>Today's Commission</p>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {Object.values(groomerCommToday).map(g=>(
+                  <div key={g.name} style={{flex:1,minWidth:100,background:A.g1,borderRadius:10,padding:"10px",textAlign:"center"}}>
+                    <p style={{fontSize:13,fontWeight:700,color:A.bl,marginBottom:2}}>{g.name}</p>
+                    <p style={{fontSize:11,color:A.g4,marginBottom:4}}>{g.pets} dog{g.pets!==1?"s":""}</p>
+                    <p style={{fontSize:16,fontWeight:700,color:A.wn}}>{fmt(g.comm)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {unpaid.length>0&&(<div style={{marginBottom:14}}><p style={{fontSize:11,fontWeight:700,color:A.er,textTransform:"uppercase",letterSpacing:.4,marginBottom:8}}>Needs Payment ({unpaid.length})</p>{unpaid.map(a=><TodayApptCard key={a.id} a={a} showAssign={false}/>)}</div>)}
+          {nextAppt&&(<div style={{marginBottom:14}}><p style={{fontSize:11,fontWeight:700,color:A.bu,textTransform:"uppercase",letterSpacing:.4,marginBottom:8}}>Next Up</p><TodayApptCard a={nextAppt} showAssign={true}/></div>)}
+          {active.length>0&&(<div style={{marginBottom:14}}><p style={{fontSize:11,fontWeight:700,color:A.wn,textTransform:"uppercase",letterSpacing:.4,marginBottom:8}}>In Progress ({active.length})</p>{active.map(a=><TodayApptCard key={a.id} a={a} showAssign={false}/>)}</div>)}
+          {pending.length>0&&(<div style={{marginBottom:14}}><p style={{fontSize:11,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.4,marginBottom:8}}>Remaining ({pending.length})</p>{pending.filter(a=>a!==nextAppt).sort((a,b)=>(a.time||"zz").localeCompare(b.time||"zz")).map(a=><TodayApptCard key={a.id} a={a} showAssign={true}/>)}</div>)}
+          {done.length>0&&(
+            <div style={{marginBottom:14}}>
+              <p style={{fontSize:11,fontWeight:700,color:A.ok,textTransform:"uppercase",letterSpacing:.4,marginBottom:8}}>Completed ({done.length})</p>
+              {done.map(a=>(
+                <div key={a.id} className="today-card" style={{borderLeftColor:"#34c759",opacity:.7}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div><p style={{fontSize:15,fontWeight:700,color:A.bl,marginBottom:2}}>{a.petName}</p><p style={{fontSize:12,color:A.g4}}>{a.service}</p>{a.time&&<p style={{fontSize:11,color:A.g4}}>{fmtT(a.time)}</p>}</div>
+                    <div style={{textAlign:"right"}}><p style={{fontSize:14,fontWeight:700,color:A.ok}}>{fmt(a.cost)}</p><StatusPill status="completed" onClick={()=>cycleStatus(todStr,a.id)}/></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {todAppts.length===0&&(
+            <div style={{textAlign:"center",padding:"3rem 1rem",color:A.g4}}>
+              <p style={{fontSize:40,marginBottom:12}}>📅</p>
+              <p style={{fontSize:16,fontWeight:700,color:A.bl,marginBottom:6}}>No appointments today</p>
+              <p style={{fontSize:13,marginBottom:20}}>Tap + to add one</p>
+              <Btn onClick={()=>{setActA(null);setAForm(bA());setShowAForm(true);}}>+ Add Appointment</Btn>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if(tab==="schedule"){
+      const selDayName=DNAMES[new Date(selDate+"T12:00:00").getDay()];
+      const totalPets=appts.filter(a=>a.status!=="cancelled").length;
+      const columns=[...dSt,{staffId:"unassigned",name:"Unassigned",designation:""}];
+      const getColAppts=staffId=>appts.filter(a=>staffId==="unassigned"?(!a.groomerId||!dSt.some(s=>s.staffId===a.groomerId)):a.groomerId===staffId);
+      const getColCount=staffId=>getColAppts(staffId).filter(a=>a.status!=="cancelled").length;
+      const getColRev=staffId=>getColAppts(staffId).filter(a=>a.status!=="cancelled").reduce((s,a)=>s+Number(a.cost||0),0);
+      const colBarColor=col=>{if(!col.designation)return"#e8e8ed";if(col.designation==="Groomer")return"#34c759";if(col.designation==="Driver")return"#0071e3";return"#ff9f0a";};
+      const handleColClick=(e,staffId)=>{
+        const rect=e.currentTarget.getBoundingClientRect();const y=e.clientY-rect.top;
+        const rawMins=y/PX_PER_MIN;const snappedMins=Math.floor(rawMins/15)*15;const absMins=CAL_START*60+snappedMins;
+        if(absMins>=CAL_START*60&&absMins<CAL_END*60){setActA(null);setAForm({...bA(),time:minsToTime(absMins),groomerId:staffId!=="unassigned"?staffId:""});setShowAForm(true);}
+      };
+      const nowH=now.getHours();const nowM=now.getMinutes();
+      const nowY=selDate===todStr&&nowH>=CAL_START&&nowH<CAL_END?((nowH-CAL_START)+nowM/60)*SLOT_H:-1;
+      const HDR_H=62;
+      return(
+        <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 52px)",minHeight:0}}>
+          {apptFormModal}
+          <div style={{background:"#111",flexShrink:0}}>
+            <div style={{display:"flex",alignItems:"center",padding:"10px 14px 6px",gap:8}}>
+              <button onClick={prevDay} style={{width:36,height:36,borderRadius:9,background:"rgba(255,255,255,.1)",border:"none",color:"#fff",fontSize:20,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto"}}>{"<"}</button>
+              <div style={{flex:1,textAlign:"center"}}><p style={{color:"#fff",fontWeight:700,fontSize:16}}>{selDayName}</p><p style={{color:"rgba(255,255,255,.45)",fontSize:12,marginTop:1}}>{fmtD(selDate)}</p></div>
+              <button onClick={nextDay} style={{width:36,height:36,borderRadius:9,background:"rgba(255,255,255,.1)",border:"none",color:"#fff",fontSize:20,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto"}}>{">"}</button>
+            </div>
+            <div style={{display:"flex",alignItems:"center",padding:"0 14px 10px",gap:8}}>
+              <div style={{display:"flex",background:"rgba(255,255,255,.1)",borderRadius:7,padding:2}}>
+                {[["day","Day"],["agenda","Agenda"]].map(([v,l])=>(<button key={v} onClick={()=>setCalView(v)} style={{padding:"5px 13px",borderRadius:5,background:calView===v?"#fff":"transparent",color:calView===v?"#1c1c1e":"rgba(255,255,255,.55)",fontSize:12,fontWeight:700,cursor:"pointer",border:"none",fontFamily:"inherit",minHeight:"auto"}}>{l}</button>))}
+              </div>
+              <button onClick={()=>setSelDate(todStr)} style={{padding:"5px 12px",borderRadius:7,background:selDate===todStr?"rgba(255,255,255,.2)":"rgba(255,255,255,.07)",border:"none",color:selDate===todStr?"#fff":"rgba(255,255,255,.5)",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",minHeight:"auto",flexShrink:0}}>Today</button>
+              <div style={{display:"flex",alignItems:"center",gap:5,background:"rgba(255,255,255,.07)",borderRadius:7,padding:"4px 9px",flexShrink:0}}><span style={{fontSize:11,color:"rgba(255,255,255,.5)"}}>Pets</span><span style={{fontSize:12,fontWeight:700,color:"#fff"}}>{totalPets}</span></div>
+              {dRev>0&&<div style={{background:"rgba(52,199,89,.15)",borderRadius:7,padding:"4px 9px",flexShrink:0}}><span style={{fontSize:11,fontWeight:700,color:"#34c759"}}>{fmt(dRev)}</span></div>}
+              <div style={{flex:1}}/>
+              <button onClick={()=>{setActA(null);setAForm(bA());setShowAForm(true);}} style={{width:36,height:36,borderRadius:"50%",background:"#0071e3",border:"none",color:"#fff",fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto",flexShrink:0}}>+</button>
+            </div>
+          </div>
+          <div style={{background:"#1c1c1e",padding:"8px 14px",display:"flex",alignItems:"center",gap:7,overflowX:"auto",flexShrink:0,borderBottom:"1px solid rgba(255,255,255,.06)"}}>
+            <span style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,.3)",textTransform:"uppercase",letterSpacing:.5,whiteSpace:"nowrap",flexShrink:0}}>On Duty</span>
+            {staffMembers.length===0?<span style={{fontSize:12,color:"rgba(255,255,255,.25)"}}>Add staff in Staff tab</span>:staffMembers.map(sm=>{
+              const on=dSt.some(s=>s.staffId===sm.id);const dc=sm.designation==="Groomer"?"#34c759":sm.designation==="Driver"?"#0071e3":"#ff9f0a";
+              return(<button key={sm.id} onClick={()=>togStaff(sm)} style={{display:"inline-flex",alignItems:"center",gap:5,padding:"6px 13px",borderRadius:20,border:"1.5px solid "+(on?dc:"rgba(255,255,255,.15)"),background:on?dc+"22":"transparent",color:on?dc:"rgba(255,255,255,.4)",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer",minHeight:"auto",flexShrink:0}}>{sm.name.split(" ")[0]}{on?" ON":""}</button>);
+            })}
+          </div>
+          {calView==="day"&&(
+            <div ref={calRef} className="cal-wrap">
+              <div style={{minWidth:52+Math.max(columns.length,1)*130,position:"relative"}}>
+                <div className="cal-col-hdr" style={{height:HDR_H}}>
+                  <div className="cal-time-hdr" style={{height:HDR_H}}><span style={{fontSize:9,color:A.g3,fontWeight:700,textTransform:"uppercase"}}>Time</span></div>
+                  {columns.map(col=>{const cnt=getColCount(col.staffId);const rev=getColRev(col.staffId);const isU=col.staffId==="unassigned";return(
+                    <div key={col.staffId} className="cal-staff-hdr" style={{flex:"1 0 130px",borderTop:"3px solid "+colBarColor(col)}}>
+                      <p style={{fontWeight:700,fontSize:12,color:A.bl,marginBottom:2,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>{isU?"Unassigned":col.name}</p>
+                      {col.designation&&<div style={{marginBottom:3}}><Bdg color={dsgC(col.designation)}>{col.designation}</Bdg></div>}
+                      <div style={{display:"flex",gap:4,justifyContent:"center",flexWrap:"wrap"}}><span style={{fontSize:10,color:A.g4,fontWeight:600}}>{cnt} pet{cnt!==1?"s":""}</span>{rev>0&&<span style={{fontSize:10,color:A.ok,fontWeight:700}}>{fmt(rev)}</span>}</div>
+                    </div>
+                  );})}
+                </div>
+                <div className="cal-grid">
+                  <div className="cal-time-col" style={{height:TOTAL_H,position:"relative",flexShrink:0}}>
+                    {hours.map(h=>(<div key={h} className="cal-time-lbl" style={{top:(h-CAL_START)*SLOT_H}}>{fmtHour(h)}</div>))}
+                  </div>
+                  {columns.map(col=>{
+                    const colAppts=getColAppts(col.staffId);
+                    return(
+                      <div key={col.staffId} className="cal-abs-col" style={{flex:"1 0 130px",height:TOTAL_H,backgroundImage:"repeating-linear-gradient(to bottom, transparent 0px, transparent 22.5px, rgba(0,0,0,.04) 22.5px, rgba(0,0,0,.04) 23px, transparent 23px, transparent 45px, rgba(0,0,0,.07) 45px, rgba(0,0,0,.07) 45.5px, transparent 45.5px, transparent 67.5px, rgba(0,0,0,.04) 67.5px, rgba(0,0,0,.04) 68px, transparent 68px, transparent 90px), repeating-linear-gradient(to bottom, #e8e8ed 0px, #e8e8ed 1px, transparent 1px, transparent 90px)"}} onClick={e=>handleColClick(e,col.staffId)}>
+                        {colAppts.map(a=>{
+                          const top=tToY(a.time);if(top<0)return null;
+                          const height=Math.max((a.duration||60)*PX_PER_MIN,28);const c=aColor(a.service);const sc=sConf(a.status||"pending");
+                          return(
+                            <div key={a.id} onClick={e=>{e.stopPropagation();openEditAppt(a);}} style={{position:"absolute",top:top+1,left:2,right:2,height:height-2,background:c.bg,borderLeft:"3px solid "+c.bd,borderRadius:"0 7px 7px 0",overflow:"hidden",cursor:"pointer",zIndex:2,boxShadow:"0 1px 4px rgba(0,0,0,.1)"}}>
+                              <div style={{padding:"4px 6px",height:"100%",display:"flex",flexDirection:"column",justifyContent:"space-between"}}>
+                                <div>
+                                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:2}}>
+                                    <p style={{fontSize:12,fontWeight:700,color:c.tx,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",flex:1}}>{a.petName||"-"}</p>
+                                    <button onClick={ev=>{ev.stopPropagation();cycleStatus(selDate,a.id);}} style={{background:sc.bg,border:"none",borderRadius:4,padding:"1px 5px",fontSize:9,color:sc.tx,cursor:"pointer",fontFamily:"inherit",fontWeight:700,flexShrink:0,minHeight:"auto",lineHeight:"1.4"}}>{sc.label}</button>
+                                  </div>
+                                  {height>40&&<p style={{fontSize:9,color:c.tx,opacity:.7,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>{(a.service||"").split("-")[0].trim()}</p>}
+                                </div>
+                                {height>55&&(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:9,fontWeight:700,color:c.acc}}>{fmtT(a.time)}</span>{a.paymentMode&&<span style={{fontSize:9,fontWeight:700,color:pmColor(a.paymentMode)}}>{a.paymentMode}</span>}</div>)}
+                              </div>
+                              <button onClick={ev=>{ev.stopPropagation();delA(selDate,a.id);}} style={{position:"absolute",top:2,right:height>55?2:20,background:"rgba(0,0,0,.1)",border:"none",borderRadius:3,width:14,height:14,fontSize:8,color:c.tx,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto",padding:0}}>X</button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                  {nowY>0&&(<div style={{position:"absolute",top:nowY,left:0,right:0,height:2,background:"#ff375f",zIndex:15,pointerEvents:"none"}}><div style={{position:"absolute",left:-5,top:-4,width:10,height:10,borderRadius:"50%",background:"#ff375f"}}/></div>)}
+                </div>
+                {appts.length>0&&(
+                  <div style={{padding:"14px",background:"#f2f2f7",borderTop:".5px solid #e8e8ed",paddingBottom:"max(20px,env(safe-area-inset-bottom))"}}>
+                    <p style={{fontSize:11,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.4,marginBottom:10}}>Day Summary</p>
+                    <div className="gm">
+                      {[["Revenue",fmt(dRev),A.bu],["Expenses",fmt(dExpR),A.er],["Salaries",fmt(dSal),A.bl],["Commission",fmt(dComm),A.wn],["Net Profit",fmt(dP),dP>=0?A.ok:A.er]].map(([l,val,c])=>(
+                        <div key={l} className="sc" style={{boxShadow:"0 1px 3px rgba(0,0,0,.05)"}}><p style={{fontSize:9,color:A.g4,marginBottom:4,textTransform:"uppercase",fontWeight:600}}>{l}</p><p style={{fontSize:14,fontWeight:700,color:c}}>{val}</p></div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          {calView==="agenda"&&(
+            <div style={{flex:1,overflowY:"auto",padding:"14px",paddingBottom:"max(24px,env(safe-area-inset-bottom))"}}>
+              {appts.length===0?(
+                <div style={{textAlign:"center",padding:"3rem 1rem",color:A.g4}}><p style={{fontSize:16,fontWeight:700,color:A.bl,marginBottom:6}}>No appointments</p><Btn onClick={()=>{setActA(null);setAForm(bA());setShowAForm(true);}}>+ Add</Btn></div>
+              ):(
+                <div>
+                  <p style={{fontSize:11,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.4,marginBottom:12}}>{appts.length} Appointments - {fmtD(selDate)}</p>
+                  {[...appts].sort((a,b)=>(a.time||"zz").localeCompare(b.time||"zz")).map(a=>{
+                    const c=aColor(a.service);const sc=sConf(a.status||"pending");
+                    const groomer=dSt.find(s=>s.staffId===a.groomerId);const groomersAvail=dSt.filter(s=>s.designation==="Groomer");
+                    const endT=a.time&&a.duration?fmtT(minsToTime(timeToMins(a.time)+a.duration)):"";
+                    return(
+                      <div key={a.id} onClick={()=>openEditAppt(a)} style={{background:"#fff",borderRadius:12,padding:"12px 14px",marginBottom:8,borderLeft:"4px solid "+c.bd,boxShadow:"0 1px 4px rgba(0,0,0,.06)",cursor:"pointer"}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:5,flexWrap:"wrap"}}>
+                              {a.time&&<span style={{fontSize:12,fontWeight:700,color:c.acc,background:c.bg,padding:"2px 8px",borderRadius:6}}>{fmtT(a.time)}{endT?" - "+endT:""}</span>}
+                              <StatusPill status={a.status||"pending"} onClick={e=>{e.stopPropagation();cycleStatus(selDate,a.id);}}/>
+                              {a.paymentMode&&<span style={{fontSize:11,fontWeight:700,color:pmColor(a.paymentMode)}}>{a.paymentMode}</span>}
+                            </div>
+                            <p style={{fontSize:16,fontWeight:700,color:c.tx,marginBottom:2}}>{a.petName}</p>
+                            <p style={{fontSize:12,color:A.g4,marginBottom:2}}>{a.clientName}</p>
+                            <p style={{fontSize:12,color:A.g4,marginBottom:3}}>{a.service}</p>
+                            {groomer&&<p style={{fontSize:11,color:A.g4}}>{groomer.name}</p>}
+                            {groomersAvail.length>0&&(<div onClick={e=>e.stopPropagation()} style={{marginTop:6}}><Sel value={a.groomerId||""} onChange={e=>quickAssign(selDate,a.id,e.target.value||null)} style={{fontSize:13,padding:"7px 10px",minHeight:38}}><option value="">Unassigned</option>{groomersAvail.map(g=><option key={g.staffId} value={g.staffId}>{g.name}</option>)}</Sel></div>)}
+                            {a.notes&&<p style={{fontSize:11,color:"#dc2626",fontWeight:600,marginTop:3}}>{a.notes}</p>}
+                          </div>
+                          <div style={{textAlign:"right",flexShrink:0}}>
+                            <p style={{fontSize:16,fontWeight:700,color:A.ok,marginBottom:6}}>{fmt(a.cost)}</p>
+                            <button onClick={e=>{e.stopPropagation();delA(selDate,a.id);}} style={{background:A.dbg,border:"none",borderRadius:8,padding:"5px 10px",fontSize:12,color:A.er,cursor:"pointer",fontFamily:"inherit",fontWeight:600,minHeight:"auto"}}>Delete</button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div style={{background:"#fff",borderRadius:13,padding:"14px 16px",marginTop:8}}>
+                    <p style={{fontSize:11,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.4,marginBottom:12}}>Day Summary</p>
+                    <div className="gm">
+                      {[["Revenue",fmt(dRev),A.bu],["Expenses",fmt(dExpR),A.er],["Salaries",fmt(dSal),A.bl],["Commission",fmt(dComm),A.wn],["Net Profit",fmt(dP),dP>=0?A.ok:A.er]].map(([l,val,c])=>(
+                        <div key={l} style={{textAlign:"center",padding:"10px 6px",background:A.g1,borderRadius:10}}><p style={{fontSize:9,color:A.g4,marginBottom:4,textTransform:"uppercase",fontWeight:600}}>{l}</p><p style={{fontSize:14,fontWeight:700,color:c}}>{val}</p></div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if(tab==="weekly"){
+      return(
+        <div className="sec">
+          <div className="phdr">
+            <div><h1>Weekly</h1><p>{fmtD(wk[0])} - {fmtD(wk[6])}</p></div>
+            <div className="phdr-r"><Btn v="sec" onClick={()=>setWeekOff(w=>w-1)}>Prev</Btn><Btn v="sec" onClick={()=>setWeekOff(0)}>Today</Btn><Btn v="sec" onClick={()=>setWeekOff(w=>w+1)}>Next</Btn></div>
+          </div>
+          <div className="gw">
+            {wk.map((date,i)=>{
+              const da=gA(date);const pr=gP(date);const isT=date===todStr;const isS=date===selDate;
+              return(
+                <div key={date} onClick={()=>{setSelDate(date);setTab("schedule");}} style={{minHeight:100,padding:"8px 5px",borderRadius:12,border:(isS?"2":"1")+"px solid "+(isS?A.bl:A.g2),background:isT?"#eff6ff":"#fff",cursor:"pointer"}}>
+                  <p style={{fontSize:9,fontWeight:700,color:isT?A.bu:A.g4,marginBottom:1,textTransform:"uppercase"}}>{DAYS[i]}</p>
+                  <p style={{fontSize:17,fontWeight:700,marginBottom:3}}>{new Date(date+"T12:00:00").getDate()}</p>
+                  {da.slice(0,3).map(a=>{const col=aColor(a.service);return <div key={a.id} style={{fontSize:8,background:col.bg,color:col.tx,borderRadius:4,padding:"2px 3px",marginBottom:2,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",fontWeight:600,borderLeft:"2px solid "+col.bd}}>{a.petName}</div>;})}
+                  {da.length>3&&<p style={{fontSize:8,color:A.g4}}>+{da.length-3}</p>}
+                  {pr!==0&&<p style={{fontSize:8,color:pr>=0?A.ok:A.er,fontWeight:700,marginTop:2}}>{fmt(pr)}</p>}
+                </div>
+              );
+            })}
+          </div>
+          <p style={{fontSize:13,color:A.g4,marginTop:12,textAlign:"center"}}>Tap any day to view schedule</p>
+        </div>
+      );
+    }
+
+    if(tab==="clients"){
+      return(
+        <div className="sec">
+          {petModal&&<PetModal pet={petModal.pet} client={petModal.client} schedules={schedules} onClose={()=>setPetModal(null)}/>}
+          <div className="phdr"><div><h1>Clients</h1><p>{clients.length} client{clients.length!==1?"s":""}</p></div><Btn onClick={()=>{setShowCForm(true);setEditCId(null);setCForm(bC());}}>+ Add</Btn></div>
+          <div style={{marginBottom:14}}><Inp value={nFilter} onChange={e=>setNFilter(e.target.value)} placeholder="Search clients or pets..." style={{background:"#fff"}}/></div>
+          {showCForm&&(
+            <div className="fbox">
+              <p style={{fontSize:17,fontWeight:600,marginBottom:14}}>{editCId?"Edit":"New"} Client</p>
+              <div className="g2" style={{marginBottom:14}}>
+                {[["name","Client Name"],["address","Address"],["mobile","Mobile"]].map(([k,l])=>(<div key={k} style={k==="address"?{gridColumn:"1/-1"}:{}}><Lbl c={l}/><Inp value={cForm[k]} onChange={e=>setCForm(p=>({...p,[k]:e.target.value}))} placeholder={l}/></div>))}
+              </div>
+              <div style={{borderTop:".5px solid "+A.g2,paddingTop:14}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><p style={{fontWeight:600,fontSize:15}}>Pets</p><Btn sm v="sec" onClick={()=>setCForm(p=>({...p,pets:[...p.pets,{id:Date.now(),name:"",breed:"",age:"",weight:"",knownIssues:"",notes:"",size:"",furLength:""}]}))}>+ Pet</Btn></div>
+                {cForm.pets.map((pet,idx)=>(
+                  <div key={pet.id} className="pbox">
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}><span style={{fontSize:12,fontWeight:700,color:A.wn,textTransform:"uppercase"}}>Pet {idx+1}</span>{cForm.pets.length>1&&<Btn sm v="dan" onClick={()=>setCForm(p=>({...p,pets:p.pets.filter((_,i)=>i!==idx)}))}>Remove</Btn>}</div>
+                    <div className="g4" style={{gap:8,marginBottom:8}}>
+                      <div><Lbl c="Name"/><Inp value={pet.name} onChange={e=>updPet(idx,"name",e.target.value)}/></div>
+                      <div><Lbl c="Breed"/><Inp value={pet.breed} onChange={e=>updPet(idx,"breed",e.target.value)}/></div>
+                      <div><Lbl c="Size"/><Sel value={pet.size} onChange={e=>updPet(idx,"size",e.target.value)}><option value="">Select...</option>{SZ.map(sz=><option key={sz}>{sz}</option>)}</Sel></div>
+                      <div><Lbl c="Coat"/><Sel value={pet.furLength} onChange={e=>updPet(idx,"furLength",e.target.value)}><option value="">Select...</option>{FURS.map(f=><option key={f}>{f}</option>)}</Sel></div>
+                      <div><Lbl c="Age (yrs)"/><Inp type="number" value={pet.age||""} onChange={e=>updPet(idx,"age",e.target.value)} placeholder="3"/></div>
+                      <div><Lbl c="Weight (kg)"/><Inp type="number" value={pet.weight||""} onChange={e=>updPet(idx,"weight",e.target.value)} placeholder="5"/></div>
+                      <div style={{gridColumn:"1/-1"}}><Lbl c="Known Issues"/><Inp value={pet.knownIssues||""} onChange={e=>updPet(idx,"knownIssues",e.target.value)} placeholder="e.g. Heart condition"/></div>
+                      <div style={{gridColumn:"1/-1"}}><Lbl c="Notes"/><Inp value={pet.notes} onChange={e=>updPet(idx,"notes",e.target.value)} placeholder="e.g. Sensitive skin"/></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{display:"flex",gap:8,marginTop:14}}><Btn onClick={saveCl}>Save</Btn><Btn v="can" onClick={()=>setShowCForm(false)}>Cancel</Btn></div>
+            </div>
+          )}
+          {fCl.map(c=>(
+            <div key={c.id} className="card" style={{marginBottom:10}}>
+              <div style={{padding:"14px 16px",borderBottom:".5px solid rgba(0,0,0,.08)",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                <div><p style={{fontWeight:700,fontSize:17,marginBottom:2}}>{c.name}</p>{c.address&&<p style={{fontSize:13,color:A.g4,marginBottom:1}}>{c.address}</p>}{c.mobile&&<a href={"tel:"+c.mobile} style={{fontSize:14,color:A.bu,textDecoration:"none",fontWeight:500}}>{c.mobile}</a>}</div>
+                <div style={{display:"flex",gap:6}}><Btn sm v="sec" onClick={()=>{setEditCId(c.id);setCForm({name:c.name,address:c.address,mobile:c.mobile,pets:c.pets.map(p=>({...p}))});setShowCForm(true);}}>Edit</Btn><Btn sm v="gho" onClick={()=>setClients(prev=>prev.filter(x=>x.id!==c.id))}>Del</Btn></div>
+              </div>
+              <div style={{padding:"10px 12px",display:"flex",gap:8,flexWrap:"wrap"}}>
+                {c.pets.map(p=>{
+                  const gc=Object.values(schedules).flat().filter(a=>a.clientId===c.id&&a.petId===p.id).length;
+                  return(
+                    <button key={p.id} onClick={()=>setPetModal({pet:p,client:c})} style={{background:A.g1,border:"none",borderRadius:12,padding:"12px 14px",minWidth:130,textAlign:"left",cursor:"pointer"}}>
+                      <p style={{fontWeight:700,fontSize:15,color:A.wn,marginBottom:3}}>{p.name}</p>
+                      <p style={{fontSize:13,color:A.g4,marginBottom:5}}>{p.breed}</p>
+                      <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:4}}>{p.size&&<Bdg color="blue">{p.size}</Bdg>}{p.furLength&&<Bdg color="green">{p.furLength}</Bdg>}</div>
+                      <p style={{fontSize:12,color:A.g4,marginTop:5}}>{gc} session{gc!==1?"s":""}</p>
+                      {p.knownIssues&&<p style={{fontSize:11,color:A.er,marginTop:3}}>{p.knownIssues}</p>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if(tab==="services"){
+      return(
+        <div className="sec">
+          <div className="phdr"><div><h1>Services</h1><p>Pricing menu</p></div><Btn onClick={()=>{setShowSvForm(true);setEditSvId(null);setSvForm({name:"",price:""});}}>+ Add</Btn></div>
+          {showSvForm&&(
+            <div className="fbox">
+              <p style={{fontSize:15,fontWeight:600,marginBottom:12}}>{editSvId?"Edit":"New"} Service</p>
+              <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                <div style={{flex:2,minWidth:180}}><Lbl c="Name"/><Inp value={svForm.name} onChange={e=>setSvForm(p=>({...p,name:e.target.value}))} placeholder="e.g. Full Groom"/></div>
+                <div style={{minWidth:120}}><Lbl c="Price (P)"/><Inp type="number" value={svForm.price} onChange={e=>setSvForm(p=>({...p,price:e.target.value}))} placeholder="0"/></div>
+                <div style={{display:"flex",gap:8,alignItems:"flex-end"}}><Btn onClick={saveSv}>Save</Btn><Btn v="can" onClick={()=>{setShowSvForm(false);setSvForm({name:"",price:""});}}>Cancel</Btn></div>
+              </div>
+            </div>
+          )}
+          <div className="card">
+            {services.map((sv,i)=>(
+              <div key={sv.id} className="crow">
+                <div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:12,color:A.g3,fontWeight:700,width:22,textAlign:"center"}}>{i+1}</span><span style={{fontWeight:500,fontSize:14}}>{sv.name}</span></div>
+                <div style={{display:"flex",gap:8,alignItems:"center"}}><span style={{fontWeight:700,color:sv.price>0?A.ok:A.g3,fontSize:14}}>{sv.price>0?fmt(sv.price):"-"}</span><Btn sm v="sec" onClick={()=>{setEditSvId(sv.id);setSvForm({name:sv.name,price:sv.price});setShowSvForm(true);}}>Edit</Btn><Btn sm v="gho" onClick={()=>setServices(p=>p.filter(x=>x.id!==sv.id))}>Del</Btn></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if(tab==="staff"){
+      const nowYear=now.getFullYear();const nowMonth=now.getMonth()+1;
+      const daysInMonth=new Date(nowYear,nowMonth,0).getDate();
+      const monthDates=Array.from({length:daysInMonth},(_,i)=>{const d=nowYear+"-"+String(nowMonth).padStart(2,"0")+"-"+String(i+1).padStart(2,"0");return d;});
+      return(
+        <div className="sec">
+          <div className="phdr"><div><h1>Staff</h1><p>{staffMembers.length} member{staffMembers.length!==1?"s":""}</p></div><Btn onClick={()=>{setSmForm({id:null,name:"",age:"",designation:"Groomer",address:"",mobile:"",emergencyContact:"",dailySalary:700,photo:"",idPhoto:""});setShowSmForm(true);}}>+ Add</Btn></div>
+          {showSmForm&&(
+            <div className="fbox">
+              <p style={{fontSize:17,fontWeight:600,marginBottom:14}}>{smForm.id?"Edit":"New"} Staff Member</p>
+              <div className="g2" style={{marginBottom:14}}>
+                <div><Lbl c="Profile Photo"/><div style={{display:"flex",flexDirection:"column",gap:8}}>{smForm.photo?<div style={{position:"relative",width:90,height:90}}><img src={smForm.photo} alt="" style={{width:90,height:90,borderRadius:12,objectFit:"cover"}}/><button onClick={()=>setSmForm(p=>({...p,photo:""}))} style={{position:"absolute",top:-6,right:-6,width:22,height:22,borderRadius:"50%",background:A.er,color:"#fff",border:"none",fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto"}}>X</button></div>:<div style={{width:90,height:90,borderRadius:12,background:A.g2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:A.g4}}>Photo</div>}<input type="file" accept="image/*" onChange={async e=>{const f=e.target.files[0];if(!f)return;const b=await compress(f);setSmForm(p=>({...p,photo:b}));}} style={{background:"none",padding:0,fontSize:14,color:A.bu,width:"auto",minHeight:"auto"}}/></div></div>
+                <div><Lbl c="ID Photo"/><div style={{display:"flex",flexDirection:"column",gap:8}}>{smForm.idPhoto?<div style={{position:"relative",width:"100%",height:90}}><img src={smForm.idPhoto} alt="" style={{width:"100%",height:90,borderRadius:12,objectFit:"cover"}}/><button onClick={()=>setSmForm(p=>({...p,idPhoto:""}))} style={{position:"absolute",top:-6,right:-6,width:22,height:22,borderRadius:"50%",background:A.er,color:"#fff",border:"none",fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto"}}>X</button></div>:<div style={{width:"100%",height:90,borderRadius:12,background:A.g2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:A.g4}}>ID Photo</div>}<input type="file" accept="image/*" onChange={async e=>{const f=e.target.files[0];if(!f)return;const b=await compress(f);setSmForm(p=>({...p,idPhoto:b}));}} style={{background:"none",padding:0,fontSize:14,color:A.bu,width:"auto",minHeight:"auto"}}/></div></div>
+              </div>
+              <div className="g2" style={{marginBottom:10}}>
+                <div><Lbl c="Full Name"/><Inp value={smForm.name} onChange={e=>setSmForm(p=>({...p,name:e.target.value}))}/></div>
+                <div><Lbl c="Age"/><Inp type="number" value={smForm.age} onChange={e=>setSmForm(p=>({...p,age:e.target.value}))}/></div>
+                <div><Lbl c="Designation"/><Sel value={smForm.designation} onChange={e=>setSmForm(p=>({...p,designation:e.target.value}))}>{DESIGS.map(d=><option key={d}>{d}</option>)}</Sel></div>
+                <div><Lbl c="Daily Salary (P)"/><Inp type="number" value={smForm.dailySalary} onChange={e=>setSmForm(p=>({...p,dailySalary:e.target.value}))} placeholder="700"/></div>
+                <div><Lbl c="Mobile"/><Inp value={smForm.mobile} onChange={e=>setSmForm(p=>({...p,mobile:e.target.value}))}/></div>
+                <div><Lbl c="Emergency Contact"/><Inp value={smForm.emergencyContact} onChange={e=>setSmForm(p=>({...p,emergencyContact:e.target.value}))} placeholder="Name and number"/></div>
+                <div style={{gridColumn:"1/-1"}}><Lbl c="Address"/><Inp value={smForm.address} onChange={e=>setSmForm(p=>({...p,address:e.target.value}))}/></div>
+              </div>
+              <div style={{display:"flex",gap:8}}><Btn onClick={saveSm}>Save</Btn><Btn v="can" onClick={()=>setShowSmForm(false)}>Cancel</Btn></div>
+            </div>
+          )}
+          {staffMembers.length===0&&!showSmForm&&<div className="card" style={{padding:"3rem 2rem",textAlign:"center",color:A.g4,marginBottom:20}}><p style={{fontWeight:600,color:A.bl,marginBottom:5}}>No staff members yet</p><p style={{fontSize:14}}>Add your first member above.</p></div>}
+          {staffMembers.map(sm=>{
+            const presentDates=monthDates.filter(d=>gSt(d).some(s=>s.staffId===sm.id));
+            return(
+              <div key={sm.id} className="card" style={{marginBottom:10}}>
+                <div style={{padding:"14px 16px",display:"flex",gap:14,alignItems:"flex-start"}}>
+                  {sm.photo?<img src={sm.photo} alt={sm.name} style={{width:60,height:60,borderRadius:12,objectFit:"cover",flexShrink:0}}/>:<div style={{width:60,height:60,borderRadius:12,background:A.g1,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:A.g4,flexShrink:0}}>{sm.designation?sm.designation[0]:"?"}</div>}
+                  <div style={{flex:1}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5}}>
+                      <div><p style={{fontWeight:700,fontSize:17,marginBottom:3}}>{sm.name}</p><Bdg color={dsgC(sm.designation)}>{sm.designation}</Bdg>{sm.age&&<span style={{fontSize:13,color:A.g4,marginLeft:7}}>Age {sm.age}</span>}</div>
+                      <div style={{display:"flex",gap:6}}><Btn sm v="sec" onClick={()=>{setSmForm({...sm,dailySalary:sm.dailySalary||700});setShowSmForm(true);}}>Edit</Btn><Btn sm v="dan" onClick={()=>setStaffMembers(p=>p.filter(x=>x.id!==sm.id))}>Delete</Btn></div>
+                    </div>
+                    <p style={{fontSize:13,color:A.g4,marginTop:4}}>Daily Rate: <strong style={{color:A.ok}}>P{(sm.dailySalary||700).toLocaleString()}</strong></p>
+                    {sm.mobile&&<p style={{fontSize:13,color:A.g4}}>Mobile: {sm.mobile}</p>}
+                    {sm.address&&<p style={{fontSize:13,color:A.g4}}>Address: {sm.address}</p>}
+                  </div>
+                </div>
+                <div style={{padding:"12px 16px",borderTop:".5px solid "+A.g2}}>
+                  <p style={{fontSize:11,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.4,marginBottom:8}}>{MN[nowMonth-1]} Attendance ({presentDates.length} days present)</p>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                    {monthDates.map(d=>{
+                      const dayNum=parseInt(d.split("-")[2]);const present=gSt(d).some(s=>s.staffId===sm.id);
+                      const hasWork=(schedules[d]||[]).length>0||(staffByDate[d]||[]).length>0;const isFuture=d>todStr;
+                      const dotColor=isFuture?"#e8e8ed":present?"#34c759":hasWork?"#ff375f":"#e8e8ed";
+                      return(<div key={d} style={{textAlign:"center",width:28}}><div className="att-dot" style={{background:dotColor,margin:"0 auto 2px"}}/><span style={{fontSize:9,color:A.g4}}>{dayNum}</span></div>);
+                    })}
+                  </div>
+                  <div style={{display:"flex",gap:12,marginTop:8}}>
+                    {[["Present",A.ok],["Absent (working day)","#ff375f"],["No work/Future",A.g2]].map(([l,c])=>(<div key={l} style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:8,height:8,borderRadius:"50%",background:c}}/><span style={{fontSize:10,color:A.g4}}>{l}</span></div>))}
+                  </div>
+                </div>
+                {sm.idPhoto&&<div style={{padding:"0 16px 14px"}}><p style={{fontSize:11,fontWeight:600,color:A.g4,textTransform:"uppercase",marginBottom:5}}>ID Photo</p><img src={sm.idPhoto} alt="ID" style={{width:"100%",maxWidth:240,height:120,borderRadius:10,objectFit:"cover"}}/></div>}
+              </div>
+            );
+          })}
+
+          <div style={{marginTop:20}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6,flexWrap:"wrap",gap:8}}><Shdr c="Salary Tracker" style={{marginBottom:0}}/>{periodSel}</div>
+            <p style={{fontSize:12,color:A.g4,marginBottom:10}}>Period: <strong>{periodLabel}</strong></p>
+            {Object.keys(salByStaff).length>0&&(
+              <div className="gm" style={{marginBottom:10}}>
+                {Object.values(salByStaff).map(s=>{
+                  const sk=salKey(s.name);const paid=isPaid(sk);
+                  return(
+                    <div key={s.name} className="sc">
+                      <button onClick={()=>setStaffDetailId(staffDetailId===s.name?null:s.name)} style={{background:"none",border:"none",cursor:"pointer",width:"100%",fontFamily:"inherit",padding:0}}>
+                        <p style={{fontWeight:700,fontSize:14,marginBottom:3,color:A.bu,textDecoration:"underline"}}>{s.name}</p>
+                      </button>
+                      <Bdg color={dsgC(s.designation)}>{s.designation}</Bdg>
+                      <p style={{fontSize:11,color:A.g4,marginTop:7,marginBottom:2}}>{s.days} day{s.days!==1?"s":""}</p>
+                      {paid?<div><p style={{fontSize:13,color:A.g3,textDecoration:"line-through"}}>{fmt(s.total)}</p><p style={{fontSize:17,fontWeight:700,color:A.ok}}>Cleared</p></div>:<p style={{fontSize:17,fontWeight:700,color:A.ok,marginBottom:4}}>{fmt(s.total)}</p>}
+                      <PayBtn pkey={sk} amount={s.total}/>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {staffDetailId&&salByStaff[staffDetailId]&&(
+              <div className="fbox" style={{marginBottom:16}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                  <p style={{fontSize:15,fontWeight:700}}>{staffDetailId} - Salary Breakdown</p>
+                  <Btn sm v="sec" onClick={()=>setStaffDetailId(null)}>Close</Btn>
+                </div>
+                <div className="twrap">
+                  <table style={{width:"100%",borderCollapse:"collapse"}}>
+                    <thead><tr>{["Date","Amount"].map(h=><th key={h} className="th">{h}</th>)}</tr></thead>
+                    <tbody>
+                      {salByStaff[staffDetailId].dates.sort((a,b)=>b.date.localeCompare(a.date)).map((row,i)=>(
+                        <tr key={i} style={{background:i%2===0?"#fff":"#fafafa"}}><td className="td">{fmtD(row.date)}</td><td className="td" style={{fontWeight:600,color:A.ok}}>{fmt(row.amount)}</td></tr>
+                      ))}
+                      <tr style={{background:"#1c1c1e"}}><td className="td" style={{fontWeight:700,color:"#fff",borderBottom:"none"}}>TOTAL</td><td className="td" style={{fontWeight:700,color:"#6ee7b7",borderBottom:"none"}}>{fmt(salByStaff[staffDetailId].total)}</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            <div className="twrap" style={{marginBottom:20}}>
+              <table style={{width:"100%",borderCollapse:"collapse"}}>
+                <thead><tr>{["Date","Name","Role","Salary"].map(h=><th key={h} className="th">{h}</th>)}</tr></thead>
+                <tbody>
+                  {trkDates.flatMap(d=>gSt(d).map((s,i)=>{
+                    const paid=isPaid(salKey(s.name));const member=staffMembers.find(m=>m.id===s.staffId);const rate=member&&member.dailySalary?Number(member.dailySalary):700;
+                    return(<tr key={d+s.name+i} style={{background:i%2===0?"#fff":"#fafafa",opacity:paid?.5:1}}><td className="td">{fmtD(d)}</td><td className="td" style={{fontWeight:600}}>{s.name}</td><td className="td"><Bdg color={dsgC(s.designation)}>{s.designation}</Bdg></td><td className="td" style={{color:paid?A.g3:A.ok,fontWeight:600,textDecoration:paid?"line-through":"none"}}>{fmt(rate)}</td></tr>);
+                  }))}
+                  <tr style={{background:"#1c1c1e"}}><td className="td" colSpan={3} style={{fontWeight:700,color:"#fff",borderBottom:"none"}}>OUTSTANDING - {periodLabel}</td><td className="td" style={{fontWeight:700,color:"#6ee7b7",borderBottom:"none"}}>{salUnsettled.length===0?"Fully Paid":fmt(salOutstandingTotal)}</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6,flexWrap:"wrap",gap:8}}>
+              <Shdr c="Commission Tracker" style={{marginBottom:0}}/>
+              <p style={{fontSize:11,color:A.g4}}>10% per assigned dog</p>
+            </div>
+            {Object.keys(commByGroomer).length>0&&(
+              <div className="gm" style={{marginBottom:10}}>
+                {Object.values(commByGroomer).map(g=>{
+                  const ck=comKey(g.staffId);const paid=isPaid(ck);
+                  return(
+                    <div key={g.staffId} className="sc">
+                      <button onClick={()=>setCommDetailId(commDetailId===g.staffId?null:g.staffId)} style={{background:"none",border:"none",cursor:"pointer",width:"100%",fontFamily:"inherit",padding:0}}>
+                        <p style={{fontWeight:700,fontSize:14,marginBottom:3,color:A.bu,textDecoration:"underline"}}>{g.name}</p>
+                      </button>
+                      <p style={{fontSize:11,color:A.g4,marginTop:7,marginBottom:2}}>{g.pets} dog{g.pets!==1?"s":""}</p>
+                      {paid?<div><p style={{fontSize:13,color:A.g3,textDecoration:"line-through"}}>{fmt(g.total)}</p><p style={{fontSize:17,fontWeight:700,color:A.ok}}>Cleared</p></div>:<p style={{fontSize:17,fontWeight:700,color:A.wn,marginBottom:4}}>{fmt(g.total)}</p>}
+                      <PayBtn pkey={ck} amount={g.total}/>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {commDetailId&&commByGroomer[commDetailId]&&(
+              <div className="fbox" style={{marginBottom:16}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                  <p style={{fontSize:15,fontWeight:700}}>{commByGroomer[commDetailId].name} - Commission Breakdown</p>
+                  <Btn sm v="sec" onClick={()=>setCommDetailId(null)}>Close</Btn>
+                </div>
+                <div className="twrap">
+                  <table style={{width:"100%",borderCollapse:"collapse"}}>
+                    <thead><tr>{["Date","Pet","Service","Revenue","Commission"].map(h=><th key={h} className="th">{h}</th>)}</tr></thead>
+                    <tbody>
+                      {commByGroomer[commDetailId].breakdown.sort((a,b)=>b.date.localeCompare(a.date)).map((row,i)=>(
+                        <tr key={i} style={{background:i%2===0?"#fff":"#fafafa"}}><td className="td">{fmtD(row.date)}</td><td className="td" style={{fontWeight:600}}>{row.petName}</td><td className="td" style={{fontSize:12}}>{row.service}</td><td className="td" style={{color:A.ok,fontWeight:600}}>{fmt(row.cost)}</td><td className="td" style={{color:A.wn,fontWeight:600}}>{fmt(row.comm)}</td></tr>
+                      ))}
+                      <tr style={{background:"#1c1c1e"}}><td className="td" colSpan={4} style={{fontWeight:700,color:"#fff",borderBottom:"none"}}>TOTAL COMMISSION</td><td className="td" style={{fontWeight:700,color:"#fcd34d",borderBottom:"none"}}>{fmt(commByGroomer[commDetailId].total)}</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            <div className="twrap" style={{marginBottom:20}}>
+              <table style={{width:"100%",borderCollapse:"collapse"}}>
+                <thead><tr>{["Date","Groomer","Dogs","Commission"].map(h=><th key={h} className="th">{h}</th>)}</tr></thead>
+                <tbody>
+                  {trkDates.flatMap(d=>{
+                    const dayComm={};
+                    gA(d).filter(a=>a.groomerId&&a.status!=="cancelled").forEach(a=>{
+                      if(!dayComm[a.groomerId])dayComm[a.groomerId]={name:(staffMembers.find(m=>m.id===a.groomerId)||{name:"Unknown"}).name,pets:0,comm:0};
+                      dayComm[a.groomerId].pets++;dayComm[a.groomerId].comm+=Number(a.cost||0)*0.1;
+                    });
+                    return Object.entries(dayComm).map(([sid,dc],i)=>{
+                      const paid=isPaid(comKey(sid));
+                      return(<tr key={d+sid} style={{background:i%2===0?"#fff":"#fafafa",opacity:paid?.5:1}}><td className="td">{fmtD(d)}</td><td className="td" style={{fontWeight:600}}>{dc.name}</td><td className="td">{dc.pets}</td><td className="td" style={{color:paid?A.g3:A.wn,fontWeight:600,textDecoration:paid?"line-through":"none"}}>{fmt(dc.comm)}</td></tr>);
+                    });
+                  })}
+                  <tr style={{background:"#1c1c1e"}}><td className="td" colSpan={3} style={{fontWeight:700,color:"#fff",borderBottom:"none"}}>OUTSTANDING - {periodLabel}</td><td className="td" style={{fontWeight:700,color:"#fcd34d",borderBottom:"none"}}>{commUnsettled.length===0?"Fully Paid":fmt(commOutstandingTotal)}</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if(tab==="dashboard"){
+      const yrDates=allD.filter(d=>d.startsWith(""+annualYear));
+      const yrRev=yrDates.reduce((s,d)=>s+gRev(d),0);
+      const yrExp=yrDates.reduce((s,d)=>s+gExp(d),0);
+      const yrComm=yrDates.reduce((s,d)=>s+gComm(d),0);
+      const yrP=yrDates.reduce((s,d)=>s+gP(d),0);
+      const monthlyData=Array.from({length:12},(_,mi)=>{
+        const prefix=annualYear+"-"+String(mi+1).padStart(2,"0");
+        const mDates=allD.filter(d=>d.startsWith(prefix));
+        const revenue=mDates.reduce((s,d)=>s+gRev(d),0);
+        const expenses=mDates.reduce((s,d)=>s+gExp(d),0);
+        const comm=mDates.reduce((s,d)=>s+gComm(d),0);
+        const profit=mDates.reduce((s,d)=>s+gP(d),0);
+        const days=[...new Set(mDates)];
+        const breakdown={};
+        mDates.forEach(d=>{gE(d).forEach(e=>{breakdown[e.category]=(breakdown[e.category]||0)+e.amount;});});
+        return{month:MS[mi],revenue,expenses,profit,comm,days,breakdown};
+      });
+      const lineData=monthlyData.map(m=>({label:m.month,value:m.revenue}));
+      const profitLine=monthlyData.map(m=>({label:m.month,value:m.profit}));
+      const svcCount={};
+      allAppts.filter(a=>a.status!=="cancelled"&&a.service).forEach(a=>{const base=a.service.split(" - ")[0];svcCount[base]=(svcCount[base]||0)+1;});
+      const svcPie=Object.entries(svcCount).map(([label,value])=>({label,value})).sort((a,b)=>b.value-a.value);
+      const pmCount={Cash:0,GCash:0};
+      allAppts.filter(a=>a.status!=="cancelled").forEach(a=>{if(a.paymentMode==="Cash")pmCount.Cash++;else if(a.paymentMode==="GCash")pmCount.GCash++;});
+      const pmPie=[{label:"Cash",value:pmCount.Cash},{label:"GCash",value:pmCount.GCash}].filter(x=>x.value>0);
+      return(
+        <div className="sec">
+          <div className="phdr">
+            <div><h1>Dashboard</h1><p>Business overview</p></div>
+            <div className="phdr-r">{availYears.map(y=><button key={y} onClick={()=>setAnnualYear(y)} style={{padding:"7px 14px",borderRadius:A.pill,border:"none",background:annualYear===y?A.bl:A.g1,color:annualYear===y?"#fff":A.bl,fontFamily:"inherit",fontSize:13,fontWeight:600,cursor:"pointer",minHeight:"auto"}}>{y}</button>)}</div>
+          </div>
+          <div className="gm" style={{marginBottom:16}}>
+            {[["This Week",fmt(totP(thiswk.filter(d=>allD.includes(d)))),totP(thiswk.filter(d=>allD.includes(d)))>=0?A.ok:A.er],["This Month",fmt(totP(thismo)),totP(thismo)>=0?A.ok:A.er],["This Year",fmt(yrP),yrP>=0?A.ok:A.er],["Total Clients",clients.length,A.bu],["Total Sessions",allAppts.filter(a=>a.status!=="cancelled").length,A.bl]].map(([l,val,c])=>(
+              <div key={l} className="sc" style={{boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}><p style={{fontSize:10,color:A.g4,marginBottom:4,textTransform:"uppercase",fontWeight:600}}>{l}</p><p style={{fontSize:18,fontWeight:700,color:c}}>{val}</p></div>
+            ))}
+          </div>
+          <div className="card" style={{padding:16,marginBottom:12}}>
+            <p style={{fontSize:13,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.4,marginBottom:12}}>{annualYear} Summary</p>
+            <div className="g4">
+              {[["Revenue",fmt(yrRev),A.bu],["Expenses",fmt(yrExp),A.er],["Commission",fmt(yrComm),A.wn],["Net Profit",fmt(yrP),yrP>=0?A.ok:A.er]].map(([l,val,c])=>(
+                <div key={l} style={{background:A.g1,borderRadius:10,padding:"10px",textAlign:"center"}}><p style={{fontSize:9,color:A.g4,marginBottom:3,textTransform:"uppercase",fontWeight:600}}>{l}</p><p style={{fontSize:13,fontWeight:700,color:c}}>{val}</p></div>
+              ))}
+            </div>
+          </div>
+          <div className="card" style={{padding:16,marginBottom:12}}><LineChart data={lineData} color={A.bu} title={annualYear+" Monthly Revenue"}/></div>
+          <div className="card" style={{padding:16,marginBottom:12}}><LineChart data={profitLine} color={A.ok} title={annualYear+" Monthly Profit"}/></div>
+          <div className="g2" style={{marginBottom:12}}>
+            <div className="card" style={{padding:16}}><PieChart data={svcPie} title="Services"/></div>
+            <div className="card" style={{padding:16}}><PieChart data={pmPie} title="Payment"/></div>
+          </div>
+          <div className="card" style={{padding:"0 16px",marginBottom:12}}>
+            <p style={{fontSize:13,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.4,padding:"14px 0 10px"}}>Monthly Breakdown</p>
+            {monthlyData.filter(m=>m.revenue>0||m.expenses>0).reverse().map((m,i)=>(<MonthCard key={m.month} label={m.month+" "+annualYear} data={m} profit={m.profit} comm={m.comm}/>))}
+            {monthlyData.every(m=>m.revenue===0&&m.expenses===0)&&<p style={{fontSize:14,color:A.g4,padding:"12px 0"}}>No data for {annualYear} yet.</p>}
+          </div>
+          <div className="fbox">
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><p style={{fontSize:15,fontWeight:700}}>Expense Log</p><Btn sm onClick={()=>setShowEForm(true)}>+ Add</Btn></div>
+            {showEForm&&(
+              <div style={{marginBottom:14}}>
+                <div className="g4" style={{marginBottom:10}}>
+                  <div><Lbl c="Date"/><Inp type="date" value={eForm.date} onChange={e=>setEForm(p=>({...p,date:e.target.value}))}/></div>
+                  <div><Lbl c="Category"/><Sel value={eForm.cat} onChange={e=>setEForm(p=>({...p,cat:e.target.value}))}><option value="">Select...</option>{EXP_CATS.map(c=><option key={c}>{c}</option>)}</Sel></div>
+                  {eForm.cat==="Other"&&<div><Lbl c="Custom"/><Inp value={eForm.custCat} onChange={e=>setEForm(p=>({...p,custCat:e.target.value}))} placeholder="e.g. Parking"/></div>}
+                  <div><Lbl c="Amount (P)"/><Inp type="number" value={eForm.amt} onChange={e=>setEForm(p=>({...p,amt:e.target.value}))} placeholder="0"/></div>
+                </div>
+                <div style={{display:"flex",gap:8}}><Btn sm onClick={saveE}>Save</Btn><Btn sm v="can" onClick={()=>setShowEForm(false)}>Cancel</Btn></div>
+              </div>
+            )}
+            <ExpTable all={Object.entries(expenses).flatMap(([date,exps])=>exps.map(e=>({...e,date})))} expenses={expenses} setExpenses={setExpenses}/>
+          </div>
+        </div>
+      );
+    }
+
+    if(tab==="permissions"){
+      return(
+        <div className="sec">
+          <div className="phdr"><div><h1>Access</h1><p>Passwords & logins</p></div></div>
+          <p style={{fontSize:13,color:A.g4,marginBottom:14}}>Manage who can access this app and what they can see.</p>
+          <div className="card" style={{marginBottom:14}}>
+            <div style={{padding:"12px 16px",borderBottom:".5px solid "+A.g2}}><p style={{fontWeight:700,fontSize:15}}>Owner Account</p><p style={{fontSize:12,color:A.g4,marginTop:2}}>Full access to all tabs and settings</p></div>
+            <OwnPwEdit ownerPass={ownerPass} setOwnerPass={setOwnerPass}/>
+          </div>
+          <div className="card" style={{marginBottom:14}}>
+            <div style={{padding:"12px 16px",borderBottom:".5px solid "+A.g2,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div><p style={{fontWeight:700,fontSize:15}}>Staff Accounts</p><p style={{fontSize:12,color:A.g4,marginTop:2}}>Today & Schedule tabs only</p></div>
+              <Btn sm onClick={()=>setStaffAccounts(p=>[...p,{id:Date.now(),name:"",password:""}])}>+ Add</Btn>
+            </div>
+            {staffAccounts.length===0&&<div style={{padding:"20px 16px",textAlign:"center"}}><p style={{fontSize:14,color:A.g4}}>No staff accounts yet.</p></div>}
+            {staffAccounts.map(s=>(<StfPwRow key={s.id} staff={s} onSave={updated=>setStaffAccounts(p=>p.map(x=>x.id===s.id?updated:x))} onDelete={()=>setStaffAccounts(p=>p.filter(x=>x.id!==s.id))}/>))}
+          </div>
+          <div style={{background:"#fff",borderRadius:13,padding:"14px 16px"}}>
+            <p style={{fontSize:13,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.4,marginBottom:8}}>Security Note</p>
+            <p style={{fontSize:13,color:A.g4,lineHeight:1.6}}>Passwords are stored locally. For better security, use unique passwords for each account. Staff can only view Today and Schedule tabs.</p>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  return(
+    <div className="shell">
+      <div className="sidebar">
+        <div className="sidebar-logo"><img src="https://i.imgur.com/UXTLxqT.png" alt="Ruff Cuts"/></div>
+        <div style={{flex:1,overflowY:"auto"}}>
+          {TABS.map(([k,label])=>(<button key={k} className={"snav"+(tab===k?" on":"")} onClick={()=>goTab(k)}>{label}</button>))}
+        </div>
+        <div className="sidebar-footer">
+          <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:10}}><div style={{width:7,height:7,borderRadius:"50%",background:syncDot,flexShrink:0}}/><span style={{fontSize:11,color:"rgba(255,255,255,.3)"}}>{sync}</span></div>
+          <Btn v="sec" sm style={{width:"100%"}} onClick={onLogout}>Sign Out</Btn>
+        </div>
+      </div>
+      <div className="mob-hdr">
+        <img src="https://i.imgur.com/UXTLxqT.png" alt="Ruff Cuts" style={{height:28,objectFit:"contain",marginRight:"auto"}}/>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <div style={{width:7,height:7,borderRadius:"50%",background:syncDot}}/>
+          <span style={{fontSize:11,color:"rgba(255,255,255,.4)"}}>{sync}</span>
+          <button onClick={()=>setMenuOpen(true)} style={{width:36,height:36,borderRadius:9,background:"rgba(255,255,255,.1)",border:"none",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4,cursor:"pointer",minHeight:"auto"}}>
+            {[0,1,2].map(i=><div key={i} style={{width:18,height:2,background:"#fff",borderRadius:1}}/>)}
+          </button>
+        </div>
+      </div>
+      {menuOpen&&(
+        <>
+          <div className="dbk" onClick={()=>setMenuOpen(false)}/>
+          <div className="drw">
+            <div className="drw-top"><img src="https://i.imgur.com/UXTLxqT.png" alt="" style={{height:28,objectFit:"contain",marginRight:"auto"}}/><button onClick={()=>setMenuOpen(false)} style={{color:"rgba(255,255,255,.5)",fontSize:22,background:"none",border:"none",cursor:"pointer",minHeight:"auto",lineHeight:1}}>×</button></div>
+            <div className="drw-nav">{TABS.map(([k,label])=>(<button key={k} className={"drw-item"+(tab===k?" on":"")} onClick={()=>goTab(k)}>{label}</button>))}</div>
+            <div className="drw-foot"><Btn v="sec" style={{width:"100%"}} onClick={onLogout}>Sign Out</Btn></div>
+          </div>
+        </>
+      )}
+      <div className="main">{renderContent()}</div>
+    </div>
+  );
+}
+
+function App(){
+  const[role,setRole]=useState(null);
+  const[ownerPass,setOwnerPass]=useState(OWN_PASS);
+  const[staffAccounts,setStaffAccounts]=useState([{id:1,name:"Staff",password:STF_PASS}]);
+  if(!role)return <LoginScreen ownerPass={ownerPass} staffAccounts={staffAccounts} onLogin={setRole}/>;
+  return(<ErrB><MainApp role={role} onLogout={()=>setRole(null)} ownerPass={ownerPass} setOwnerPass={setOwnerPass} staffAccounts={staffAccounts} setStaffAccounts={setStaffAccounts}/></ErrB>);
+}
+
+const container=document.getElementById("root");
+const root=ReactDOM.createRoot(container);
+root.render(<App/>);
+document.getElementById("boot").style.display="none";
+</script>
+</body>
+</html>
