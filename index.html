@@ -934,21 +934,21 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                           const top=tToY(a.time);if(top<0)return null;
                           const height=Math.max((a.duration||60)*PX_PER_MIN,28);const c=aColor(a.service);const sc=sConf(a.status||"pending");
                           return(
-                            <div key={a.id} onClick={e=>{e.stopPropagation();openEditAppt(a);}} style={{position:"absolute",top:top+1,left:2,right:2,height:height-2,background:c.bg,borderLeft:"3px solid "+c.bd,borderRadius:"0 7px 7px 0",overflow:"hidden",cursor:"pointer",zIndex:2,boxShadow:"0 1px 4px rgba(0,0,0,.1)"}}>
+                            <div key={a.id} onClick={e=>{e.stopPropagation();openEditAppt(a);}} style={{position:"absolute",top:top+1,left:2,right:2,height:height-2,background:sc.bg,borderLeft:"3px solid "+sc.bd,borderRadius:"0 7px 7px 0",overflow:"hidden",cursor:"pointer",zIndex:2,boxShadow:"0 1px 4px rgba(0,0,0,.1)"}}>
                               <div style={{padding:"4px 6px",height:"100%",display:"flex",flexDirection:"column",justifyContent:"space-between"}}>
                                 <div>
                                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:2}}>
-                                    <p style={{fontSize:12,fontWeight:700,color:c.tx,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",flex:1}}>{a.petName||"-"}</p>
+                                    <p style={{fontSize:12,fontWeight:700,color:sc.tx,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",flex:1}}>{a.petName||"-"}</p>
                                     <button onClick={ev=>{ev.stopPropagation();cycleStatus(selDate,a.id);}} style={{background:sc.bg,border:"none",borderRadius:4,padding:"1px 5px",fontSize:9,color:sc.tx,cursor:"pointer",fontFamily:"inherit",fontWeight:700,flexShrink:0,minHeight:"auto",lineHeight:"1.4"}}>{sc.label}</button>
                                   </div>
                                   {/* CHANGE 2 — show service name in day-view card */}
-                                  {height>40&&<p style={{fontSize:9,color:c.tx,opacity:.7,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>{(a.service||"").split("-")[0].trim()}</p>}
+                                  {height>40&&<p style={{fontSize:9,color:sc.tx,opacity:.7,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>{(a.service||"").split("-")[0].trim()}</p>}
                                   {/* CHANGE 2 — show address in day-view card when tall enough (≥70px = ~45 min slot) */}
-                                  {height>70&&a.address&&<p style={{fontSize:8,color:c.tx,opacity:.55,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>{a.address}</p>}
+                                  {height>70&&a.address&&<p style={{fontSize:8,color:sc.tx,opacity:.55,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>{a.address}</p>}
                                 </div>
-                                {height>55&&(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:9,fontWeight:700,color:c.acc}}>{fmtT(a.time)}</span>{a.paymentMode&&<span style={{fontSize:9,fontWeight:700,color:pmColor(a.paymentMode)}}>{a.paymentMode}</span>}</div>)}
+                                {height>55&&(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:9,fontWeight:700,color:sc.bd}}>{fmtT(a.time)}</span>{a.paymentMode&&<span style={{fontSize:9,fontWeight:700,color:pmColor(a.paymentMode)}}>{a.paymentMode}</span>}</div>)}
                               </div>
-                              <button onClick={ev=>{ev.stopPropagation();delA(selDate,a.id);}} style={{position:"absolute",top:2,right:height>55?2:20,background:"rgba(0,0,0,.1)",border:"none",borderRadius:3,width:14,height:14,fontSize:8,color:c.tx,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto",padding:0}}>X</button>
+                              <button onClick={ev=>{ev.stopPropagation();delA(selDate,a.id);}} style={{position:"absolute",top:2,right:height>55?2:20,background:"rgba(0,0,0,.1)",border:"none",borderRadius:3,width:14,height:14,fontSize:8,color:sc.tx,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto",padding:0}}>X</button>
                             </div>
                           );
                         })}
@@ -982,15 +982,15 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                     const groomer=dSt.find(s=>String(s.staffId)===String(a.groomerId));const groomersAvail=dSt.filter(s=>s.designation==="Groomer");
                     const endT=a.time&&a.duration?fmtT(minsToTime(timeToMins(a.time)+a.duration)):"";
                     return(
-                      <div key={a.id} onClick={()=>openEditAppt(a)} style={{background:"#fff",borderRadius:12,padding:"12px 14px",marginBottom:8,borderLeft:"4px solid "+c.bd,boxShadow:"0 1px 4px rgba(0,0,0,.06)",cursor:"pointer"}}>
+                      <div key={a.id} onClick={()=>openEditAppt(a)} style={{background:"#fff",borderRadius:12,padding:"12px 14px",marginBottom:8,borderLeft:"4px solid "+sc.bd,boxShadow:"0 1px 4px rgba(0,0,0,.06)",cursor:"pointer"}}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
                           <div style={{flex:1,minWidth:0}}>
                             <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:5,flexWrap:"wrap"}}>
-                              {a.time&&<span style={{fontSize:12,fontWeight:700,color:c.acc,background:c.bg,padding:"2px 8px",borderRadius:6}}>{fmtT(a.time)}{endT?" - "+endT:""}</span>}
+                              {a.time&&<span style={{fontSize:12,fontWeight:700,color:sc.tx,background:sc.bg,padding:"2px 8px",borderRadius:6}}>{fmtT(a.time)}{endT?" - "+endT:""}</span>}
                               <StatusPill status={a.status||"pending"} onClick={e=>{e.stopPropagation();cycleStatus(selDate,a.id);}}/>
                               {a.paymentMode&&<span style={{fontSize:11,fontWeight:700,color:pmColor(a.paymentMode)}}>{a.paymentMode}</span>}
                             </div>
-                            <p style={{fontSize:16,fontWeight:700,color:c.tx,marginBottom:2}}>{a.petName}</p>
+                            <p style={{fontSize:16,fontWeight:700,color:sc.tx,marginBottom:2}}>{a.petName}</p>
                             <p style={{fontSize:12,color:A.g4,marginBottom:2}}>{a.clientName}</p>
                             {/* CHANGE 3 — address in agenda view card, secondary to client name */}
                             {a.address&&<p style={{fontSize:11,color:A.g4,marginBottom:2,display:"flex",alignItems:"flex-start",gap:3}}><span style={{flexShrink:0,fontSize:10}}>📍</span>{a.address}</p>}
