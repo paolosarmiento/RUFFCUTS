@@ -166,11 +166,12 @@ const TOTAL_H=(CAL_END-CAL_START)*SLOT_H;
 const STATUS_CONFIG={
   "pending":{bg:"#f5f5f7",bd:"#aeaeb2",tx:"#636366",label:"Pending"},
   "confirmed":{bg:"#e8f4fd",bd:"#0071e3",tx:"#0071e3",label:"Confirmed"},
+  "en-route":{bg:"#f0f0ff",bd:"#5e5ce6",tx:"#3634a3",label:"En Route"},
   "in-progress":{bg:"#fff8e6",bd:"#ff9f0a",tx:"#c97600",label:"Active"},
   "completed":{bg:"#f0fff4",bd:"#34c759",tx:"#1a7a34",label:"Done"},
   "cancelled":{bg:"#fff0f3",bd:"#ff375f",tx:"#cc0022",label:"Cancelled"},
 };
-const STATUS_ORDER=["pending","confirmed","in-progress","completed","cancelled"];
+const STATUS_ORDER=["pending","confirmed","en-route","in-progress","completed","cancelled"];
 
 const tod=()=>new Date().toISOString().split("T")[0];
 const fmt=n=>"P"+Number(n).toLocaleString("en-PH",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -452,7 +453,7 @@ function ApptForm({actA,aForm,setAForm,clients,services,staffOnDuty,lastVisitDat
         <div style={{marginBottom:10}}>
           <Lbl c="Status"/>
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-            {STATUS_ORDER.filter(s=>["in-progress","completed","cancelled"].includes(s)).map(s=>{const sc=sConf(s);return(<button key={s} onClick={()=>setAForm(p=>({...p,status:s}))} style={{padding:"7px 14px",borderRadius:20,border:"1.5px solid "+(aForm.status===s?sc.bd:A.g2),background:aForm.status===s?sc.bg:"transparent",color:aForm.status===s?sc.tx:A.g4,fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer",minHeight:"auto"}}>{sc.label}</button>);})}
+            {STATUS_ORDER.filter(s=>["en-route","in-progress","completed","cancelled"].includes(s)).map(s=>{const sc=sConf(s);return(<button key={s} onClick={()=>setAForm(p=>({...p,status:s}))} style={{padding:"7px 14px",borderRadius:20,border:"1.5px solid "+(aForm.status===s?sc.bd:A.g2),background:aForm.status===s?sc.bg:"transparent",color:aForm.status===s?sc.tx:A.g4,fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer",minHeight:"auto"}}>{sc.label}</button>);})}
           </div>
         </div>
         <div className="g2" style={{marginBottom:12}}>
