@@ -412,6 +412,7 @@ function StfPwRow({staff,onSave,onDelete}){
   return(<div style={{padding:16}}><div className="g2" style={{marginBottom:12}}><div><Lbl c="Name"/><Inp value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} placeholder="e.g. Ana"/></div><div><Lbl c="Password"/><Inp value={form.password} onChange={e=>setForm(p=>({...p,password:e.target.value}))} placeholder="e.g. ana2024"/></div></div>{msg&&<p style={{fontSize:14,color:msg.includes("OK")?A.ok:A.er,marginBottom:10}}>{msg}</p>}<div style={{display:"flex",gap:8}}><Btn sm onClick={()=>{if(!form.name.trim())return setMsg("Name required.");if(form.password.length<4)return setMsg("Min 4 chars.");onSave({...staff,...form});setMsg("OK Saved");setTimeout(()=>setEditing(false),800);}}>Save</Btn>{staff.name&&<Btn sm v="can" onClick={()=>{setEditing(false);setForm({name:staff.name,password:staff.password});setMsg("");}}>Cancel</Btn>}<Btn sm v="dan" onClick={onDelete}>Delete</Btn></div></div>);
 }
 
+// ─── CHANGE 1: ApptForm modal — show client address below client selector ───
 function ApptForm({actA,aForm,setAForm,clients,services,staffOnDuty,lastVisitData,onSave,onClose}){
   const selClient=clients.find(c=>c.id===Number(aForm.clientId));
   const avPets=selClient?selClient.pets:[];
@@ -441,6 +442,12 @@ function ApptForm({actA,aForm,setAForm,clients,services,staffOnDuty,lastVisitDat
             {clients.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
           </Sel>
           {isAutofilled&&<p style={{fontSize:11,color:A.bu,marginTop:4,fontWeight:600}}>Auto-filled from last visit</p>}
+          {/* CHANGE 1 — show client address in modal below client selector */}
+          {selClient&&selClient.address&&(
+            <p style={{fontSize:12,color:A.g4,marginTop:5,display:"flex",alignItems:"flex-start",gap:4}}>
+              <span style={{flexShrink:0}}>📍</span>{selClient.address}
+            </p>
+          )}
         </div>
         <div style={{marginBottom:10}}>
           <Lbl c="Status"/>
@@ -931,7 +938,10 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                                     <p style={{fontSize:12,fontWeight:700,color:c.tx,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",flex:1}}>{a.petName||"-"}</p>
                                     <button onClick={ev=>{ev.stopPropagation();cycleStatus(selDate,a.id);}} style={{background:sc.bg,border:"none",borderRadius:4,padding:"1px 5px",fontSize:9,color:sc.tx,cursor:"pointer",fontFamily:"inherit",fontWeight:700,flexShrink:0,minHeight:"auto",lineHeight:"1.4"}}>{sc.label}</button>
                                   </div>
+                                  {/* CHANGE 2 — show service name in day-view card */}
                                   {height>40&&<p style={{fontSize:9,color:c.tx,opacity:.7,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>{(a.service||"").split("-")[0].trim()}</p>}
+                                  {/* CHANGE 2 — show address in day-view card when tall enough (≥70px = ~45 min slot) */}
+                                  {height>70&&a.address&&<p style={{fontSize:8,color:c.tx,opacity:.55,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>{a.address}</p>}
                                 </div>
                                 {height>55&&(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:9,fontWeight:700,color:c.acc}}>{fmtT(a.time)}</span>{a.paymentMode&&<span style={{fontSize:9,fontWeight:700,color:pmColor(a.paymentMode)}}>{a.paymentMode}</span>}</div>)}
                               </div>
@@ -979,6 +989,8 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                             </div>
                             <p style={{fontSize:16,fontWeight:700,color:c.tx,marginBottom:2}}>{a.petName}</p>
                             <p style={{fontSize:12,color:A.g4,marginBottom:2}}>{a.clientName}</p>
+                            {/* CHANGE 3 — address in agenda view card, secondary to client name */}
+                            {a.address&&<p style={{fontSize:11,color:A.g4,marginBottom:2,display:"flex",alignItems:"flex-start",gap:3}}><span style={{flexShrink:0,fontSize:10}}>📍</span>{a.address}</p>}
                             <p style={{fontSize:12,color:A.g4,marginBottom:3}}>{a.service}</p>
                             {groomer&&<p style={{fontSize:11,color:A.g4}}>{groomer.name}</p>}
                             {groomersAvail.length>0&&(<div onClick={e=>e.stopPropagation()} style={{marginTop:6}}><Sel value={a.groomerId||""} onChange={e=>quickAssign(selDate,a.id,e.target.value||null)} style={{fontSize:13,padding:"7px 10px",minHeight:38}}><option value="">Unassigned</option>{groomersAvail.map(g=><option key={g.staffId} value={g.staffId}>{g.name}</option>)}</Sel></div>)}
