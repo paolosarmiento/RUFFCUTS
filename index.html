@@ -869,9 +869,9 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
           {apptFormModal}
           <div style={{background:"#111",flexShrink:0}}>
             <div style={{display:"flex",alignItems:"center",padding:"10px 14px 6px",gap:8}}>
-              <button onClick={prevDay} style={{width:36,height:36,borderRadius:9,background:"rgba(255,255,255,.1)",border:"none",color:"#fff",fontSize:20,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto"}}>{"<"}</button>
+              <button onClick={prevDay} style={{padding:"0 14px",height:36,borderRadius:9,background:"rgba(255,255,255,.1)",border:"none",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto",fontFamily:"inherit"}}>Previous</button>
               <div style={{flex:1,textAlign:"center"}}><p style={{color:"#fff",fontWeight:700,fontSize:16}}>{selDayName}</p><p style={{color:"rgba(255,255,255,.45)",fontSize:12,marginTop:1}}>{fmtD(selDate)}</p></div>
-              <button onClick={nextDay} style={{width:36,height:36,borderRadius:9,background:"rgba(255,255,255,.1)",border:"none",color:"#fff",fontSize:20,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto"}}>{">"}</button>
+              <button onClick={nextDay} style={{padding:"0 14px",height:36,borderRadius:9,background:"rgba(255,255,255,.1)",border:"none",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto",fontFamily:"inherit"}}>Next</button>
             </div>
             <div style={{display:"flex",alignItems:"center",padding:"0 14px 10px",gap:8}}>
               <div style={{display:"flex",background:"rgba(255,255,255,.1)",borderRadius:7,padding:2}}>
