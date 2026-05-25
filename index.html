@@ -452,7 +452,7 @@ function ApptForm({actA,aForm,setAForm,clients,services,staffOnDuty,lastVisitDat
         <div style={{marginBottom:10}}>
           <Lbl c="Status"/>
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-            {STATUS_ORDER.map(s=>{const sc=sConf(s);return(<button key={s} onClick={()=>setAForm(p=>({...p,status:s}))} style={{padding:"7px 14px",borderRadius:20,border:"1.5px solid "+(aForm.status===s?sc.bd:A.g2),background:aForm.status===s?sc.bg:"transparent",color:aForm.status===s?sc.tx:A.g4,fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer",minHeight:"auto"}}>{sc.label}</button>);})}
+            {STATUS_ORDER.filter(s=>["in-progress","completed","cancelled"].includes(s)).map(s=>{const sc=sConf(s);return(<button key={s} onClick={()=>setAForm(p=>({...p,status:s}))} style={{padding:"7px 14px",borderRadius:20,border:"1.5px solid "+(aForm.status===s?sc.bd:A.g2),background:aForm.status===s?sc.bg:"transparent",color:aForm.status===s?sc.tx:A.g4,fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer",minHeight:"auto"}}>{sc.label}</button>);})}
           </div>
         </div>
         <div className="g2" style={{marginBottom:12}}>
