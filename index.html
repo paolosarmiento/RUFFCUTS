@@ -213,7 +213,7 @@ function Btn({children,onClick,v="pri",sm=false,style={}}){
 }
 function Lbl({c}){return <p style={{fontSize:12,fontWeight:600,color:A.g4,marginBottom:6,letterSpacing:.3,textTransform:"uppercase"}}>{c}</p>;}
 function Shdr({c,style={}}){return <p style={{fontSize:12,fontWeight:600,color:A.g4,textTransform:"uppercase",letterSpacing:.3,marginBottom:8,...style}}>{c}</p>;}
-function Inp({style={},...p}){return <input autoComplete="on" style={{...iS,...style}} {...p}/>;}
+function Inp({style={},type,...p}){return <input autoComplete="on" type={type} inputMode={type==="number"?"decimal":undefined} style={{...iS,...style}} {...p}/>;}
 function Sel({children,style={},...p}){return <select style={{...iS,...style}} {...p}>{children}</select>;}
 function Bdg({children,color="gray"}){
   const cs={gray:{bg:A.g1,t:A.g4},blue:{bg:"#e8f0fe",t:A.bu},green:{bg:A.sbg,t:A.ok},red:{bg:A.dbg,t:A.er},orange:{bg:A.wbg,t:A.wn}};
@@ -226,6 +226,21 @@ function StatusPill({status,onClick}){
     <button className="sp" onClick={onClick} style={{background:sc.bg,color:sc.tx,border:"1px solid "+sc.bd}}>
       {sc.label}
     </button>
+  );
+}
+function ConfirmModal({message,onConfirm,onCancel}){
+  return(
+    <div className="mdbg" onClick={onCancel} style={{zIndex:500}}>
+      <div className="md" onClick={e=>e.stopPropagation()} style={{maxWidth:360}}>
+        <div className="mdh"/>
+        <p style={{fontSize:17,fontWeight:700,marginBottom:8,textAlign:"center"}}>Are you sure?</p>
+        <p style={{fontSize:14,color:A.g4,marginBottom:24,textAlign:"center",lineHeight:1.6}}>{message}</p>
+        <div style={{display:"flex",gap:10}}>
+          <Btn v="sec" style={{flex:1}} onClick={onCancel}>Cancel</Btn>
+          <Btn v="dan" style={{flex:1}} onClick={()=>{onConfirm();onCancel();}}>Delete</Btn>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -358,7 +373,7 @@ function ExpTable({all,expenses,setExpenses}){
                 <td className="td">{fmtD(e.date)}</td>
                 <td className="td"><Bdg color="orange">{e.category}</Bdg></td>
                 <td className="td" style={{color:A.er,fontWeight:600}}>{fmt(e.amount)}</td>
-                <td className="td"><div style={{display:"flex",gap:6}}><Btn sm v="sec" onClick={()=>startEdit(e)}>Edit</Btn><Btn sm v="gho" onClick={()=>setExpenses(prev=>({...prev,[e.date]:(prev[e.date]||[]).filter(x=>x.id!==e.id)}))}>Del</Btn></div></td>
+                <td className="td"><div style={{display:"flex",gap:6}}><Btn sm v="sec" onClick={()=>startEdit(e)}>Edit</Btn><Btn sm v="gho" onClick={()=>askConfirm("Delete this expense?",()=>setExpenses(prev=>({...prev,[e.date]:(prev[e.date]||[]).filter(x=>x.id!==e.id)})))}>Del</Btn></div></td>
               </tr>
             );
           })}
@@ -542,6 +557,9 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
   const[cashbox,setCashbox]=useState({});
   const[showQExp,setShowQExp]=useState(false);
   const[qExpForm,setQExpForm]=useState({cat:"",custCat:"",amt:"",notes:""});
+  const[confirmModal,setConfirmModal]=useState(null);
+  const askConfirm=(message,onConfirm)=>setConfirmModal({message,onConfirm});
+  const closeConfirm=()=>setConfirmModal(null);
   const[sync,setSync]=useState("Synced");
   const lastR=useRef(null);
   const calRef=useRef(null);
@@ -659,16 +677,17 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
 
   const trkDates=[...new Set([...Object.keys(schedules),...Object.keys(staffByDate)])].filter(d=>d>=trkStart&&d<=trkEnd&&gSt(d).length>0).sort().reverse();
   const periodKey=trkStart+"_"+trkEnd;
-  const salKey=name=>"sal_"+name+"_"+periodKey;
+  const salKey=id=>"sal_"+id+"_"+periodKey;
   const comKey=sid=>"com_"+sid+"_"+periodKey;
 
   const salByStaff={};
   trkDates.forEach(d=>{
     gSt(d).forEach(s=>{
-      if(!salByStaff[s.name])salByStaff[s.name]={name:s.name,designation:s.designation||"",days:0,total:0,dates:[]};
+      const salId=s.staffId||s.name;
+      if(!salByStaff[salId])salByStaff[salId]={name:s.name,staffId:s.staffId,designation:s.designation||"",days:0,total:0,dates:[]};
       const member=staffMembers.find(m=>m.id===s.staffId);
       const rate=member&&member.dailySalary?Number(member.dailySalary):700;
-      salByStaff[s.name].days++;salByStaff[s.name].total+=rate;salByStaff[s.name].dates.push({date:d,amount:rate});
+      salByStaff[salId].days++;salByStaff[salId].total+=rate;salByStaff[salId].dates.push({date:d,amount:rate});
     });
   });
 
@@ -684,7 +703,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
     });
   });
 
-  const salUnsettled=Object.values(salByStaff).filter(s=>!isPaid(salKey(s.name)));
+  const salUnsettled=Object.values(salByStaff).filter(s=>!isPaid(salKey(s.staffId||s.name)));
   const salOutstandingTotal=salUnsettled.reduce((s,x)=>s+x.total,0);
   const commUnsettled=Object.values(commByGroomer).filter(g=>!isPaid(comKey(g.staffId)));
   const commOutstandingTotal=commUnsettled.reduce((s,x)=>s+x.total,0);
@@ -762,7 +781,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
               <div style={{textAlign:"right",flexShrink:0}}>
                 <p style={{fontSize:17,fontWeight:700,color:A.ok,marginBottom:8}}>{fmt(a.cost)}</p>
                 <button onClick={()=>openEditAppt(a)} style={{background:A.g1,border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,color:A.bl,cursor:"pointer",fontFamily:"inherit",fontWeight:600,minHeight:"auto",display:"block",marginBottom:6}}>Edit</button>
-                <button onClick={()=>delA(date||todStr,a.id)} style={{background:A.dbg,border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,color:A.er,cursor:"pointer",fontFamily:"inherit",fontWeight:600,minHeight:"auto",display:"block"}}>Del</button>
+                <button onClick={()=>askConfirm("Delete this appointment?",()=>delA(date||todStr,a.id))} style={{background:A.dbg,border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,color:A.er,cursor:"pointer",fontFamily:"inherit",fontWeight:600,minHeight:"auto",display:"block"}}>Del</button>
               </div>
             </div>
           </div>
@@ -920,7 +939,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
               <span style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,.4)",textTransform:"uppercase",letterSpacing:.5,flexShrink:0}}>💰 Cashbox</span>
               <div style={{display:"flex",alignItems:"center",gap:6}}>
                 <span style={{fontSize:11,color:"rgba(255,255,255,.35)"}}>Opening</span>
-                <input type="number" value={cashbox[selDate]||""} onChange={e=>setCashbox(p=>({...p,[selDate]:Number(e.target.value)||0}))} placeholder="0" style={{width:72,background:"rgba(255,255,255,.12)",border:"1px solid rgba(255,255,255,.18)",borderRadius:7,padding:"5px 8px",color:"#fff",fontSize:13,fontFamily:"inherit",minHeight:"auto",textAlign:"right",outline:"none"}}/>
+                <input type="number" inputMode="decimal" value={cashbox[selDate]||""} onChange={e=>setCashbox(p=>({...p,[selDate]:Number(e.target.value)||0}))} placeholder="0" style={{width:72,background:"rgba(255,255,255,.12)",border:"1px solid rgba(255,255,255,.18)",borderRadius:7,padding:"5px 8px",color:"#fff",fontSize:13,fontFamily:"inherit",minHeight:"auto",textAlign:"right",outline:"none"}}/>
                 <span style={{fontSize:11,color:"rgba(255,255,255,.3)"}}>PHP</span>
               </div>
               <div style={{flex:1}}/>
@@ -945,7 +964,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                       if(!qExpForm.amt)return;
                       const cat=qExpForm.cat==="Miscellaneous"&&qExpForm.custCat?qExpForm.custCat:qExpForm.cat;
                       if(!cat)return;
-                      setExpenses(prev=>({...prev,[selDate]:[...(prev[selDate]||[]),{id:Date.now(),category:cat,amount:Number(qExpForm.amt),notes:qExpForm.notes||""}]}));
+                      setExpenses(prev=>({...prev,[selDate]:[...(prev[selDate]||[]),{id:Date.now(),category:cat,amount:Number(qExpForm.amt),notes:qExpForm.notes||"",cashbox:true}]}));
                       setQExpForm({cat:"",custCat:"",amt:"",notes:""});
                       setShowQExp(false);
                     }}>Save</Btn>
@@ -1005,7 +1024,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                                 </div>
                                 {height>55&&(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:9,fontWeight:700,color:sc.bd}}>{fmtT(a.time)}</span>{a.paymentMode&&<span style={{fontSize:9,fontWeight:700,color:pmColor(a.paymentMode)}}>{a.paymentMode}</span>}</div>)}
                               </div>
-                              <button onClick={ev=>{ev.stopPropagation();delA(selDate,a.id);}} style={{position:"absolute",top:2,right:2,background:"rgba(0,0,0,.1)",border:"none",borderRadius:3,width:14,height:14,fontSize:8,color:sc.tx,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto",padding:0}}>X</button>
+                              <button onClick={ev=>{ev.stopPropagation();askConfirm("Delete this appointment?",()=>delA(selDate,a.id));}} style={{position:"absolute",top:2,right:2,background:"rgba(0,0,0,.1)",border:"none",borderRadius:3,width:14,height:14,fontSize:8,color:sc.tx,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto",padding:0}}>X</button>
                             </div>
                           );
                         })}
@@ -1068,7 +1087,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                     {(()=>{
                       const openBal=cashbox[selDate]||0;
                       const cashIn=appts.filter(a=>a.paymentMode==="Cash"&&a.status!=="cancelled").reduce((s,a)=>s+Number(a.cost||0),0);
-                      const cashOut=gExpR(selDate);
+                      const cashOut=gE(selDate).filter(e=>e.cashbox).reduce((s,e)=>s+Number(e.amount||0),0);
                       const closing=openBal+cashIn-cashOut;
                       return(
                         <div style={{marginTop:14,background:"#111827",borderRadius:12,padding:"14px 16px"}}>
@@ -1124,7 +1143,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                           </div>
                           <div style={{textAlign:"right",flexShrink:0}}>
                             <p style={{fontSize:16,fontWeight:700,color:A.ok,marginBottom:6}}>{fmt(a.cost)}</p>
-                            <button onClick={e=>{e.stopPropagation();delA(selDate,a.id);}} style={{background:A.dbg,border:"none",borderRadius:8,padding:"5px 10px",fontSize:12,color:A.er,cursor:"pointer",fontFamily:"inherit",fontWeight:600,minHeight:"auto"}}>Delete</button>
+                            <button onClick={e=>{e.stopPropagation();askConfirm("Delete this appointment?",()=>delA(selDate,a.id));}} style={{background:A.dbg,border:"none",borderRadius:8,padding:"5px 10px",fontSize:12,color:A.er,cursor:"pointer",fontFamily:"inherit",fontWeight:600,minHeight:"auto"}}>Delete</button>
                           </div>
                         </div>
                       </div>
@@ -1209,7 +1228,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
             <div key={c.id} className="card" style={{marginBottom:10}}>
               <div style={{padding:"14px 16px",borderBottom:".5px solid rgba(0,0,0,.08)",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                 <div><p style={{fontWeight:700,fontSize:17,marginBottom:2}}>{c.name}</p>{c.address&&<p style={{fontSize:13,color:A.g4,marginBottom:1}}>{c.address}</p>}{c.mobile&&<a href={"tel:"+c.mobile} style={{fontSize:14,color:A.bu,textDecoration:"none",fontWeight:500}}>{c.mobile}</a>}</div>
-                <div style={{display:"flex",gap:6}}><Btn sm v="sec" onClick={()=>{setEditCId(c.id);setCForm({name:c.name,address:c.address,mobile:c.mobile,pets:c.pets.map(p=>({...p}))});setShowCForm(true);}}>Edit</Btn><Btn sm v="gho" onClick={()=>setClients(prev=>prev.filter(x=>x.id!==c.id))}>Del</Btn></div>
+                <div style={{display:"flex",gap:6}}><Btn sm v="sec" onClick={()=>{setEditCId(c.id);setCForm({name:c.name,address:c.address,mobile:c.mobile,pets:c.pets.map(p=>({...p}))});setShowCForm(true);}}>Edit</Btn><Btn sm v="gho" onClick={()=>askConfirm("Delete "+c.name+" and all their pets?",()=>setClients(prev=>prev.filter(x=>x.id!==c.id)))}>Del</Btn></div>
               </div>
               <div style={{padding:"10px 12px",display:"flex",gap:8,flexWrap:"wrap"}}>
                 {c.pets.map(p=>{
@@ -1249,7 +1268,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
             {services.map((sv,i)=>(
               <div key={sv.id} className="crow">
                 <div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:12,color:A.g3,fontWeight:700,width:22,textAlign:"center"}}>{i+1}</span><span style={{fontWeight:500,fontSize:14}}>{sv.name}</span></div>
-                <div style={{display:"flex",gap:8,alignItems:"center"}}><span style={{fontWeight:700,color:sv.price>0?A.ok:A.g3,fontSize:14}}>{sv.price>0?fmt(sv.price):"-"}</span><Btn sm v="sec" onClick={()=>{setEditSvId(sv.id);setSvForm({name:sv.name,price:sv.price});setShowSvForm(true);}}>Edit</Btn><Btn sm v="gho" onClick={()=>setServices(p=>p.filter(x=>x.id!==sv.id))}>Del</Btn></div>
+                <div style={{display:"flex",gap:8,alignItems:"center"}}><span style={{fontWeight:700,color:sv.price>0?A.ok:A.g3,fontSize:14}}>{sv.price>0?fmt(sv.price):"-"}</span><Btn sm v="sec" onClick={()=>{setEditSvId(sv.id);setSvForm({name:sv.name,price:sv.price});setShowSvForm(true);}}>Edit</Btn><Btn sm v="gho" onClick={()=>askConfirm("Delete \""+sv.name+"\"?",()=>setServices(p=>p.filter(x=>x.id!==sv.id)))}>Del</Btn></div>
               </div>
             ))}
           </div>
@@ -1293,7 +1312,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                   <div style={{flex:1}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5}}>
                       <div><p style={{fontWeight:700,fontSize:17,marginBottom:3}}>{sm.name}</p><Bdg color={dsgC(sm.designation)}>{sm.designation}</Bdg>{sm.age&&<span style={{fontSize:13,color:A.g4,marginLeft:7}}>Age {sm.age}</span>}</div>
-                      <div style={{display:"flex",gap:6}}><Btn sm v="sec" onClick={()=>{setSmForm({...sm,dailySalary:sm.dailySalary||700});setShowSmForm(true);}}>Edit</Btn><Btn sm v="dan" onClick={()=>setStaffMembers(p=>p.filter(x=>x.id!==sm.id))}>Delete</Btn></div>
+                      <div style={{display:"flex",gap:6}}><Btn sm v="sec" onClick={()=>{setSmForm({...sm,dailySalary:sm.dailySalary||700});setShowSmForm(true);}}>Edit</Btn><Btn sm v="dan" onClick={()=>askConfirm("Delete "+sm.name+" from staff?",()=>setStaffMembers(p=>p.filter(x=>x.id!==sm.id)))}>Delete</Btn></div>
                     </div>
                     <p style={{fontSize:13,color:A.g4,marginTop:4}}>Daily Rate: <strong style={{color:A.ok}}>P{(sm.dailySalary||700).toLocaleString()}</strong></p>
                     {sm.mobile&&<p style={{fontSize:13,color:A.g4}}>Mobile: {sm.mobile}</p>}
@@ -1325,7 +1344,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
             {Object.keys(salByStaff).length>0&&(
               <div className="gm" style={{marginBottom:10}}>
                 {Object.values(salByStaff).map(s=>{
-                  const sk=salKey(s.name);const paid=isPaid(sk);
+                  const sk=salKey(s.staffId||s.name);const paid=isPaid(sk);
                   return(
                     <div key={s.name} className="sc">
                       <button onClick={()=>setStaffDetailId(staffDetailId===s.name?null:s.name)} style={{background:"none",border:"none",cursor:"pointer",width:"100%",fontFamily:"inherit",padding:0}}>
@@ -1364,7 +1383,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                 <thead><tr>{["Date","Name","Role","Salary"].map(h=><th key={h} className="th">{h}</th>)}</tr></thead>
                 <tbody>
                   {trkDates.flatMap(d=>gSt(d).map((s,i)=>{
-                    const paid=isPaid(salKey(s.name));const member=staffMembers.find(m=>m.id===s.staffId);const rate=member&&member.dailySalary?Number(member.dailySalary):700;
+                    const paid=isPaid(salKey(s.staffId||s.name));const member=staffMembers.find(m=>m.id===s.staffId);const rate=member&&member.dailySalary?Number(member.dailySalary):700;
                     return(<tr key={d+s.name+i} style={{background:i%2===0?"#fff":"#fafafa",opacity:paid?.5:1}}><td className="td">{fmtD(d)}</td><td className="td" style={{fontWeight:600}}>{s.name}</td><td className="td"><Bdg color={dsgC(s.designation)}>{s.designation}</Bdg></td><td className="td" style={{color:paid?A.g3:A.ok,fontWeight:600,textDecoration:paid?"line-through":"none"}}>{fmt(rate)}</td></tr>);
                   }))}
                   <tr style={{background:"#1c1c1e"}}><td className="td" colSpan={3} style={{fontWeight:700,color:"#fff",borderBottom:"none"}}>OUTSTANDING - {periodLabel}</td><td className="td" style={{fontWeight:700,color:"#6ee7b7",borderBottom:"none"}}>{salUnsettled.length===0?"Fully Paid":fmt(salOutstandingTotal)}</td></tr>
@@ -1640,6 +1659,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
         </>
       )}
       <div className="main">{renderContent()}</div>
+      {confirmModal&&<ConfirmModal message={confirmModal.message} onConfirm={confirmModal.onConfirm} onCancel={closeConfirm}/>}
     </div>
   );
 }
