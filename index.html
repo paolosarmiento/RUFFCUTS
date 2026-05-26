@@ -852,7 +852,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
       const selDayName=DNAMES[new Date(selDate+"T12:00:00").getDay()];
       const totalPets=appts.filter(a=>a.status!=="cancelled").length;
       const columns=[...dSt,{staffId:"unassigned",name:"Unassigned",designation:""}];
-      const getColAppts=staffId=>appts.filter(a=>staffId==="unassigned"?!a.groomerId:String(a.groomerId)===String(staffId));
+      const getColAppts=staffId=>appts.filter(a=>{if(staffId==="unassigned")return !a.groomerId||!dSt.some(s=>String(s.staffId)===String(a.groomerId));return String(a.groomerId)===String(staffId);});
       const getColCount=staffId=>getColAppts(staffId).filter(a=>a.status!=="cancelled").length;
       const getColRev=staffId=>getColAppts(staffId).filter(a=>a.status!=="cancelled").reduce((s,a)=>s+Number(a.cost||0),0);
       const colBarColor=col=>{if(!col.designation)return"#e8e8ed";if(col.designation==="Groomer")return"#34c759";if(col.designation==="Driver")return"#0071e3";return"#ff9f0a";};
@@ -965,6 +965,36 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                         <div key={l} className="sc" style={{boxShadow:"0 1px 3px rgba(0,0,0,.05)"}}><p style={{fontSize:9,color:A.g4,marginBottom:4,textTransform:"uppercase",fontWeight:600}}>{l}</p><p style={{fontSize:14,fontWeight:700,color:c}}>{val}</p></div>
                       ))}
                     </div>
+                    {(()=>{
+                      const gc={};
+                      appts.filter(a=>a.groomerId&&a.status!=="cancelled").forEach(a=>{
+                        const member=staffMembers.find(m=>m.id===a.groomerId);
+                        const name=member?member.name:(dSt.find(s=>String(s.staffId)===String(a.groomerId))||{name:"Unknown"}).name;
+                        if(!gc[a.groomerId])gc[a.groomerId]={name,comm:0,pets:0};
+                        gc[a.groomerId].comm+=Number(a.cost||0)*0.1;
+                        gc[a.groomerId].pets++;
+                      });
+                      const entries=Object.values(gc);
+                      if(!entries.length)return null;
+                      return(
+                        <div style={{marginTop:12}}>
+                          <p style={{fontSize:11,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.4,marginBottom:8}}>Commission Breakdown</p>
+                          <div className="gm">
+                            {entries.map(g=>(
+                              <div key={g.name} className="sc" style={{boxShadow:"0 1px 3px rgba(0,0,0,.05)"}}>
+                                <p style={{fontSize:12,fontWeight:700,color:A.bl,marginBottom:2}}>{g.name}</p>
+                                <p style={{fontSize:10,color:A.g4,marginBottom:4}}>{g.pets} dog{g.pets!==1?"s":""}</p>
+                                <p style={{fontSize:16,fontWeight:700,color:A.wn}}>{fmt(g.comm)}</p>
+                              </div>
+                            ))}
+                            <div className="sc" style={{boxShadow:"0 1px 3px rgba(0,0,0,.05)",background:"#fffaf0"}}>
+                              <p style={{fontSize:10,color:A.g4,marginBottom:4,textTransform:"uppercase",fontWeight:600}}>Total</p>
+                              <p style={{fontSize:16,fontWeight:700,color:A.wn}}>{fmt(entries.reduce((s,g)=>s+g.comm,0))}</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
