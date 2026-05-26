@@ -245,13 +245,14 @@ function ConfirmModal({message,onConfirm,onCancel}){
     </div>
   );
 }
-function Toast({toasts}){
+function Toast({toasts,onUndo}){
   if(!toasts.length)return null;
   return(
-    <div style={{position:"fixed",bottom:"max(32px,env(safe-area-inset-bottom))",left:"50%",transform:"translateX(-50%)",zIndex:9999,display:"flex",flexDirection:"column",gap:8,alignItems:"center",pointerEvents:"none"}}>
+    <div style={{position:"fixed",bottom:"max(32px,env(safe-area-inset-bottom))",left:"50%",transform:"translateX(-50%)",zIndex:9999,display:"flex",flexDirection:"column",gap:8,alignItems:"center"}}>
       {toasts.map(t=>(
-        <div key={t.id} style={{background:t.type==="error"?"#ff375f":t.type==="warn"?"#ff9f0a":"#1c1c1e",color:"#fff",padding:"11px 22px",borderRadius:"980px",fontSize:14,fontWeight:500,boxShadow:"0 4px 24px rgba(0,0,0,.3)",whiteSpace:"nowrap",animation:"toastIn .25s ease"}}>
-          {t.message}
+        <div key={t.id} style={{background:t.type==="error"?"#ff375f":t.type==="warn"?"#ff9f0a":"#1c1c1e",color:"#fff",padding:"11px 18px",borderRadius:"980px",fontSize:14,fontWeight:500,boxShadow:"0 4px 24px rgba(0,0,0,.3)",whiteSpace:"nowrap",animation:"toastIn .25s ease",display:"flex",alignItems:"center",gap:12,pointerEvents:"all"}}>
+          <span>{t.message}</span>
+          {t.undoToken&&onUndo&&<button onClick={()=>onUndo(t.undoToken)} style={{background:"rgba(255,255,255,.2)",border:"none",borderRadius:20,padding:"4px 12px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",minHeight:"auto"}}>Undo</button>}
         </div>
       ))}
     </div>
@@ -664,9 +665,21 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
   const[qExpForm,setQExpForm]=useState({cat:"",custCat:"",amt:"",notes:""});
   const[confirmModal,setConfirmModal]=useState(null);
   const[toasts,setToasts]=useState([]);
-  const showToast=(message,type="success")=>{const id=Date.now();setToasts(p=>[...p,{id,message,type}]);setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),2500);};
+  const showToast=(message,type="success",undoToken=null)=>{const id=Date.now();setToasts(p=>[...p,{id,message,type,undoToken}]);setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),undoToken?6000:2500);};
   const askConfirm=(message,onConfirm,successMsg="Deleted")=>setConfirmModal({message,onConfirm:()=>{onConfirm();showToast(successMsg);}});
   const closeConfirm=()=>setConfirmModal(null);
+  const softDelA=(date,id)=>{
+    const appt=(schedules[date]||[]).find(a=>a.id===id);
+    if(!appt)return;
+    setSchedules(prev=>({...prev,[date]:(prev[date]||[]).filter(a=>a.id!==id)}));
+    const token={date,appt};
+    showToast(appt.petName+" deleted","success",token);
+  };
+  const undoDelA=(token)=>{
+    setSchedules(prev=>({...prev,[token.date]:[...(prev[token.date]||[]),token.appt].sort((a,b)=>(a.time||"").localeCompare(b.time||""))}));
+    setToasts(p=>p.filter(t=>t.undoToken!==token));
+    showToast("Restored ✓");
+  };
   const[sync,setSync]=useState("Synced");
   const lastR=useRef(null);
   const calRef=useRef(null);
@@ -897,7 +910,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
               <div style={{textAlign:"right",flexShrink:0}}>
                 <p style={{fontSize:17,fontWeight:700,color:A.ok,marginBottom:8}}>{fmt(a.cost)}</p>
                 <button onClick={()=>openEditAppt(a)} style={{background:A.g1,border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,color:A.bl,cursor:"pointer",fontFamily:"inherit",fontWeight:600,minHeight:"auto",display:"block",marginBottom:6}}>Edit</button>
-                <button onClick={()=>askConfirm("Delete this appointment?",()=>delA(date||todStr,a.id),"Appointment deleted")} style={{background:A.dbg,border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,color:A.er,cursor:"pointer",fontFamily:"inherit",fontWeight:600,minHeight:"auto",display:"block"}}>Del</button>
+                <button onClick={()=>softDelA(date||todStr,a.id)} style={{background:A.dbg,border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,color:A.er,cursor:"pointer",fontFamily:"inherit",fontWeight:600,minHeight:"auto",display:"block"}}>Del</button>
               </div>
             </div>
           </div>
@@ -1149,7 +1162,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                                 </div>
                                 {height>55&&(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:9,fontWeight:700,color:sc.bd}}>{fmtT(a.time)}</span>{a.paymentMode&&<span style={{fontSize:9,fontWeight:700,color:pmColor(a.paymentMode)}}>{a.paymentMode}</span>}</div>)}
                               </div>
-                              <button onClick={ev=>{ev.stopPropagation();askConfirm("Delete this appointment?",()=>delA(selDate,a.id),"Appointment deleted");}} style={{position:"absolute",top:2,right:2,background:"rgba(0,0,0,.1)",border:"none",borderRadius:3,width:14,height:14,fontSize:8,color:sc.tx,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto",padding:0}}>X</button>
+                              <button onClick={ev=>{ev.stopPropagation();softDelA(selDate,a.id);}} style={{position:"absolute",top:2,right:2,background:"rgba(0,0,0,.1)",border:"none",borderRadius:3,width:14,height:14,fontSize:8,color:sc.tx,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto",padding:0}}>X</button>
                             </div>
                           );
                         })}
@@ -1268,7 +1281,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                           </div>
                           <div style={{textAlign:"right",flexShrink:0}}>
                             <p style={{fontSize:16,fontWeight:700,color:A.ok,marginBottom:6}}>{fmt(a.cost)}</p>
-                            <button onClick={e=>{e.stopPropagation();askConfirm("Delete this appointment?",()=>delA(selDate,a.id),"Appointment deleted");}} style={{background:A.dbg,border:"none",borderRadius:8,padding:"5px 10px",fontSize:12,color:A.er,cursor:"pointer",fontFamily:"inherit",fontWeight:600,minHeight:"auto"}}>Delete</button>
+                            <button onClick={e=>{e.stopPropagation();softDelA(selDate,a.id);}} style={{background:A.dbg,border:"none",borderRadius:8,padding:"5px 10px",fontSize:12,color:A.er,cursor:"pointer",fontFamily:"inherit",fontWeight:600,minHeight:"auto"}}>Delete</button>
                           </div>
                         </div>
                       </div>
@@ -1755,7 +1768,11 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
   return(
     <div className="shell">
       <div className="sidebar">
-        <div style={{flex:1,overflowY:"auto",paddingTop:8}}>
+        <div style={{padding:"20px 16px 14px",borderBottom:"0.5px solid rgba(255,255,255,.08)"}}>
+          <p style={{fontSize:15,fontWeight:700,color:"#fff",letterSpacing:".01em"}}>Ruff Cuts</p>
+          <p style={{fontSize:10,color:"rgba(255,255,255,.3)",marginTop:3,letterSpacing:".06em",textTransform:"uppercase"}}>Pet Groomers</p>
+        </div>
+        <div style={{flex:1,overflowY:"auto",paddingTop:4}}>
           {TABS.map(([k,label])=>(<button key={k} className={"snav"+(tab===k?" on":"")} onClick={()=>goTab(k)}>{label}</button>))}
         </div>
         <div className="sidebar-footer">
@@ -1783,9 +1800,17 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
           </div>
         </>
       )}
-      <div className="main">{renderContent()}</div>
+      <div className="main">
+        {(sync==="Offline"||sync==="Error")&&(
+          <div style={{position:"sticky",top:0,zIndex:89,background:sync==="Offline"?"#ff9f0a":"#ff375f",padding:"9px 16px",textAlign:"center",fontSize:13,fontWeight:700,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+            <span>⚠️</span>
+            <span>{sync==="Offline"?"You're offline — changes may not be saving":"Sync error — check your connection"}</span>
+          </div>
+        )}
+        {renderContent()}
+      </div>
       {confirmModal&&<ConfirmModal message={confirmModal.message} onConfirm={confirmModal.onConfirm} onCancel={closeConfirm}/>}
-      <Toast toasts={toasts}/>
+      <Toast toasts={toasts} onUndo={undoDelA}/>
     </div>
   );
 }
