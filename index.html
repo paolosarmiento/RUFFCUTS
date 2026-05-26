@@ -371,7 +371,7 @@ function ExpTable({all,expenses,setExpenses}){
   return(
     <div style={{marginTop:14}} className="twrap">
       <table style={{width:"100%",borderCollapse:"collapse"}}>
-        <thead><tr>{["Date","Category","Amount",""].map(h=><th key={h} className="th">{h}</th>)}</tr></thead>
+        <thead><tr>{["Date","Category","Amount","Notes",""].map(h=><th key={h} className="th">{h}</th>)}</tr></thead>
         <tbody>
           {sorted.map((e,i)=>{
             if(editId===e.id)return(
@@ -379,6 +379,7 @@ function ExpTable({all,expenses,setExpenses}){
                 <td className="td"><Inp type="date" value={ef.date} onChange={ev=>setEf(p=>({...p,date:ev.target.value}))} style={{fontSize:16,padding:"8px 10px",minHeight:40}}/></td>
                 <td className="td"><Sel value={ef.cat} onChange={ev=>setEf(p=>({...p,cat:ev.target.value}))} style={{fontSize:16,padding:"8px 10px",minHeight:40}}><option value="">Select...</option>{EXP_CATS.map(c=><option key={c}>{c}</option>)}</Sel>{ef.cat==="Other"&&<Inp value={ef.custCat} onChange={ev=>setEf(p=>({...p,custCat:ev.target.value}))} placeholder="Custom" style={{marginTop:4,fontSize:16,padding:"8px 10px",minHeight:40}}/>}</td>
                 <td className="td"><Inp type="number" value={ef.amt} onChange={ev=>setEf(p=>({...p,amt:ev.target.value}))} style={{fontSize:16,padding:"8px 10px",minHeight:40}}/></td>
+                <td className="td"><span style={{fontSize:12,color:A.g4}}>—</span></td>
                 <td className="td"><div style={{display:"flex",gap:6}}><Btn sm onClick={()=>saveEdit(e)}>Save</Btn><Btn sm v="can" onClick={()=>setEditId(null)}>Cancel</Btn></div></td>
               </tr>
             );
@@ -387,6 +388,7 @@ function ExpTable({all,expenses,setExpenses}){
                 <td className="td">{fmtD(e.date)}</td>
                 <td className="td"><Bdg color="orange">{e.category}</Bdg></td>
                 <td className="td" style={{color:A.er,fontWeight:600}}>{fmt(e.amount)}</td>
+                <td className="td" style={{fontSize:12,color:A.g4,maxWidth:160}}>{e.notes||<span style={{color:A.g2}}>—</span>}</td>
                 <td className="td"><div style={{display:"flex",gap:6}}><Btn sm v="sec" onClick={()=>startEdit(e)}>Edit</Btn><Btn sm v="gho" onClick={()=>askConfirm("Delete this expense?",()=>setExpenses(prev=>({...prev,[e.date]:(prev[e.date]||[]).filter(x=>x.id!==e.id)})),"Expense deleted")}>Del</Btn></div></td>
               </tr>
             );
@@ -518,6 +520,94 @@ function ApptForm({actA,aForm,setAForm,clients,services,staffOnDuty,lastVisitDat
   );
 }
 
+function EodModal({date,todAppts,expenses,cashboxBal,staffMembers,onClose}){
+  const done=todAppts.filter(a=>a.status==="completed");
+  const cancelled=todAppts.filter(a=>a.status==="cancelled");
+  const pending=todAppts.filter(a=>!["completed","cancelled"].includes(a.status||"pending"));
+  const revenue=done.reduce((s,a)=>s+Number(a.cost||0),0);
+  const cashRev=done.filter(a=>a.paymentMode==="Cash").reduce((s,a)=>s+Number(a.cost||0),0);
+  const gcashRev=done.filter(a=>a.paymentMode==="GCash").reduce((s,a)=>s+Number(a.cost||0),0);
+  const unpaidRev=done.filter(a=>!a.paymentMode).reduce((s,a)=>s+Number(a.cost||0),0);
+  const totalExp=expenses.reduce((s,e)=>s+Number(e.amount||0),0);
+  const cashboxExp=expenses.filter(e=>e.cashbox).reduce((s,e)=>s+Number(e.amount||0),0);
+  const expByCat={};expenses.forEach(e=>{expByCat[e.category]=(expByCat[e.category]||0)+Number(e.amount||0);});
+  const openBal=cashboxBal||0;
+  const closingBal=openBal+cashRev-cashboxExp;
+  const groomerComm={};
+  done.filter(a=>a.groomerId).forEach(a=>{
+    const member=staffMembers.find(m=>m.id===a.groomerId);
+    const name=member?member.name:"Unknown";
+    if(!groomerComm[name])groomerComm[name]={comm:0,pets:0};
+    groomerComm[name].comm+=Number(a.cost||0)*0.1;groomerComm[name].pets++;
+  });
+  const totalComm=Object.values(groomerComm).reduce((s,g)=>s+g.comm,0);
+  const netProfit=revenue-totalExp-totalComm;
+  const R=({label,value,color,bold,last})=>(
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:last?0:7,marginBottom:last?0:7,borderBottom:last?"none":"0.5px solid "+A.g2}}>
+      <span style={{fontSize:13,color:bold?A.bl:A.g4,fontWeight:bold?700:400}}>{label}</span>
+      <span style={{fontSize:14,fontWeight:700,color:color||A.bl}}>{value}</span>
+    </div>
+  );
+  return(
+    <div className="mdbg" onClick={onClose}>
+      <div className="md" onClick={e=>e.stopPropagation()}>
+        <div className="mdh"/>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <div><p style={{fontSize:18,fontWeight:700}}>End of Day Report</p><p style={{fontSize:13,color:A.g4}}>{fmtD(date)}</p></div>
+          <button onClick={onClose} style={{background:A.g1,borderRadius:"50%",width:32,height:32,border:"none",fontSize:16,color:A.g4,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto"}}>X</button>
+        </div>
+        <div style={{background:A.g1,borderRadius:12,padding:"12px 14px",marginBottom:12}}>
+          <p style={{fontSize:11,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.4,marginBottom:10}}>Appointments</p>
+          <div style={{display:"flex",gap:8}}>
+            <div style={{flex:1,background:A.sbg,borderRadius:10,padding:"10px",textAlign:"center"}}><p style={{fontSize:22,fontWeight:700,color:A.ok}}>{done.length}</p><p style={{fontSize:11,color:A.g4}}>Completed</p></div>
+            {pending.length>0&&<div style={{flex:1,background:A.wbg,borderRadius:10,padding:"10px",textAlign:"center"}}><p style={{fontSize:22,fontWeight:700,color:A.wn}}>{pending.length}</p><p style={{fontSize:11,color:A.g4}}>Pending</p></div>}
+            {cancelled.length>0&&<div style={{flex:1,background:A.dbg,borderRadius:10,padding:"10px",textAlign:"center"}}><p style={{fontSize:22,fontWeight:700,color:A.er}}>{cancelled.length}</p><p style={{fontSize:11,color:A.g4}}>Cancelled</p></div>}
+          </div>
+        </div>
+        <div style={{background:A.g1,borderRadius:12,padding:"12px 14px",marginBottom:12}}>
+          <p style={{fontSize:11,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.4,marginBottom:10}}>Revenue</p>
+          <R label="Total Revenue" value={fmt(revenue)} color={A.bu} bold/>
+          {cashRev>0&&<R label="Cash" value={fmt(cashRev)} color="#34c759"/>}
+          {gcashRev>0&&<R label="GCash" value={fmt(gcashRev)} color="#0071e3"/>}
+          {unpaidRev>0&&<R label="⚠️ Unpaid" value={fmt(unpaidRev)} color={A.er} last/>}
+          {unpaidRev===0&&<R label="All collected" value="✓" color={A.ok} last/>}
+        </div>
+        <div style={{background:"#111827",borderRadius:12,padding:"12px 14px",marginBottom:12}}>
+          <p style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.4)",textTransform:"uppercase",letterSpacing:.4,marginBottom:10}}>💰 Cashbox</p>
+          {[["Opening Balance",fmt(openBal),"rgba(255,255,255,.55)"],["+ Cash Received",fmt(cashRev),"#34c759"],["− Cash Expenses",fmt(cashboxExp),"#ff375f"]].map(([l,v,c])=>(
+            <div key={l} style={{display:"flex",justifyContent:"space-between",paddingBottom:6,marginBottom:6,borderBottom:"0.5px solid rgba(255,255,255,.07)"}}><span style={{fontSize:12,color:"rgba(255,255,255,.4)"}}>{l}</span><span style={{fontSize:13,fontWeight:600,color:c}}>{v}</span></div>
+          ))}
+          <div style={{display:"flex",justifyContent:"space-between",paddingTop:4,borderTop:"1px solid rgba(255,255,255,.1)"}}><span style={{fontSize:13,fontWeight:700,color:"#fff"}}>Expected Closing</span><span style={{fontSize:16,fontWeight:700,color:closingBal>=0?"#34c759":"#ff375f"}}>{fmt(closingBal)}</span></div>
+        </div>
+        {expenses.length>0&&(
+          <div style={{background:A.g1,borderRadius:12,padding:"12px 14px",marginBottom:12}}>
+            <p style={{fontSize:11,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.4,marginBottom:10}}>Expenses</p>
+            {Object.entries(expByCat).map(([cat,amt],i,arr)=>(
+              <div key={cat} style={{display:"flex",justifyContent:"space-between",paddingBottom:7,marginBottom:7,borderBottom:i<arr.length-1?"0.5px solid "+A.g2:"none"}}><span style={{fontSize:13,color:A.g4}}>{cat}</span><span style={{fontSize:13,fontWeight:600,color:A.er}}>{fmt(amt)}</span></div>
+            ))}
+            <div style={{display:"flex",justifyContent:"space-between",paddingTop:7,borderTop:"0.5px solid "+A.g2}}><span style={{fontSize:13,fontWeight:700}}>Total</span><span style={{fontSize:14,fontWeight:700,color:A.er}}>{fmt(totalExp)}</span></div>
+          </div>
+        )}
+        {Object.keys(groomerComm).length>0&&(
+          <div style={{background:A.g1,borderRadius:12,padding:"12px 14px",marginBottom:12}}>
+            <p style={{fontSize:11,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.4,marginBottom:10}}>Commission</p>
+            {Object.entries(groomerComm).map(([name,g],i,arr)=>(
+              <div key={name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:7,marginBottom:7,borderBottom:i<arr.length-1?"0.5px solid "+A.g2:"none"}}>
+                <div><p style={{fontSize:13,fontWeight:600}}>{name}</p><p style={{fontSize:11,color:A.g4}}>{g.pets} dog{g.pets!==1?"s":""}</p></div>
+                <span style={{fontSize:14,fontWeight:700,color:A.wn}}>{fmt(g.comm)}</span>
+              </div>
+            ))}
+            <div style={{display:"flex",justifyContent:"space-between",paddingTop:7,borderTop:"0.5px solid "+A.g2}}><span style={{fontSize:13,fontWeight:700}}>Total Commission</span><span style={{fontSize:14,fontWeight:700,color:A.wn}}>{fmt(totalComm)}</span></div>
+          </div>
+        )}
+        <div style={{background:netProfit>=0?A.sbg:A.dbg,borderRadius:12,padding:"16px",textAlign:"center",marginBottom:8}}>
+          <p style={{fontSize:11,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.4,marginBottom:6}}>Net Profit</p>
+          <p style={{fontSize:34,fontWeight:700,color:netProfit>=0?A.ok:A.er}}>{fmt(netProfit)}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 function LoginScreen({ownerPass,staffAccounts,onLogin}){
   const[pass,setPass]=useState("");const[err,setErr]=useState("");
   const tryLogin=()=>{if(pass===ownerPass)onLogin("owner");else if(staffAccounts.some(s=>s.password===pass))onLogin("staff");else setErr("Incorrect password.");};
@@ -565,6 +655,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
   const[trkEnd,setTrkEnd]=useState(tod());
   const[smForm,setSmForm]=useState({id:null,name:"",age:"",designation:"Groomer",address:"",mobile:"",emergencyContact:"",dailySalary:700,photo:"",idPhoto:""});
   const[showSmForm,setShowSmForm]=useState(false);
+  const[showEod,setShowEod]=useState(false);
   const[petModal,setPetModal]=useState(null);
   const[staffDetailId,setStaffDetailId]=useState(null);
   const[commDetailId,setCommDetailId]=useState(null);
@@ -579,6 +670,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
   const[sync,setSync]=useState("Synced");
   const lastR=useRef(null);
   const calRef=useRef(null);
+  const schedDateRef=useRef(null);
 
   useEffect(()=>{
     if(!DOC){setSync("Offline");return;}
@@ -815,10 +907,14 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
       return(
         <div className="sec">
           {apptFormModal}
+          {showEod&&<EodModal date={todStr} todAppts={todAppts} expenses={gE(todStr)} cashboxBal={cashbox[todStr]||0} staffMembers={staffMembers} onClose={()=>setShowEod(false)}/>}
           <div style={{marginBottom:16}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
               <div><h1 style={{fontSize:28,fontWeight:700,letterSpacing:"-.02em"}}>{DNAMES[now.getDay()]}</h1><p style={{fontSize:14,color:A.g4}}>{fmtD(todStr)}</p></div>
-              <button onClick={()=>{setActA(null);setAForm(bA());setShowAForm(true);}} style={{width:44,height:44,borderRadius:"50%",background:A.bu,border:"none",color:"#fff",fontSize:24,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>+</button>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <button onClick={()=>setShowEod(true)} style={{padding:"8px 14px",borderRadius:20,background:A.g1,border:"1px solid "+A.g2,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit",color:A.g4,minHeight:"auto"}}>EOD</button>
+                <button onClick={()=>{setActA(null);setAForm(bA());setShowAForm(true);}} style={{width:44,height:44,borderRadius:"50%",background:A.bu,border:"none",color:"#fff",fontSize:24,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>+</button>
+              </div>
             </div>
           </div>
           {todSt.length>0&&(
@@ -919,7 +1015,11 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
           <div style={{background:"#111",flexShrink:0}}>
             <div style={{display:"flex",alignItems:"center",padding:"10px 14px 6px",gap:8}}>
               <button onClick={prevDay} style={{padding:"0 14px",height:36,borderRadius:9,background:"rgba(255,255,255,.1)",border:"none",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto",fontFamily:"inherit"}}>Previous</button>
-              <div style={{flex:1,textAlign:"center"}}><p style={{color:"#fff",fontWeight:700,fontSize:16}}>{selDayName}</p><p style={{color:"rgba(255,255,255,.45)",fontSize:12,marginTop:1}}>{fmtD(selDate)}</p></div>
+              <div style={{flex:1,textAlign:"center",cursor:"pointer"}} onClick={()=>{if(schedDateRef.current){try{schedDateRef.current.showPicker();}catch(e){schedDateRef.current.click();}}}}>
+                <p style={{color:"#fff",fontWeight:700,fontSize:16}}>{selDayName}</p>
+                <p style={{color:"rgba(255,255,255,.45)",fontSize:12,marginTop:1}}>{fmtD(selDate)} ▾</p>
+                <input ref={schedDateRef} type="date" value={selDate} onChange={e=>e.target.value&&setSelDate(e.target.value)} style={{position:"fixed",top:0,left:0,width:1,height:1,opacity:0,pointerEvents:"none",border:"none"}}/>
+              </div>
               <button onClick={nextDay} style={{padding:"0 14px",height:36,borderRadius:9,background:"rgba(255,255,255,.1)",border:"none",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto",fontFamily:"inherit"}}>Next</button>
             </div>
             <div style={{display:"flex",alignItems:"center",padding:"0 14px 10px",gap:8}}>
