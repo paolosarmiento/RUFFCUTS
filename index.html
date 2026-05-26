@@ -83,6 +83,7 @@ textarea{resize:vertical;min-height:80px;}
 #boot{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;}
 #boot img{height:90px;object-fit:contain;margin-bottom:16px;}
 #boot p{font-size:14px;color:rgba(255,255,255,.35);}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
 @media(max-width:767px){
   .sidebar{display:none!important;}.mob-hdr{display:flex!important;}.main{margin-left:0!important;}
   .sec{padding:12px;padding-bottom:max(20px,env(safe-area-inset-bottom));}
@@ -184,7 +185,8 @@ const getPayE=e=>{if(!e)return{status:"unpaid",paidAmount:0,paidOn:null};if(type
 const pmColor=m=>m==="Cash"?"#34c759":m==="GCash"?"#0071e3":"#aeaeb2";
 const timeToMins=t=>{if(!t)return -1;const p=t.split(":");return parseInt(p[0])*60+parseInt(p[1]);};
 const minsToTime=m=>{const h=Math.floor(m/60);const mn=m%60;return String(h).padStart(2,"0")+":"+String(mn).padStart(2,"0");};
-const nextStatus=s=>{const i=STATUS_ORDER.indexOf(s||"pending");return STATUS_ORDER[(i+1)%STATUS_ORDER.length];};
+const NEXT_FWD={"pending":"en-route","confirmed":"en-route","en-route":"in-progress","in-progress":"completed"};
+const nextStatus=s=>NEXT_FWD[s||"pending"]||s;
 const sConf=s=>STATUS_CONFIG[s||"pending"]||STATUS_CONFIG["pending"];
 const tToY=t=>{const m=timeToMins(t);if(m<0)return -1;const start=CAL_START*60;const end=CAL_END*60;if(m<start||m>=end)return -1;return(m-start)*PX_PER_MIN;};
 const fmtHour=h=>h===12?"12 PM":h<12?h+" AM":(h-12)+" PM";
@@ -240,6 +242,18 @@ function ConfirmModal({message,onConfirm,onCancel}){
           <Btn v="dan" style={{flex:1}} onClick={()=>{onConfirm();onCancel();}}>Delete</Btn>
         </div>
       </div>
+    </div>
+  );
+}
+function Toast({toasts}){
+  if(!toasts.length)return null;
+  return(
+    <div style={{position:"fixed",bottom:"max(32px,env(safe-area-inset-bottom))",left:"50%",transform:"translateX(-50%)",zIndex:9999,display:"flex",flexDirection:"column",gap:8,alignItems:"center",pointerEvents:"none"}}>
+      {toasts.map(t=>(
+        <div key={t.id} style={{background:t.type==="error"?"#ff375f":t.type==="warn"?"#ff9f0a":"#1c1c1e",color:"#fff",padding:"11px 22px",borderRadius:"980px",fontSize:14,fontWeight:500,boxShadow:"0 4px 24px rgba(0,0,0,.3)",whiteSpace:"nowrap",animation:"toastIn .25s ease"}}>
+          {t.message}
+        </div>
+      ))}
     </div>
   );
 }
@@ -373,7 +387,7 @@ function ExpTable({all,expenses,setExpenses}){
                 <td className="td">{fmtD(e.date)}</td>
                 <td className="td"><Bdg color="orange">{e.category}</Bdg></td>
                 <td className="td" style={{color:A.er,fontWeight:600}}>{fmt(e.amount)}</td>
-                <td className="td"><div style={{display:"flex",gap:6}}><Btn sm v="sec" onClick={()=>startEdit(e)}>Edit</Btn><Btn sm v="gho" onClick={()=>askConfirm("Delete this expense?",()=>setExpenses(prev=>({...prev,[e.date]:(prev[e.date]||[]).filter(x=>x.id!==e.id)})))}>Del</Btn></div></td>
+                <td className="td"><div style={{display:"flex",gap:6}}><Btn sm v="sec" onClick={()=>startEdit(e)}>Edit</Btn><Btn sm v="gho" onClick={()=>askConfirm("Delete this expense?",()=>setExpenses(prev=>({...prev,[e.date]:(prev[e.date]||[]).filter(x=>x.id!==e.id)})),"Expense deleted")}>Del</Btn></div></td>
               </tr>
             );
           })}
@@ -558,7 +572,9 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
   const[showQExp,setShowQExp]=useState(false);
   const[qExpForm,setQExpForm]=useState({cat:"",custCat:"",amt:"",notes:""});
   const[confirmModal,setConfirmModal]=useState(null);
-  const askConfirm=(message,onConfirm)=>setConfirmModal({message,onConfirm});
+  const[toasts,setToasts]=useState([]);
+  const showToast=(message,type="success")=>{const id=Date.now();setToasts(p=>[...p,{id,message,type}]);setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),2500);};
+  const askConfirm=(message,onConfirm,successMsg="Deleted")=>setConfirmModal({message,onConfirm:()=>{onConfirm();showToast(successMsg);}});
   const closeConfirm=()=>setConfirmModal(null);
   const[sync,setSync]=useState("Synced");
   const lastR=useRef(null);
@@ -604,9 +620,9 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
   const gE=d=>expenses[d]||[];
   const gSt=d=>(staffByDate[d]||[]).map(normSt);
   const gSal=d=>{const onDuty=gSt(d);return onDuty.reduce((s,sm)=>{const member=staffMembers.find(m=>m.id===sm.staffId);const rate=member&&member.dailySalary?Number(member.dailySalary):700;return s+rate;},0);};
-  const gRev=d=>gA(d).filter(a=>a.status!=="cancelled").reduce((s,a)=>s+Number(a.cost||0),0);
+  const gRev=d=>gA(d).filter(a=>a.status==="completed").reduce((s,a)=>s+Number(a.cost||0),0);
   const gExpR=d=>gE(d).reduce((s,e)=>s+Number(e.amount||0),0);
-  const gComm=d=>gA(d).filter(a=>a.groomerId&&a.status!=="cancelled").reduce((s,a)=>s+Number(a.cost||0)*0.1,0);
+  const gComm=d=>gA(d).filter(a=>a.groomerId&&a.status==="completed").reduce((s,a)=>s+Number(a.cost||0)*0.1,0);
   const gExp=d=>gExpR(d)+gSal(d);
   const gP=d=>gRev(d)-gExp(d)-gComm(d);
 
@@ -636,7 +652,14 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
     else setStaffByDate(p=>({...p,[selDate]:[...curr,{staffId:sm.id,name:sm.name,designation:sm.designation}]}));
   };
 
-  const cycleStatus=(date,apptId)=>{setSchedules(prev=>({...prev,[date]:(prev[date]||[]).map(a=>a.id===apptId?{...a,status:nextStatus(a.status||"pending")}:a)}));};
+  const cycleStatus=(date,apptId)=>{
+    const appt=(schedules[date]||[]).find(a=>a.id===apptId);
+    if(!appt)return;
+    const ns=nextStatus(appt.status||"pending");
+    if(ns===(appt.status||"pending"))return;
+    setSchedules(prev=>({...prev,[date]:(prev[date]||[]).map(a=>a.id===apptId?{...a,status:ns}:a)}));
+    showToast("→ "+sConf(ns).label);
+  };
   const quickAssign=(date,apptId,groomerId)=>{setSchedules(prev=>({...prev,[date]:(prev[date]||[]).map(a=>a.id===apptId?{...a,groomerId:groomerId||null}:a)}));};
 
   const saveSm=()=>{
@@ -646,6 +669,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
     else setStaffMembers(p=>[...p,{...data,id:Date.now()}]);
     setSmForm({id:null,name:"",age:"",designation:"Groomer",address:"",mobile:"",emergencyContact:"",dailySalary:700,photo:"",idPhoto:""});
     setShowSmForm(false);
+    showToast("Staff member saved ✓");
   };
 
   const saveA=()=>{
@@ -657,15 +681,15 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
     });
     if(!newA.length)return;
     setSchedules(prev=>{const ex=actA?(prev[selDate]||[]).filter(a=>a.id!==actA.id):prev[selDate]||[];return{...prev,[selDate]:[...ex,...newA].sort((a,b)=>(a.time||"").localeCompare(b.time||""))};});
-    setAForm(bA());setActA(null);setShowAForm(false);
+    setAForm(bA());setActA(null);setShowAForm(false);showToast("Appointment saved ✓");
   };
 
   const openEditAppt=a=>{setActA(a);setAForm({clientId:a.clientId,time:a.time||"",groomerId:a.groomerId||"",paymentMode:a.paymentMode||"",duration:a.duration||60,status:a.status||"pending",pets:[{petId:a.petId,furLength:a.furLength||"",service:a.service,cost:a.cost,notes:a.notes||""}]});setShowAForm(true);};
   const delA=(d,id)=>setSchedules(prev=>({...prev,[d]:(prev[d]||[]).filter(a=>a.id!==id)}));
-  const saveCl=()=>{if(!cForm.name)return;const pets=cForm.pets.map(p=>({...p,id:p.id||Date.now()+Math.random()}));if(editCId)setClients(prev=>prev.map(c=>c.id===editCId?{...c,...cForm,pets}:c));else setClients(prev=>[...prev,{id:Date.now(),...cForm,pets}]);setCForm(bC());setEditCId(null);setShowCForm(false);};
+  const saveCl=()=>{if(!cForm.name)return;const pets=cForm.pets.map(p=>({...p,id:p.id||Date.now()+Math.random()}));if(editCId)setClients(prev=>prev.map(c=>c.id===editCId?{...c,...cForm,pets}:c));else setClients(prev=>[...prev,{id:Date.now(),...cForm,pets}]);setCForm(bC());setEditCId(null);setShowCForm(false);showToast("Client saved ✓");};
   const updPet=(i,f,v)=>setCForm(prev=>({...prev,pets:prev.pets.map((p,j)=>i===j?{...p,[f]:v}:p)}));
-  const saveE=()=>{if(!eForm.amt)return;const cat=eForm.cat==="Other"?eForm.custCat:eForm.cat;setExpenses(prev=>({...prev,[eForm.date]:[...(prev[eForm.date]||[]),{id:Date.now(),category:cat,amount:Number(eForm.amt)}]}));setEForm({date:tod(),cat:"",custCat:"",amt:""});setShowEForm(false);};
-  const saveSv=()=>{if(!svForm.name.trim())return;if(editSvId)setServices(prev=>prev.map(sv=>sv.id===editSvId?{...sv,name:svForm.name,price:Number(svForm.price)}:sv));else setServices(prev=>[...prev,{id:Date.now(),name:svForm.name,price:Number(svForm.price)}]);setSvForm({name:"",price:""});setEditSvId(null);setShowSvForm(false);};
+  const saveE=()=>{if(!eForm.amt)return;const cat=eForm.cat==="Other"?eForm.custCat:eForm.cat;setExpenses(prev=>({...prev,[eForm.date]:[...(prev[eForm.date]||[]),{id:Date.now(),category:cat,amount:Number(eForm.amt)}]}));setEForm({date:tod(),cat:"",custCat:"",amt:""});setShowEForm(false);showToast("Expense logged ✓");};
+  const saveSv=()=>{if(!svForm.name.trim())return;if(editSvId)setServices(prev=>prev.map(sv=>sv.id===editSvId?{...sv,name:svForm.name,price:Number(svForm.price)}:sv));else setServices(prev=>[...prev,{id:Date.now(),name:svForm.name,price:Number(svForm.price)}]);setSvForm({name:"",price:""});setEditSvId(null);setShowSvForm(false);showToast("Service saved ✓");};
 
   const fCl=clients.filter(c=>c.name.toLowerCase().includes(nFilter.toLowerCase())||c.pets.some(p=>p.name.toLowerCase().includes(nFilter.toLowerCase())));
   const appts=gA(selDate);
@@ -693,7 +717,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
 
   const commByGroomer={};
   trkDates.forEach(d=>{
-    gA(d).filter(a=>a.groomerId&&a.status!=="cancelled").forEach(a=>{
+    gA(d).filter(a=>a.groomerId&&a.status==="completed").forEach(a=>{
       const member=staffMembers.find(m=>m.id===a.groomerId);
       const name=member?member.name:(gSt(d).find(s=>s.staffId===a.groomerId)||{name:"Unknown"}).name;
       if(!commByGroomer[a.groomerId])commByGroomer[a.groomerId]={staffId:a.groomerId,name,total:0,pets:0,breakdown:[]};
@@ -745,7 +769,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
       const total=todAppts.filter(a=>a.status!=="cancelled").length;
       const pct=total>0?Math.round(done.length/total*100):0;
       const groomerCommToday={};
-      todAppts.filter(a=>a.groomerId&&a.status!=="cancelled").forEach(a=>{
+      todAppts.filter(a=>a.groomerId&&a.status==="completed").forEach(a=>{
         const member=staffMembers.find(m=>m.id===a.groomerId);const name=member?member.name:"Unknown";
         if(!groomerCommToday[a.groomerId])groomerCommToday[a.groomerId]={name,comm:0,pets:0};
         groomerCommToday[a.groomerId].comm+=Number(a.cost||0)*0.1;groomerCommToday[a.groomerId].pets++;
@@ -781,7 +805,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
               <div style={{textAlign:"right",flexShrink:0}}>
                 <p style={{fontSize:17,fontWeight:700,color:A.ok,marginBottom:8}}>{fmt(a.cost)}</p>
                 <button onClick={()=>openEditAppt(a)} style={{background:A.g1,border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,color:A.bl,cursor:"pointer",fontFamily:"inherit",fontWeight:600,minHeight:"auto",display:"block",marginBottom:6}}>Edit</button>
-                <button onClick={()=>askConfirm("Delete this appointment?",()=>delA(date||todStr,a.id))} style={{background:A.dbg,border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,color:A.er,cursor:"pointer",fontFamily:"inherit",fontWeight:600,minHeight:"auto",display:"block"}}>Del</button>
+                <button onClick={()=>askConfirm("Delete this appointment?",()=>delA(date||todStr,a.id),"Appointment deleted")} style={{background:A.dbg,border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,color:A.er,cursor:"pointer",fontFamily:"inherit",fontWeight:600,minHeight:"auto",display:"block"}}>Del</button>
               </div>
             </div>
           </div>
@@ -967,6 +991,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                       setExpenses(prev=>({...prev,[selDate]:[...(prev[selDate]||[]),{id:Date.now(),category:cat,amount:Number(qExpForm.amt),notes:qExpForm.notes||"",cashbox:true}]}));
                       setQExpForm({cat:"",custCat:"",amt:"",notes:""});
                       setShowQExp(false);
+                      showToast("Expense logged — "+fmt(Number(qExpForm.amt))+" "+cat+" ✓");
                     }}>Save</Btn>
                     <Btn v="can" onClick={()=>setShowQExp(false)}>Cancel</Btn>
                   </div>
@@ -1024,7 +1049,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                                 </div>
                                 {height>55&&(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:9,fontWeight:700,color:sc.bd}}>{fmtT(a.time)}</span>{a.paymentMode&&<span style={{fontSize:9,fontWeight:700,color:pmColor(a.paymentMode)}}>{a.paymentMode}</span>}</div>)}
                               </div>
-                              <button onClick={ev=>{ev.stopPropagation();askConfirm("Delete this appointment?",()=>delA(selDate,a.id));}} style={{position:"absolute",top:2,right:2,background:"rgba(0,0,0,.1)",border:"none",borderRadius:3,width:14,height:14,fontSize:8,color:sc.tx,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto",padding:0}}>X</button>
+                              <button onClick={ev=>{ev.stopPropagation();askConfirm("Delete this appointment?",()=>delA(selDate,a.id),"Appointment deleted");}} style={{position:"absolute",top:2,right:2,background:"rgba(0,0,0,.1)",border:"none",borderRadius:3,width:14,height:14,fontSize:8,color:sc.tx,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto",padding:0}}>X</button>
                             </div>
                           );
                         })}
@@ -1059,7 +1084,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                     })()}
                     {(()=>{
                       const gc={};
-                      appts.filter(a=>a.groomerId&&a.status!=="cancelled").forEach(a=>{
+                      appts.filter(a=>a.groomerId&&a.status==="completed").forEach(a=>{
                         const member=staffMembers.find(m=>m.id===a.groomerId);
                         const name=member?member.name:(dSt.find(s=>String(s.staffId)===String(a.groomerId))||{name:"Unknown"}).name;
                         if(!gc[a.groomerId])gc[a.groomerId]={name,comm:0,pets:0};
@@ -1143,7 +1168,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                           </div>
                           <div style={{textAlign:"right",flexShrink:0}}>
                             <p style={{fontSize:16,fontWeight:700,color:A.ok,marginBottom:6}}>{fmt(a.cost)}</p>
-                            <button onClick={e=>{e.stopPropagation();askConfirm("Delete this appointment?",()=>delA(selDate,a.id));}} style={{background:A.dbg,border:"none",borderRadius:8,padding:"5px 10px",fontSize:12,color:A.er,cursor:"pointer",fontFamily:"inherit",fontWeight:600,minHeight:"auto"}}>Delete</button>
+                            <button onClick={e=>{e.stopPropagation();askConfirm("Delete this appointment?",()=>delA(selDate,a.id),"Appointment deleted");}} style={{background:A.dbg,border:"none",borderRadius:8,padding:"5px 10px",fontSize:12,color:A.er,cursor:"pointer",fontFamily:"inherit",fontWeight:600,minHeight:"auto"}}>Delete</button>
                           </div>
                         </div>
                       </div>
@@ -1228,7 +1253,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
             <div key={c.id} className="card" style={{marginBottom:10}}>
               <div style={{padding:"14px 16px",borderBottom:".5px solid rgba(0,0,0,.08)",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                 <div><p style={{fontWeight:700,fontSize:17,marginBottom:2}}>{c.name}</p>{c.address&&<p style={{fontSize:13,color:A.g4,marginBottom:1}}>{c.address}</p>}{c.mobile&&<a href={"tel:"+c.mobile} style={{fontSize:14,color:A.bu,textDecoration:"none",fontWeight:500}}>{c.mobile}</a>}</div>
-                <div style={{display:"flex",gap:6}}><Btn sm v="sec" onClick={()=>{setEditCId(c.id);setCForm({name:c.name,address:c.address,mobile:c.mobile,pets:c.pets.map(p=>({...p}))});setShowCForm(true);}}>Edit</Btn><Btn sm v="gho" onClick={()=>askConfirm("Delete "+c.name+" and all their pets?",()=>setClients(prev=>prev.filter(x=>x.id!==c.id)))}>Del</Btn></div>
+                <div style={{display:"flex",gap:6}}><Btn sm v="sec" onClick={()=>{setEditCId(c.id);setCForm({name:c.name,address:c.address,mobile:c.mobile,pets:c.pets.map(p=>({...p}))});setShowCForm(true);}}>Edit</Btn><Btn sm v="gho" onClick={()=>askConfirm("Delete "+c.name+" and all their pets?",()=>setClients(prev=>prev.filter(x=>x.id!==c.id)),"Client deleted")}>Del</Btn></div>
               </div>
               <div style={{padding:"10px 12px",display:"flex",gap:8,flexWrap:"wrap"}}>
                 {c.pets.map(p=>{
@@ -1268,7 +1293,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
             {services.map((sv,i)=>(
               <div key={sv.id} className="crow">
                 <div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:12,color:A.g3,fontWeight:700,width:22,textAlign:"center"}}>{i+1}</span><span style={{fontWeight:500,fontSize:14}}>{sv.name}</span></div>
-                <div style={{display:"flex",gap:8,alignItems:"center"}}><span style={{fontWeight:700,color:sv.price>0?A.ok:A.g3,fontSize:14}}>{sv.price>0?fmt(sv.price):"-"}</span><Btn sm v="sec" onClick={()=>{setEditSvId(sv.id);setSvForm({name:sv.name,price:sv.price});setShowSvForm(true);}}>Edit</Btn><Btn sm v="gho" onClick={()=>askConfirm("Delete \""+sv.name+"\"?",()=>setServices(p=>p.filter(x=>x.id!==sv.id)))}>Del</Btn></div>
+                <div style={{display:"flex",gap:8,alignItems:"center"}}><span style={{fontWeight:700,color:sv.price>0?A.ok:A.g3,fontSize:14}}>{sv.price>0?fmt(sv.price):"-"}</span><Btn sm v="sec" onClick={()=>{setEditSvId(sv.id);setSvForm({name:sv.name,price:sv.price});setShowSvForm(true);}}>Edit</Btn><Btn sm v="gho" onClick={()=>askConfirm("Delete \""+sv.name+"\"?",()=>setServices(p=>p.filter(x=>x.id!==sv.id)),"Service deleted")}>Del</Btn></div>
               </div>
             ))}
           </div>
@@ -1312,7 +1337,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                   <div style={{flex:1}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5}}>
                       <div><p style={{fontWeight:700,fontSize:17,marginBottom:3}}>{sm.name}</p><Bdg color={dsgC(sm.designation)}>{sm.designation}</Bdg>{sm.age&&<span style={{fontSize:13,color:A.g4,marginLeft:7}}>Age {sm.age}</span>}</div>
-                      <div style={{display:"flex",gap:6}}><Btn sm v="sec" onClick={()=>{setSmForm({...sm,dailySalary:sm.dailySalary||700});setShowSmForm(true);}}>Edit</Btn><Btn sm v="dan" onClick={()=>askConfirm("Delete "+sm.name+" from staff?",()=>setStaffMembers(p=>p.filter(x=>x.id!==sm.id)))}>Delete</Btn></div>
+                      <div style={{display:"flex",gap:6}}><Btn sm v="sec" onClick={()=>{setSmForm({...sm,dailySalary:sm.dailySalary||700});setShowSmForm(true);}}>Edit</Btn><Btn sm v="dan" onClick={()=>askConfirm("Delete "+sm.name+" from staff?",()=>setStaffMembers(p=>p.filter(x=>x.id!==sm.id)),"Staff member deleted")}>Delete</Btn></div>
                     </div>
                     <p style={{fontSize:13,color:A.g4,marginTop:4}}>Daily Rate: <strong style={{color:A.ok}}>P{(sm.dailySalary||700).toLocaleString()}</strong></p>
                     {sm.mobile&&<p style={{fontSize:13,color:A.g4}}>Mobile: {sm.mobile}</p>}
@@ -1437,7 +1462,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                 <tbody>
                   {trkDates.flatMap(d=>{
                     const dayComm={};
-                    gA(d).filter(a=>a.groomerId&&a.status!=="cancelled").forEach(a=>{
+                    gA(d).filter(a=>a.groomerId&&a.status==="completed").forEach(a=>{
                       if(!dayComm[a.groomerId])dayComm[a.groomerId]={name:(staffMembers.find(m=>m.id===a.groomerId)||{name:"Unknown"}).name,pets:0,comm:0};
                       dayComm[a.groomerId].pets++;dayComm[a.groomerId].comm+=Number(a.cost||0)*0.1;
                     });
@@ -1660,6 +1685,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
       )}
       <div className="main">{renderContent()}</div>
       {confirmModal&&<ConfirmModal message={confirmModal.message} onConfirm={confirmModal.onConfirm} onCancel={closeConfirm}/>}
+      <Toast toasts={toasts}/>
     </div>
   );
 }
