@@ -899,7 +899,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                   return(
                     <div key={a.id} style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,.07)",borderRadius:8,padding:"6px 10px",border:"1px solid "+c.bd}}>
                       <span style={{fontSize:12,fontWeight:700,color:c.tx,background:c.bg,padding:"2px 8px",borderRadius:6}}>{a.petName} ({a.breed||"?"})</span>
-                      <select onChange={e=>e.target.value&&quickAssign(selDate,a.id,e.target.value||null)} value={a.groomerId||""} style={{fontSize:12,padding:"4px 8px",borderRadius:6,border:"none",background:"rgba(255,255,255,.15)",color:"#fff",fontFamily:"inherit",minHeight:"auto",cursor:"pointer"}}>
+                      <select onChange={e=>quickAssign(selDate,a.id,e.target.value||null)} value={a.groomerId||""} style={{fontSize:12,padding:"4px 8px",borderRadius:6,border:"none",background:"rgba(255,255,255,.15)",color:"#fff",fontFamily:"inherit",minHeight:"auto",cursor:"pointer"}}>
                         <option value="" style={{color:"#000"}}>Unassigned</option>
                         {dSt.filter(s=>s.designation==="Groomer").map(g=><option key={g.staffId} value={g.staffId} style={{color:"#000"}}>{g.name}</option>)}
                       </select>
@@ -928,13 +928,24 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                   </div>
                   {columns.map(col=>{
                     const colAppts=getColAppts(col.staffId);
+                    // Assign lanes to overlapping appointments so they render side-by-side
+                    const laneEnds=[];
+                    const lanedAppts=[...colAppts].filter(a=>a.time).sort((a,b)=>a.time.localeCompare(b.time)).map(a=>{
+                      const start=timeToMins(a.time);const end=start+(a.duration||60);
+                      let lane=laneEnds.findIndex(e=>e<=start);
+                      if(lane===-1)lane=laneEnds.length;
+                      laneEnds[lane]=end;return{...a,_lane:lane};
+                    });
+                    const _n=Math.max(laneEnds.length,1);
+                    const allLaned=[...lanedAppts,...colAppts.filter(a=>!a.time).map(a=>({...a,_lane:0}))];
                     return(
                       <div key={col.staffId} className="cal-abs-col" style={{flex:"1 0 130px",height:TOTAL_H,backgroundImage:"repeating-linear-gradient(to bottom, transparent 0px, transparent 22.5px, rgba(0,0,0,.04) 22.5px, rgba(0,0,0,.04) 23px, transparent 23px, transparent 45px, rgba(0,0,0,.07) 45px, rgba(0,0,0,.07) 45.5px, transparent 45.5px, transparent 67.5px, rgba(0,0,0,.04) 67.5px, rgba(0,0,0,.04) 68px, transparent 68px, transparent 90px), repeating-linear-gradient(to bottom, #e8e8ed 0px, #e8e8ed 1px, transparent 1px, transparent 90px)"}} onClick={e=>handleColClick(e,col.staffId)}>
-                        {colAppts.map(a=>{
+                        {allLaned.map(a=>{
                           const top=tToY(a.time);if(top<0)return null;
                           const height=Math.max((a.duration||60)*PX_PER_MIN,28);const c=aColor(a.service);const sc=sConf(a.status||"pending");
+                          const laneW=100/_n;const laneL=a._lane*laneW;
                           return(
-                            <div key={a.id} onClick={e=>{e.stopPropagation();openEditAppt(a);}} style={{position:"absolute",top:top+1,left:2,right:2,height:height-2,background:sc.bg,borderLeft:"3px solid "+sc.bd,borderRadius:"0 7px 7px 0",overflow:"hidden",cursor:"pointer",zIndex:2,boxShadow:"0 1px 4px rgba(0,0,0,.1)"}}>
+                            <div key={a.id} onClick={e=>{e.stopPropagation();openEditAppt(a);}} style={{position:"absolute",top:top+1,left:`calc(${laneL}% + 1px)`,width:`calc(${laneW}% - 2px)`,height:height-2,background:sc.bg,borderLeft:"3px solid "+sc.bd,borderRadius:"0 7px 7px 0",overflow:"hidden",cursor:"pointer",zIndex:2,boxShadow:"0 1px 4px rgba(0,0,0,.1)"}}>
                               <div style={{padding:"4px 6px",height:"100%",display:"flex",flexDirection:"column",justifyContent:"space-between"}}>
                                 <div>
                                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:2}}>
@@ -948,7 +959,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                                 </div>
                                 {height>55&&(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:9,fontWeight:700,color:sc.bd}}>{fmtT(a.time)}</span>{a.paymentMode&&<span style={{fontSize:9,fontWeight:700,color:pmColor(a.paymentMode)}}>{a.paymentMode}</span>}</div>)}
                               </div>
-                              <button onClick={ev=>{ev.stopPropagation();delA(selDate,a.id);}} style={{position:"absolute",top:2,right:height>55?2:20,background:"rgba(0,0,0,.1)",border:"none",borderRadius:3,width:14,height:14,fontSize:8,color:sc.tx,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto",padding:0}}>X</button>
+                              <button onClick={ev=>{ev.stopPropagation();delA(selDate,a.id);}} style={{position:"absolute",top:2,right:2,background:"rgba(0,0,0,.1)",border:"none",borderRadius:3,width:14,height:14,fontSize:8,color:sc.tx,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto",padding:0}}>X</button>
                             </div>
                           );
                         })}
@@ -965,6 +976,22 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                         <div key={l} className="sc" style={{boxShadow:"0 1px 3px rgba(0,0,0,.05)"}}><p style={{fontSize:9,color:A.g4,marginBottom:4,textTransform:"uppercase",fontWeight:600}}>{l}</p><p style={{fontSize:14,fontWeight:700,color:c}}>{val}</p></div>
                       ))}
                     </div>
+                    {(()=>{
+                      const cashRev=appts.filter(a=>a.paymentMode==="Cash"&&a.status!=="cancelled").reduce((s,a)=>s+Number(a.cost||0),0);
+                      const gcashRev=appts.filter(a=>a.paymentMode==="GCash"&&a.status!=="cancelled").reduce((s,a)=>s+Number(a.cost||0),0);
+                      const cashCnt=appts.filter(a=>a.paymentMode==="Cash"&&a.status!=="cancelled").length;
+                      const gcashCnt=appts.filter(a=>a.paymentMode==="GCash"&&a.status!=="cancelled").length;
+                      if(!cashRev&&!gcashRev)return null;
+                      return(
+                        <div style={{marginTop:12}}>
+                          <p style={{fontSize:11,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.4,marginBottom:8}}>Payment Collection</p>
+                          <div className="g2">
+                            {cashRev>0&&<div className="sc" style={{boxShadow:"0 1px 3px rgba(0,0,0,.05)",borderLeft:"3px solid #34c759"}}><p style={{fontSize:9,color:A.g4,marginBottom:2,textTransform:"uppercase",fontWeight:600}}>Cash</p><p style={{fontSize:10,color:A.g4,marginBottom:4}}>{cashCnt} appointment{cashCnt!==1?"s":""}</p><p style={{fontSize:16,fontWeight:700,color:"#34c759"}}>{fmt(cashRev)}</p></div>}
+                            {gcashRev>0&&<div className="sc" style={{boxShadow:"0 1px 3px rgba(0,0,0,.05)",borderLeft:"3px solid #0071e3"}}><p style={{fontSize:9,color:A.g4,marginBottom:2,textTransform:"uppercase",fontWeight:600}}>GCash</p><p style={{fontSize:10,color:A.g4,marginBottom:4}}>{gcashCnt} appointment{gcashCnt!==1?"s":""}</p><p style={{fontSize:16,fontWeight:700,color:"#0071e3"}}>{fmt(gcashRev)}</p></div>}
+                          </div>
+                        </div>
+                      );
+                    })()}
                     {(()=>{
                       const gc={};
                       appts.filter(a=>a.groomerId&&a.status!=="cancelled").forEach(a=>{
@@ -987,10 +1014,6 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                                 <p style={{fontSize:16,fontWeight:700,color:A.wn}}>{fmt(g.comm)}</p>
                               </div>
                             ))}
-                            <div className="sc" style={{boxShadow:"0 1px 3px rgba(0,0,0,.05)",background:"#fffaf0"}}>
-                              <p style={{fontSize:10,color:A.g4,marginBottom:4,textTransform:"uppercase",fontWeight:600}}>Total</p>
-                              <p style={{fontSize:16,fontWeight:700,color:A.wn}}>{fmt(entries.reduce((s,g)=>s+g.comm,0))}</p>
-                            </div>
                           </div>
                         </div>
                       );
