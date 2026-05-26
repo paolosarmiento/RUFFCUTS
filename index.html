@@ -148,6 +148,7 @@ const DEF_SVC=[
 ];
 const FURS=["Smooth","Long"];
 const EXP_CATS=["Fuel","Grooming Supplies","Maintenance","Salaries/Commission","Parking/Tolls","Miscellaneous"];
+const ROUTE_CATS=["Fuel","Toll","Parking","Village Entrance Fee","Maintenance","Load"];
 const DESIGS=["Groomer","Driver","Apprentice Groomer"];
 const PAY_MODES=["Cash","GCash"];
 const DURATIONS=[{label:"30 min",value:30},{label:"45 min",value:45},{label:"1 hr",value:60},{label:"1.5 hr",value:90},{label:"2 hr",value:120},{label:"2.5 hr",value:150},{label:"3 hr",value:180}];
@@ -935,7 +936,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                     <button onClick={()=>setShowQExp(false)} style={{background:A.g1,borderRadius:"50%",width:32,height:32,border:"none",fontSize:16,color:A.g4,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto"}}>X</button>
                   </div>
                   <p style={{fontSize:12,color:A.g4,marginBottom:14}}>{fmtD(selDate)}</p>
-                  <div style={{marginBottom:10}}><Lbl c="Category"/><Sel value={qExpForm.cat} onChange={e=>setQExpForm(p=>({...p,cat:e.target.value}))}><option value="">Select...</option>{EXP_CATS.map(c=><option key={c}>{c}</option>)}</Sel></div>
+                  <div style={{marginBottom:10}}><Lbl c="Category"/><Sel value={qExpForm.cat} onChange={e=>setQExpForm(p=>({...p,cat:e.target.value}))}><option value="">Select...</option>{ROUTE_CATS.map(c=><option key={c}>{c}</option>)}</Sel></div>
                   {qExpForm.cat==="Miscellaneous"&&<div style={{marginBottom:10}}><Lbl c="Describe it"/><Inp value={qExpForm.custCat} onChange={e=>setQExpForm(p=>({...p,custCat:e.target.value}))} placeholder="e.g. Village entrance fee"/></div>}
                   <div style={{marginBottom:10}}><Lbl c="Amount (PHP)"/><Inp type="number" value={qExpForm.amt} onChange={e=>setQExpForm(p=>({...p,amt:e.target.value}))} placeholder="0"/></div>
                   <div style={{marginBottom:16}}><Lbl c="Notes (optional)"/><Inp value={qExpForm.notes} onChange={e=>setQExpForm(p=>({...p,notes:e.target.value}))} placeholder="e.g. BF Homes gate 1"/></div>
