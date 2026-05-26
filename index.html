@@ -954,6 +954,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                                   </div>
                                   {/* CHANGE 2 — show service name in day-view card */}
                                   {height>40&&<p style={{fontSize:9,color:sc.tx,opacity:.7,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>{(a.service||"").split("-")[0].trim()}</p>}
+                                  {height>40&&a.cost>0&&<p style={{fontSize:9,fontWeight:700,color:sc.tx,opacity:.9}}>{fmt(a.cost)}</p>}
                                   {/* CHANGE 2 — show address in day-view card when tall enough (≥70px = ~45 min slot) */}
                                   {height>70&&a.address&&<p style={{fontSize:8,color:sc.tx,opacity:.55,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>{a.address}</p>}
                                 </div>
