@@ -538,6 +538,9 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
   const[petModal,setPetModal]=useState(null);
   const[staffDetailId,setStaffDetailId]=useState(null);
   const[commDetailId,setCommDetailId]=useState(null);
+  const[cashbox,setCashbox]=useState({});
+  const[showQExp,setShowQExp]=useState(false);
+  const[qExpForm,setQExpForm]=useState({cat:"",custCat:"",amt:"",notes:""});
   const[sync,setSync]=useState("Synced");
   const lastR=useRef(null);
   const calRef=useRef(null);
@@ -554,6 +557,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
       if(d.staffByDate)setStaffByDate(d.staffByDate);
       setStaffMembers(d.staffMembers||[]);
       setPaymentStatus(d.paymentStatus||{});
+      setCashbox(d.cashbox||{});
       setSync("Synced");
     },()=>setSync("Offline"));
   },[]);
@@ -566,6 +570,7 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
   useEffect(()=>{const t=setTimeout(()=>sf("staffByDate",staffByDate,lastR.current&&lastR.current.staffByDate),800);return()=>clearTimeout(t);},[staffByDate]);
   useEffect(()=>{const t=setTimeout(()=>sf("staffMembers",staffMembers,lastR.current&&lastR.current.staffMembers),800);return()=>clearTimeout(t);},[staffMembers]);
   useEffect(()=>{const t=setTimeout(()=>sf("paymentStatus",paymentStatus,lastR.current&&lastR.current.paymentStatus),800);return()=>clearTimeout(t);},[paymentStatus]);
+  useEffect(()=>{const t=setTimeout(()=>sf("cashbox",cashbox,lastR.current&&lastR.current.cashbox),800);return()=>clearTimeout(t);},[cashbox]);
 
   useEffect(()=>{
     if((tab==="schedule"||tab==="today")&&calView==="day"&&calRef.current){
@@ -909,6 +914,45 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                 {appts.filter(a=>a.status!=="cancelled").length===0&&<span style={{fontSize:12,color:"rgba(255,255,255,.3)"}}>No pets scheduled today</span>}
               </div>
             </div>
+            {/* Cashbox strip */}
+            <div style={{background:"#111827",padding:"8px 14px",display:"flex",alignItems:"center",gap:10,flexShrink:0,borderBottom:"1px solid rgba(255,255,255,.06)",flexWrap:"wrap"}}>
+              <span style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,.4)",textTransform:"uppercase",letterSpacing:.5,flexShrink:0}}>💰 Cashbox</span>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <span style={{fontSize:11,color:"rgba(255,255,255,.35)"}}>Opening</span>
+                <input type="number" value={cashbox[selDate]||""} onChange={e=>setCashbox(p=>({...p,[selDate]:Number(e.target.value)||0}))} placeholder="0" style={{width:72,background:"rgba(255,255,255,.12)",border:"1px solid rgba(255,255,255,.18)",borderRadius:7,padding:"5px 8px",color:"#fff",fontSize:13,fontFamily:"inherit",minHeight:"auto",textAlign:"right",outline:"none"}}/>
+                <span style={{fontSize:11,color:"rgba(255,255,255,.3)"}}>PHP</span>
+              </div>
+              <div style={{flex:1}}/>
+              <button onClick={()=>setShowQExp(true)} style={{padding:"5px 14px",borderRadius:20,background:"rgba(255,159,10,.15)",border:"1px solid rgba(255,159,10,.35)",color:"#ff9f0a",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",minHeight:"auto",flexShrink:0}}>+ Expense</button>
+            </div>
+            {/* Quick Expense Modal */}
+            {showQExp&&(
+              <div className="mdbg" onClick={()=>setShowQExp(false)}>
+                <div className="md" onClick={e=>e.stopPropagation()}>
+                  <div className="mdh"/>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                    <p style={{fontSize:17,fontWeight:700}}>Log Expense</p>
+                    <button onClick={()=>setShowQExp(false)} style={{background:A.g1,borderRadius:"50%",width:32,height:32,border:"none",fontSize:16,color:A.g4,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto"}}>X</button>
+                  </div>
+                  <p style={{fontSize:12,color:A.g4,marginBottom:14}}>{fmtD(selDate)}</p>
+                  <div style={{marginBottom:10}}><Lbl c="Category"/><Sel value={qExpForm.cat} onChange={e=>setQExpForm(p=>({...p,cat:e.target.value}))}><option value="">Select...</option>{EXP_CATS.map(c=><option key={c}>{c}</option>)}</Sel></div>
+                  {qExpForm.cat==="Miscellaneous"&&<div style={{marginBottom:10}}><Lbl c="Describe it"/><Inp value={qExpForm.custCat} onChange={e=>setQExpForm(p=>({...p,custCat:e.target.value}))} placeholder="e.g. Village entrance fee"/></div>}
+                  <div style={{marginBottom:10}}><Lbl c="Amount (PHP)"/><Inp type="number" value={qExpForm.amt} onChange={e=>setQExpForm(p=>({...p,amt:e.target.value}))} placeholder="0"/></div>
+                  <div style={{marginBottom:16}}><Lbl c="Notes (optional)"/><Inp value={qExpForm.notes} onChange={e=>setQExpForm(p=>({...p,notes:e.target.value}))} placeholder="e.g. BF Homes gate 1"/></div>
+                  <div style={{display:"flex",gap:8}}>
+                    <Btn onClick={()=>{
+                      if(!qExpForm.amt)return;
+                      const cat=qExpForm.cat==="Miscellaneous"&&qExpForm.custCat?qExpForm.custCat:qExpForm.cat;
+                      if(!cat)return;
+                      setExpenses(prev=>({...prev,[selDate]:[...(prev[selDate]||[]),{id:Date.now(),category:cat,amount:Number(qExpForm.amt),notes:qExpForm.notes||""}]}));
+                      setQExpForm({cat:"",custCat:"",amt:"",notes:""});
+                      setShowQExp(false);
+                    }}>Save</Btn>
+                    <Btn v="can" onClick={()=>setShowQExp(false)}>Cancel</Btn>
+                  </div>
+                </div>
+              </div>
+            )}
             {calView==="day"&&(
             <div ref={calRef} className="cal-wrap">
               <div style={{minWidth:52+Math.max(columns.length,1)*130,position:"relative"}}>
@@ -1015,6 +1059,30 @@ function MainApp({role,onLogout,ownerPass,setOwnerPass,staffAccounts,setStaffAcc
                                 <p style={{fontSize:16,fontWeight:700,color:A.wn}}>{fmt(g.comm)}</p>
                               </div>
                             ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    {/* Cashbox Balance Summary */}
+                    {(()=>{
+                      const openBal=cashbox[selDate]||0;
+                      const cashIn=appts.filter(a=>a.paymentMode==="Cash"&&a.status!=="cancelled").reduce((s,a)=>s+Number(a.cost||0),0);
+                      const cashOut=gExpR(selDate);
+                      const closing=openBal+cashIn-cashOut;
+                      return(
+                        <div style={{marginTop:14,background:"#111827",borderRadius:12,padding:"14px 16px"}}>
+                          <p style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.4)",textTransform:"uppercase",letterSpacing:.4,marginBottom:12}}>💰 Cashbox Balance</p>
+                          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                            {[["Opening Balance",openBal,"rgba(255,255,255,.65)"],["+ Cash Received",cashIn,"#34c759"],["− Cash Expenses",cashOut,"#ff375f"]].map(([l,v,c])=>(
+                              <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                                <span style={{fontSize:12,color:"rgba(255,255,255,.4)"}}>{l}</span>
+                                <span style={{fontSize:13,fontWeight:600,color:c}}>{fmt(v)}</span>
+                              </div>
+                            ))}
+                            <div style={{borderTop:"1px solid rgba(255,255,255,.1)",paddingTop:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                              <span style={{fontSize:13,fontWeight:700,color:"#fff"}}>Expected Closing</span>
+                              <span style={{fontSize:18,fontWeight:700,color:closing>=0?"#34c759":"#ff375f"}}>{fmt(closing)}</span>
+                            </div>
                           </div>
                         </div>
                       );
