@@ -122,7 +122,7 @@ const {
   Component
 } = React;
 let db = null,
-  DOC = null;
+  DOCS = {};
 try {
   const cfg = {
     apiKey: "AIzaSyByMaYOwnUNhT9QpVwWUrvNJ5l_ypGV6RI",
@@ -137,7 +137,9 @@ try {
   db.enablePersistence({
     synchronizeTabs: true
   }).catch(() => {});
-  DOC = db.collection("ruffcuts").doc("appdata");
+  const col = db.collection("ruffcuts");
+  ["clients","schedules","expenses","services","staffByDate","staffMembers","paymentStatus","cashbox"].forEach(n=>{DOCS[n]=col.doc(n);});
+  DOCS._legacy = col.doc("appdata");
 } catch (e) {
   console.warn("Firebase:", e.message);
 }
@@ -368,13 +370,13 @@ const compress = file => new Promise(res => {
   r.onload = e => {
     const img = new Image();
     img.onload = () => {
-      const max = 500,
+      const max = 200,
         ratio = Math.min(max / img.width, max / img.height, 1);
       const c = document.createElement("canvas");
       c.width = Math.round(img.width * ratio);
       c.height = Math.round(img.height * ratio);
       c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-      res(c.toDataURL("image/jpeg", 0.7));
+      res(c.toDataURL("image/jpeg", 0.5));
     };
     img.src = e.target.result;
   };
@@ -409,13 +411,14 @@ const bC = () => ({
     furLength: ""
   }]
 });
-const bA = () => ({
+const bA = (d = "") => ({
   clientId: "",
   time: "",
   groomerId: "",
   paymentMode: "",
   duration: 60,
   status: "en-route",
+  date: d,
   pets: [{
     petId: "",
     furLength: "",
@@ -1871,7 +1874,26 @@ function ApptForm({
       justifyContent: "center",
       minHeight: "auto"
     }
-  }, "X")), /*#__PURE__*/React.createElement("div", {
+  }, "X")), !actA && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement(Lbl, {
+    c: "Date"
+  }), /*#__PURE__*/React.createElement(Inp, {
+    type: "date",
+    value: aForm.date || "",
+    onChange: e => setAForm(p => ({
+      ...p,
+      date: e.target.value
+    }))
+  })), actA && /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: A.g4,
+      marginBottom: 10
+    }
+  }, "Date: ", fmtD(selDate)), /*#__PURE__*/React.createElement("div", {
     className: "g2",
     style: {
       marginBottom: 10
@@ -2804,66 +2826,73 @@ function MainApp({
     showToast("Restored ✓");
   };
   const [sync, setSync] = useState("Synced");
-  const lastR = useRef(null);
+  const lastR = useRef({});
   const calRef = useRef(null);
   const schedDateRef = useRef(null);
   useEffect(() => {
-    if (!DOC) {
-      setSync("Offline");
-      return;
+    if (!db) { setSync("Offline"); return; }
+    // Migrate from legacy single document if needed
+    if (DOCS._legacy) {
+      DOCS._legacy.get().then(snap => {
+        if (snap.exists && !snap.data()._migrated) {
+          const d = snap.data();
+          const batch = db.batch();
+          ["clients","schedules","expenses","services","staffByDate","staffMembers","paymentStatus","cashbox"].forEach(n => {
+            if (d[n] !== undefined) batch.set(DOCS[n], {data: d[n]});
+          });
+          batch.commit().then(() => DOCS._legacy.set({_migrated: true}, {merge: true})).catch(() => {});
+        }
+      }).catch(() => {});
     }
-    return DOC.onSnapshot(snap => {
-      const d = snap.exists ? snap.data() : {};
-      lastR.current = d;
-      setClients(d.clients || []);
-      if (d.schedules) setSchedules(d.schedules);
-      if (d.expenses) setExpenses(d.expenses);
-      setServices(d.services || DEF_SVC);
-      if (d.staffByDate) setStaffByDate(d.staffByDate);
-      setStaffMembers(d.staffMembers || []);
-      setPaymentStatus(d.paymentStatus || {});
-      setCashbox(d.cashbox || {});
-      setSync("Synced");
-    }, () => setSync("Offline"));
+    const setters = {
+      clients: v => { lastR.current.clients = v; setClients(v || []); },
+      schedules: v => { lastR.current.schedules = v; if (v) setSchedules(v); },
+      expenses: v => { lastR.current.expenses = v; if (v) setExpenses(v); },
+      services: v => { lastR.current.services = v; setServices(v || DEF_SVC); },
+      staffByDate: v => { lastR.current.staffByDate = v; if (v) setStaffByDate(v); },
+      staffMembers: v => { lastR.current.staffMembers = v; setStaffMembers(v || []); },
+      paymentStatus: v => { lastR.current.paymentStatus = v; setPaymentStatus(v || {}); },
+      cashbox: v => { lastR.current.cashbox = v; setCashbox(v || {}); },
+    };
+    const unsubs = Object.entries(setters).map(([name, setter]) =>
+      DOCS[name].onSnapshot(snap => { setter(snap.exists ? snap.data().data : null); setSync("Synced"); }, () => setSync("Offline"))
+    );
+    return () => unsubs.forEach(u => u());
   }, []);
-  const sf = (f, v, r) => {
-    if (!DOC || JSON.stringify(v) === JSON.stringify(r)) return;
-    DOC.set({
-      [f]: v
-    }, {
-      merge: true
-    }).then(() => setSync("Synced")).catch(() => setSync("Error"));
+  const sf = (name, v, r) => {
+    if (!DOCS[name] || JSON.stringify(v) === JSON.stringify(r)) return;
+    DOCS[name].set({data: v}).then(() => setSync("Synced")).catch(() => setSync("Error"));
   };
   useEffect(() => {
-    const t = setTimeout(() => sf("clients", clients, lastR.current && lastR.current.clients), 800);
+    const t = setTimeout(() => sf("clients", clients, lastR.current.clients), 800);
     return () => clearTimeout(t);
   }, [clients]);
   useEffect(() => {
-    const t = setTimeout(() => sf("schedules", schedules, lastR.current && lastR.current.schedules), 800);
+    const t = setTimeout(() => sf("schedules", schedules, lastR.current.schedules), 800);
     return () => clearTimeout(t);
   }, [schedules]);
   useEffect(() => {
-    const t = setTimeout(() => sf("expenses", expenses, lastR.current && lastR.current.expenses), 800);
+    const t = setTimeout(() => sf("expenses", expenses, lastR.current.expenses), 800);
     return () => clearTimeout(t);
   }, [expenses]);
   useEffect(() => {
-    const t = setTimeout(() => sf("services", services, lastR.current && lastR.current.services), 800);
+    const t = setTimeout(() => sf("services", services, lastR.current.services), 800);
     return () => clearTimeout(t);
   }, [services]);
   useEffect(() => {
-    const t = setTimeout(() => sf("staffByDate", staffByDate, lastR.current && lastR.current.staffByDate), 800);
+    const t = setTimeout(() => sf("staffByDate", staffByDate, lastR.current.staffByDate), 800);
     return () => clearTimeout(t);
   }, [staffByDate]);
   useEffect(() => {
-    const t = setTimeout(() => sf("staffMembers", staffMembers, lastR.current && lastR.current.staffMembers), 800);
+    const t = setTimeout(() => sf("staffMembers", staffMembers, lastR.current.staffMembers), 800);
     return () => clearTimeout(t);
   }, [staffMembers]);
   useEffect(() => {
-    const t = setTimeout(() => sf("paymentStatus", paymentStatus, lastR.current && lastR.current.paymentStatus), 800);
+    const t = setTimeout(() => sf("paymentStatus", paymentStatus, lastR.current.paymentStatus), 800);
     return () => clearTimeout(t);
   }, [paymentStatus]);
   useEffect(() => {
-    const t = setTimeout(() => sf("cashbox", cashbox, lastR.current && lastR.current.cashbox), 800);
+    const t = setTimeout(() => sf("cashbox", cashbox, lastR.current.cashbox), 800);
     return () => clearTimeout(t);
   }, [cashbox]);
   useEffect(() => {
@@ -2996,6 +3025,7 @@ function MainApp({
   };
   const saveA = () => {
     if (!aForm.clientId) return;
+    const targetDate = actA ? selDate : (aForm.date || selDate);
     const cl = clients.find(c => c.id === Number(aForm.clientId));
     const newA = aForm.pets.filter(p => p.petId && p.service && p.cost).map(p => {
       const pt = cl && cl.pets.find(pet => pet.id === Number(p.petId));
@@ -3017,18 +3047,16 @@ function MainApp({
         duration: aForm.duration || 60,
         groomerId: aForm.groomerId ? Number(aForm.groomerId) || aForm.groomerId : null,
         paymentMode: aForm.paymentMode || "",
-        status: aForm.status || "pending"
+        status: aForm.status || "en-route"
       };
     });
     if (!newA.length) return;
     setSchedules(prev => {
-      const ex = actA ? (prev[selDate] || []).filter(a => a.id !== actA.id) : prev[selDate] || [];
-      return {
-        ...prev,
-        [selDate]: [...ex, ...newA].sort((a, b) => (a.time || "").localeCompare(b.time || ""))
-      };
+      const withoutOld = actA ? {...prev, [selDate]: (prev[selDate] || []).filter(a => a.id !== actA.id)} : prev;
+      const existing = withoutOld[targetDate] || [];
+      return {...withoutOld, [targetDate]: [...existing, ...newA].sort((a, b) => (a.time || "").localeCompare(b.time || ""))};
     });
-    setAForm(bA());
+    setAForm(bA(selDate));
     setActA(null);
     setShowAForm(false);
     showToast("Appointment saved ✓");
@@ -3300,7 +3328,7 @@ function MainApp({
     onClose: () => {
       setShowAForm(false);
       setActA(null);
-      setAForm(bA());
+      setAForm(bA(selDate));
     }
   });
   const renderContent = () => {
@@ -3395,7 +3423,11 @@ function MainApp({
             color: A.g4,
             marginBottom: 2
           }
-        }, a.clientName), /*#__PURE__*/React.createElement("p", {
+        }, a.clientName), a.mobile && /*#__PURE__*/React.createElement("a", {
+          href: "tel:" + a.mobile,
+          onClick: e => e.stopPropagation(),
+          style: {fontSize: 12, color: A.bu, textDecoration: "none", display: "block", marginBottom: 2}
+        }, a.mobile), /*#__PURE__*/React.createElement("p", {
           style: {
             fontSize: 12,
             color: A.g4
@@ -3529,7 +3561,7 @@ function MainApp({
       }, "EOD"), /*#__PURE__*/React.createElement("button", {
         onClick: () => {
           setActA(null);
-          setAForm(bA());
+          setAForm(bA(selDate));
           setShowAForm(true);
         },
         style: {
@@ -3999,14 +4031,16 @@ function MainApp({
       }, "Tap + to add one"), /*#__PURE__*/React.createElement(Btn, {
         onClick: () => {
           setActA(null);
-          setAForm(bA());
+          setAForm(bA(selDate));
           setShowAForm(true);
         }
       }, "+ Add Appointment")));
     }
     if (tab === "schedule") {
       const selDayName = DNAMES[new Date(selDate + "T12:00:00").getDay()];
-      const totalPets = appts.filter(a => a.status !== "cancelled").length;
+      const [schedSearch, setSchedSearch] = React.useState("");
+      const filteredAppts = schedSearch ? appts.filter(a => (a.petName||"").toLowerCase().includes(schedSearch.toLowerCase()) || (a.clientName||"").toLowerCase().includes(schedSearch.toLowerCase())) : appts;
+      const totalPets = filteredAppts.filter(a => a.status !== "cancelled").length;
       const columns = [...dSt, {
         staffId: "unassigned",
         name: "Unassigned",
@@ -4266,7 +4300,7 @@ function MainApp({
       }, "EOD"), /*#__PURE__*/React.createElement("button", {
         onClick: () => {
           setActA(null);
-          setAForm(bA());
+          setAForm(bA(selDate));
           setShowAForm(true);
         },
         style: {
@@ -4335,6 +4369,38 @@ function MainApp({
         }, sm.name.split(" ")[0], on ? " ON" : "");
       })), /*#__PURE__*/React.createElement("div", {
         style: {
+          background: "#1a1a1a",
+          padding: "8px 14px",
+          flexShrink: 0,
+          borderBottom: "1px solid rgba(255,255,255,.06)",
+          display: "flex",
+          alignItems: "center",
+          gap: 8
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {fontSize: 12, color: "rgba(255,255,255,.35)"}
+      }, "🔍"), /*#__PURE__*/React.createElement("input", {
+        type: "text",
+        value: schedSearch,
+        onChange: e => setSchedSearch(e.target.value),
+        placeholder: "Search pet or client...",
+        style: {
+          flex: 1,
+          background: "rgba(255,255,255,.08)",
+          border: "1px solid rgba(255,255,255,.12)",
+          borderRadius: 8,
+          padding: "6px 10px",
+          color: "#fff",
+          fontSize: 13,
+          fontFamily: "inherit",
+          outline: "none",
+          minHeight: "auto"
+        }
+      }), schedSearch && /*#__PURE__*/React.createElement("button", {
+        onClick: () => setSchedSearch(""),
+        style: {background: "none", border: "none", color: "rgba(255,255,255,.4)", fontSize: 16, cursor: "pointer", minHeight: "auto", padding: 0}
+      }, "×")), /*#__PURE__*/React.createElement("div", {
+        style: {
           background: "#222",
           padding: "8px 14px",
           flexShrink: 0,
@@ -4355,7 +4421,7 @@ function MainApp({
           gap: 8,
           flexWrap: "wrap"
         }
-      }, appts.filter(a => a.status !== "cancelled").map(a => {
+      }, filteredAppts.filter(a => a.status !== "cancelled").map(a => {
         const c = aColor(a.service);
         return /*#__PURE__*/React.createElement("div", {
           key: a.id,
@@ -5151,7 +5217,7 @@ function MainApp({
       }, "No appointments"), /*#__PURE__*/React.createElement(Btn, {
         onClick: () => {
           setActA(null);
-          setAForm(bA());
+          setAForm(bA(selDate));
           setShowAForm(true);
         }
       }, "+ Add")) : /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
@@ -5235,7 +5301,11 @@ function MainApp({
             color: A.g4,
             marginBottom: 2
           }
-        }, a.clientName), a.address && /*#__PURE__*/React.createElement("p", {
+        }, a.clientName), a.mobile && /*#__PURE__*/React.createElement("a", {
+          href: "tel:" + a.mobile,
+          onClick: e => e.stopPropagation(),
+          style: {fontSize: 12, color: A.bu, textDecoration: "none", display: "block", marginBottom: 2}
+        }, a.mobile), a.address && /*#__PURE__*/React.createElement("p", {
           style: {
             fontSize: 11,
             color: A.g4,
