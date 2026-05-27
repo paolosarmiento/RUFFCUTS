@@ -4024,9 +4024,9 @@ function MainApp({
         if (absMins >= CAL_START * 60 && absMins < CAL_END * 60) {
           setActA(null);
           setAForm({
-            ...bA(),
+            ...bA(selDate),
             time: minsToTime(absMins),
-            groomerId: staffId !== "unassigned" ? staffId : ""
+            groomerId: ""
           });
           setShowAForm(true);
         }
