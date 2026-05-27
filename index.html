@@ -145,97 +145,32 @@ try {
 }
 const OWN_PASS = "owner1234";
 const STF_PASS = "ruffcuts2024";
-const DEF_SVC = [{
-  id: 1,
-  name: "Ruff Ready - Small (10kg and below)",
-  price: 650,
-  category: "Bath & Blowdry Only"
-}, {
-  id: 2,
-  name: "Ruff Ready - Medium (11-20kg)",
-  price: 750,
-  category: "Bath & Blowdry Only"
-}, {
-  id: 3,
-  name: "Ruff Ready - Large (21-40kg)",
-  price: 900,
-  category: "Bath & Blowdry Only"
-}, {
-  id: 4,
-  name: "Ruff Ready - Giant (Over 40kg)",
-  price: 1100,
-  category: "Bath & Blowdry Only"
-}, {
-  id: 5,
-  name: "Ruff Ready - Cats (All Breeds)",
-  price: 750,
-  category: "Bath & Blowdry Only"
-}, {
-  id: 6,
-  name: "Ruff Revive Smooth - Small (10kg and below)",
-  price: 800,
-  category: "Full Grooming"
-}, {
-  id: 7,
-  name: "Ruff Revive Smooth - Medium (11-20kg)",
-  price: 950,
-  category: "Full Grooming"
-}, {
-  id: 8,
-  name: "Ruff Revive Smooth - Large (21-40kg)",
-  price: 1200,
-  category: "Full Grooming"
-}, {
-  id: 9,
-  name: "Ruff Revive Smooth - Giant (Over 40kg)",
-  price: 1400,
-  category: "Full Grooming"
-}, {
-  id: 10,
-  name: "Ruff Revive Long - Small (10kg and below)",
-  price: 925,
-  category: "Full Grooming"
-}, {
-  id: 11,
-  name: "Ruff Revive Long - Medium (11-20kg)",
-  price: 1050,
-  category: "Full Grooming"
-}, {
-  id: 12,
-  name: "Ruff Revive Long - Large (21-40kg)",
-  price: 1450,
-  category: "Full Grooming"
-}, {
-  id: 13,
-  name: "Ruff Revive Long - Giant (Over 40kg)",
-  price: 1750,
-  category: "Full Grooming"
-}, {
-  id: 14,
-  name: "Ruff Revive Long - Cats (All Breeds)",
-  price: 950,
-  category: "Full Grooming"
-}, {
-  id: 15,
-  name: "Ruff Royale - Small (10kg and below)",
-  price: 1150,
-  category: "Premium Grooming"
-}, {
-  id: 16,
-  name: "Ruff Royale - Medium (11-20kg)",
-  price: 1300,
-  category: "Premium Grooming"
-}, {
-  id: 17,
-  name: "Ruff Royale - Large (21-40kg)",
-  price: 1750,
-  category: "Premium Grooming"
-}, {
-  id: 18,
-  name: "Ruff Royale - Giant (Over 40kg)",
-  price: 2100,
-  category: "Premium Grooming"
-}];
+const DEF_SVC = [
+  {id:1, name:"Bath & Blowdry - Small (Smooth Coat)", price:500, category:"Bath & Blowdry Only"},
+  {id:2, name:"Bath & Blowdry - Small (Long Coat)", price:600, category:"Bath & Blowdry Only"},
+  {id:3, name:"Bath & Blowdry - Medium (Smooth Coat)", price:600, category:"Bath & Blowdry Only"},
+  {id:4, name:"Bath & Blowdry - Medium (Long Coat)", price:700, category:"Bath & Blowdry Only"},
+  {id:5, name:"Bath & Blowdry - Large (Smooth Coat)", price:800, category:"Bath & Blowdry Only"},
+  {id:6, name:"Bath & Blowdry - Large (Long Coat)", price:900, category:"Bath & Blowdry Only"},
+  {id:7, name:"Bath & Blowdry - Giant (Smooth Coat)", price:1000, category:"Bath & Blowdry Only"},
+  {id:8, name:"Bath & Blowdry - Giant (Long Coat)", price:1200, category:"Bath & Blowdry Only"},
+  {id:9, name:"Cats Bath & Blowdry - Smooth Coat", price:850, category:"Bath & Blowdry Only"},
+  {id:10, name:"Cats Bath & Blowdry - Long Coat", price:1050, category:"Bath & Blowdry Only"},
+  {id:11, name:"Full Grooming - Small (Smooth Coat)", price:750, category:"Full Grooming"},
+  {id:12, name:"Full Grooming - Small (Long Coat)", price:850, category:"Full Grooming"},
+  {id:13, name:"Full Grooming - Medium (Smooth Coat)", price:950, category:"Full Grooming"},
+  {id:14, name:"Full Grooming - Medium (Long Coat)", price:1100, category:"Full Grooming"},
+  {id:15, name:"Full Grooming - Large (Smooth Coat)", price:1300, category:"Full Grooming"},
+  {id:16, name:"Full Grooming - Large (Long Coat)", price:1450, category:"Full Grooming"},
+  {id:17, name:"Full Grooming - Giant (Smooth Coat)", price:1650, category:"Full Grooming"},
+  {id:18, name:"Full Grooming - Giant (Long Coat)", price:1800, category:"Full Grooming"},
+  {id:19, name:"Cats Full Grooming - Smooth Coat", price:1100, category:"Full Grooming"},
+  {id:20, name:"Cats Full Grooming - Long Coat", price:1350, category:"Full Grooming"},
+  {id:21, name:"Premium Grooming - Small (Long Coat)", price:1000, category:"Premium Grooming"},
+  {id:22, name:"Premium Grooming - Medium (Long Coat)", price:1450, category:"Premium Grooming"},
+  {id:23, name:"Premium Grooming - Large (Long Coat)", price:1800, category:"Premium Grooming"},
+  {id:24, name:"Premium Grooming - Giant (Long Coat)", price:2200, category:"Premium Grooming"},
+];
 const FURS = ["Smooth", "Long"];
 const EXP_CATS = ["Fuel", "Grooming Supplies", "Maintenance", "Salaries/Commission", "Parking/Tolls", "Miscellaneous"];
 const ROUTE_CATS = ["Fuel", "Toll", "Parking", "Village Entrance Fee", "Maintenance", "Load"];
@@ -5856,17 +5791,15 @@ function MainApp({
         className: "sec"
       }, /*#__PURE__*/React.createElement("div", {
         className: "phdr"
-      }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", null, "Services"), /*#__PURE__*/React.createElement("p", null, "Pricing menu")), /*#__PURE__*/React.createElement(Btn, {
-        onClick: () => {
-          setShowSvForm(true);
-          setEditSvId(null);
-          setSvForm({
-            name: "",
-            price: "",
-            category: ""
-          });
-        }
-      }, "+ Add")), /*#__PURE__*/React.createElement("div", {
+      }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", null, "Services"), /*#__PURE__*/React.createElement("p", null, "Pricing menu")), /*#__PURE__*/React.createElement("div", {className:"phdr-r"},
+        isOwner && /*#__PURE__*/React.createElement(Btn, {
+          v: "sec", sm: true,
+          onClick: () => askConfirm("Reset all services to the latest default list?", () => setServices(DEF_SVC), "Services reset ✓")
+        }, "Reset"),
+        /*#__PURE__*/React.createElement(Btn, {
+          onClick: () => {setShowSvForm(true); setEditSvId(null); setSvForm({name:"", price:"", category:""});}
+        }, "+ Add")
+      )), /*#__PURE__*/React.createElement("div", {
         style: {background:"#fff", borderRadius:13, padding:"14px 16px", marginBottom:16}
       }, /*#__PURE__*/React.createElement("p", {
         style: {fontSize:11, fontWeight:700, color:A.g4, textTransform:"uppercase", letterSpacing:.4, marginBottom:10}
