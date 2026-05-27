@@ -2773,6 +2773,7 @@ function MainApp({
   const [showSmForm, setShowSmForm] = useState(false);
   const [showEod, setShowEod] = useState(false);
   const [showSchedEod, setShowSchedEod] = useState(false);
+  const [schedSearch, setSchedSearch] = useState("");
   const [petModal, setPetModal] = useState(null);
   const [staffDetailId, setStaffDetailId] = useState(null);
   const [commDetailId, setCommDetailId] = useState(null);
@@ -4038,7 +4039,6 @@ function MainApp({
     }
     if (tab === "schedule") {
       const selDayName = DNAMES[new Date(selDate + "T12:00:00").getDay()];
-      const [schedSearch, setSchedSearch] = React.useState("");
       const filteredAppts = schedSearch ? appts.filter(a => (a.petName||"").toLowerCase().includes(schedSearch.toLowerCase()) || (a.clientName||"").toLowerCase().includes(schedSearch.toLowerCase())) : appts;
       const totalPets = filteredAppts.filter(a => a.status !== "cancelled").length;
       const columns = [...dSt, {
