@@ -148,75 +148,93 @@ const STF_PASS = "ruffcuts2024";
 const DEF_SVC = [{
   id: 1,
   name: "Ruff Ready - Small (10kg and below)",
-  price: 650
+  price: 650,
+  category: "Bath & Blowdry Only"
 }, {
   id: 2,
   name: "Ruff Ready - Medium (11-20kg)",
-  price: 750
+  price: 750,
+  category: "Bath & Blowdry Only"
 }, {
   id: 3,
   name: "Ruff Ready - Large (21-40kg)",
-  price: 900
+  price: 900,
+  category: "Bath & Blowdry Only"
 }, {
   id: 4,
   name: "Ruff Ready - Giant (Over 40kg)",
-  price: 1100
+  price: 1100,
+  category: "Bath & Blowdry Only"
 }, {
   id: 5,
   name: "Ruff Ready - Cats (All Breeds)",
-  price: 750
+  price: 750,
+  category: "Bath & Blowdry Only"
 }, {
   id: 6,
   name: "Ruff Revive Smooth - Small (10kg and below)",
-  price: 800
+  price: 800,
+  category: "Full Grooming"
 }, {
   id: 7,
   name: "Ruff Revive Smooth - Medium (11-20kg)",
-  price: 950
+  price: 950,
+  category: "Full Grooming"
 }, {
   id: 8,
   name: "Ruff Revive Smooth - Large (21-40kg)",
-  price: 1200
+  price: 1200,
+  category: "Full Grooming"
 }, {
   id: 9,
   name: "Ruff Revive Smooth - Giant (Over 40kg)",
-  price: 1400
+  price: 1400,
+  category: "Full Grooming"
 }, {
   id: 10,
   name: "Ruff Revive Long - Small (10kg and below)",
-  price: 925
+  price: 925,
+  category: "Full Grooming"
 }, {
   id: 11,
   name: "Ruff Revive Long - Medium (11-20kg)",
-  price: 1050
+  price: 1050,
+  category: "Full Grooming"
 }, {
   id: 12,
   name: "Ruff Revive Long - Large (21-40kg)",
-  price: 1450
+  price: 1450,
+  category: "Full Grooming"
 }, {
   id: 13,
   name: "Ruff Revive Long - Giant (Over 40kg)",
-  price: 1750
+  price: 1750,
+  category: "Full Grooming"
 }, {
   id: 14,
   name: "Ruff Revive Long - Cats (All Breeds)",
-  price: 950
+  price: 950,
+  category: "Full Grooming"
 }, {
   id: 15,
   name: "Ruff Royale - Small (10kg and below)",
-  price: 1150
+  price: 1150,
+  category: "Premium Grooming"
 }, {
   id: 16,
   name: "Ruff Royale - Medium (11-20kg)",
-  price: 1300
+  price: 1300,
+  category: "Premium Grooming"
 }, {
   id: 17,
   name: "Ruff Royale - Large (21-40kg)",
-  price: 1750
+  price: 1750,
+  category: "Premium Grooming"
 }, {
   id: 18,
   name: "Ruff Royale - Giant (Over 40kg)",
-  price: 2100
+  price: 2100,
+  category: "Premium Grooming"
 }];
 const FURS = ["Smooth", "Long"];
 const EXP_CATS = ["Fuel", "Grooming Supplies", "Maintenance", "Salaries/Commission", "Parking/Tolls", "Miscellaneous"];
@@ -2750,7 +2768,8 @@ function MainApp({
   const [showEForm, setShowEForm] = useState(false);
   const [svForm, setSvForm] = useState({
     name: "",
-    price: ""
+    price: "",
+    category: ""
   });
   const [editSvId, setEditSvId] = useState(null);
   const [showSvForm, setShowSvForm] = useState(false);
@@ -3139,15 +3158,18 @@ function MainApp({
     if (editSvId) setServices(prev => prev.map(sv => sv.id === editSvId ? {
       ...sv,
       name: svForm.name,
-      price: Number(svForm.price)
+      price: Number(svForm.price),
+      category: svForm.category || sv.category || ""
     } : sv));else setServices(prev => [...prev, {
       id: Date.now(),
       name: svForm.name,
-      price: Number(svForm.price)
+      price: Number(svForm.price),
+      category: svForm.category || ""
     }]);
     setSvForm({
       name: "",
-      price: ""
+      price: "",
+      category: ""
     });
     setEditSvId(null);
     setShowSvForm(false);
@@ -5840,120 +5862,77 @@ function MainApp({
           setEditSvId(null);
           setSvForm({
             name: "",
-            price: ""
+            price: "",
+            category: ""
           });
         }
       }, "+ Add")), showSvForm && /*#__PURE__*/React.createElement("div", {
         className: "fbox"
       }, /*#__PURE__*/React.createElement("p", {
-        style: {
-          fontSize: 15,
-          fontWeight: 600,
-          marginBottom: 12
-        }
+        style: {fontSize: 15, fontWeight: 600, marginBottom: 12}
       }, editSvId ? "Edit" : "New", " Service"), /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          gap: 10,
-          flexWrap: "wrap"
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          flex: 2,
-          minWidth: 180
-        }
-      }, /*#__PURE__*/React.createElement(Lbl, {
-        c: "Name"
-      }), /*#__PURE__*/React.createElement(Inp, {
-        value: svForm.name,
-        onChange: e => setSvForm(p => ({
-          ...p,
-          name: e.target.value
-        })),
-        placeholder: "e.g. Full Groom"
-      })), /*#__PURE__*/React.createElement("div", {
-        style: {
-          minWidth: 120
-        }
-      }, /*#__PURE__*/React.createElement(Lbl, {
-        c: "Price (P)"
-      }), /*#__PURE__*/React.createElement(Inp, {
-        type: "number",
-        value: svForm.price,
-        onChange: e => setSvForm(p => ({
-          ...p,
-          price: e.target.value
-        })),
-        placeholder: "0"
-      })), /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          gap: 8,
-          alignItems: "flex-end"
-        }
-      }, /*#__PURE__*/React.createElement(Btn, {
-        onClick: saveSv
-      }, "Save"), /*#__PURE__*/React.createElement(Btn, {
-        v: "can",
-        onClick: () => {
-          setShowSvForm(false);
-          setSvForm({
-            name: "",
-            price: ""
-          });
-        }
-      }, "Cancel")))), /*#__PURE__*/React.createElement("div", {
-        className: "card"
-      }, services.map((sv, i) => /*#__PURE__*/React.createElement("div", {
-        key: sv.id,
-        className: "crow"
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          alignItems: "center",
-          gap: 10
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 12,
-          color: A.g3,
-          fontWeight: 700,
-          width: 22,
-          textAlign: "center"
-        }
-      }, i + 1), /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontWeight: 500,
-          fontSize: 14
-        }
-      }, sv.name)), /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: "flex",
-          gap: 8,
-          alignItems: "center"
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontWeight: 700,
-          color: sv.price > 0 ? A.ok : A.g3,
-          fontSize: 14
-        }
-      }, sv.price > 0 ? fmt(sv.price) : "-"), /*#__PURE__*/React.createElement(Btn, {
-        sm: true,
-        v: "sec",
-        onClick: () => {
-          setEditSvId(sv.id);
-          setSvForm({
-            name: sv.name,
-            price: sv.price
-          });
-          setShowSvForm(true);
-        }
-      }, "Edit"), /*#__PURE__*/React.createElement(Btn, {
-        sm: true,
-        v: "gho",
-        onClick: () => askConfirm("Delete \"" + sv.name + "\"?", () => setServices(p => p.filter(x => x.id !== sv.id)), "Service deleted")
-      }, "Del"))))));
+        style: {display: "flex", gap: 10, flexWrap: "wrap"}
+      }, /*#__PURE__*/React.createElement("div", {style: {flex: 2, minWidth: 180}},
+        /*#__PURE__*/React.createElement(Lbl, {c: "Name"}),
+        /*#__PURE__*/React.createElement(Inp, {
+          value: svForm.name,
+          onChange: e => setSvForm(p => ({...p, name: e.target.value})),
+          placeholder: "e.g. Full Groom"
+        })
+      ), /*#__PURE__*/React.createElement("div", {style: {minWidth: 120}},
+        /*#__PURE__*/React.createElement(Lbl, {c: "Price (P)"}),
+        /*#__PURE__*/React.createElement(Inp, {
+          type: "number",
+          value: svForm.price,
+          onChange: e => setSvForm(p => ({...p, price: e.target.value})),
+          placeholder: "0"
+        })
+      ), /*#__PURE__*/React.createElement("div", {style: {minWidth: 180}},
+        /*#__PURE__*/React.createElement(Lbl, {c: "Category"}),
+        /*#__PURE__*/React.createElement(Sel, {
+          value: svForm.category,
+          onChange: e => setSvForm(p => ({...p, category: e.target.value}))
+        },
+          /*#__PURE__*/React.createElement("option", {value: ""}, "Select..."),
+          ["Bath & Blowdry Only", "Full Grooming", "Premium Grooming"].map(c =>
+            /*#__PURE__*/React.createElement("option", {key: c, value: c}, c)
+          )
+        )
+      ), /*#__PURE__*/React.createElement("div", {style: {display: "flex", gap: 8, alignItems: "flex-end"}},
+        /*#__PURE__*/React.createElement(Btn, {onClick: saveSv}, "Save"),
+        /*#__PURE__*/React.createElement(Btn, {v: "can", onClick: () => {setShowSvForm(false); setSvForm({name: "", price: "", category: ""});}}, "Cancel")
+      ))),
+      (()=>{
+        const SVC_CATS = ["Bath & Blowdry Only", "Full Grooming", "Premium Grooming"];
+        const getCat = sv => sv.category || (sv.name.includes("Royale") ? "Premium Grooming" : sv.name.includes("Revive") ? "Full Grooming" : sv.name.includes("Ready") ? "Bath & Blowdry Only" : "Other");
+        const catColors = {"Bath & Blowdry Only": A.bu, "Full Grooming": "#7c3aed", "Premium Grooming": A.wn};
+        const grouped = {};
+        services.forEach(sv => {const c=getCat(sv); if(!grouped[c])grouped[c]=[]; grouped[c].push(sv);});
+        const allCats = [...SVC_CATS, ...(grouped["Other"]?"Other":[])].filter(c=>grouped[c]?.length);
+        return allCats.map(cat =>
+          /*#__PURE__*/React.createElement("div", {key: cat, style: {marginBottom: 16}},
+            /*#__PURE__*/React.createElement("div", {style: {display:"flex", alignItems:"center", gap:8, marginBottom:8}},
+              /*#__PURE__*/React.createElement("div", {style: {width:3, height:18, borderRadius:2, background: catColors[cat]||A.g3, flexShrink:0}}),
+              /*#__PURE__*/React.createElement("p", {style: {fontSize:13, fontWeight:700, color:catColors[cat]||A.g4, textTransform:"uppercase", letterSpacing:.4}}, cat)
+            ),
+            /*#__PURE__*/React.createElement("div", {className: "card"},
+              grouped[cat].map((sv, i) =>
+                /*#__PURE__*/React.createElement("div", {key: sv.id, className: "crow"},
+                  /*#__PURE__*/React.createElement("div", {style: {display:"flex", alignItems:"center", gap:10}},
+                    /*#__PURE__*/React.createElement("span", {style: {fontSize:12, color:A.g3, fontWeight:700, width:22, textAlign:"center"}}, i+1),
+                    /*#__PURE__*/React.createElement("span", {style: {fontWeight:500, fontSize:14}}, sv.name)
+                  ),
+                  /*#__PURE__*/React.createElement("div", {style: {display:"flex", gap:8, alignItems:"center"}},
+                    /*#__PURE__*/React.createElement("span", {style: {fontWeight:700, color: sv.price>0?A.ok:A.g3, fontSize:14}}, sv.price>0?fmt(sv.price):"-"),
+                    /*#__PURE__*/React.createElement(Btn, {sm:true, v:"sec", onClick: ()=>{setEditSvId(sv.id); setSvForm({name:sv.name, price:sv.price, category:sv.category||getCat(sv)}); setShowSvForm(true);}}, "Edit"),
+                    /*#__PURE__*/React.createElement(Btn, {sm:true, v:"gho", onClick: ()=>askConfirm("Delete \""+sv.name+"\"?", ()=>setServices(p=>p.filter(x=>x.id!==sv.id)), "Service deleted")}, "Del")
+                  )
+                )
+              )
+            )
+          )
+        );
+      })());
     }
     if (tab === "staff") {
       const nowYear = now.getFullYear();
