@@ -17,8 +17,8 @@
 
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{height:100%;height:-webkit-fill-available;}
-body{height:100%;height:-webkit-fill-available;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#f2f2f7;color:#1c1c1e;-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;overscroll-behavior:none;min-height:100vh;overflow-x:hidden;}
+html{min-height:100dvh;min-height:-webkit-fill-available;background:#f2f2f7;}
+body{min-height:100dvh;min-height:-webkit-fill-available;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#f2f2f7;color:#1c1c1e;-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;overscroll-behavior:none;overflow-x:hidden;}
 input,select,textarea,button{font-family:inherit;font-size:16px;outline:none;-webkit-appearance:none;appearance:none;border-radius:0;}
 input,select,textarea{border-radius:10px;border:none;background:#f5f5f7;color:#1c1c1e;padding:12px 14px;width:100%;min-height:44px;}
 input:focus,select:focus,textarea:focus{background:#e8e8ed;}
@@ -27,7 +27,7 @@ textarea{resize:vertical;min-height:80px;}
 ::placeholder{color:#aeaeb2;}
 ::-webkit-scrollbar{display:none;}
 *{scrollbar-width:none;}
-.shell{display:block;min-height:100dvh;min-height:-webkit-fill-available;width:100%;}
+.shell{display:block;min-height:100dvh;min-height:-webkit-fill-available;width:100%;background:#f2f2f7;}
 .sidebar{display:none;width:180px;background:#000;flex-direction:column;position:fixed;top:0;left:0;height:100%;z-index:100;overflow-y:auto;padding-top:env(safe-area-inset-top);}
 .sidebar-logo{padding:20px;border-bottom:.5px solid rgba(255,255,255,.1);display:flex;justify-content:center;}
 .sidebar-logo img{height:90px;width:auto;object-fit:contain;}
