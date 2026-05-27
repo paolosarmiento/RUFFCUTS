@@ -5866,7 +5866,22 @@ function MainApp({
             category: ""
           });
         }
-      }, "+ Add")), showSvForm && /*#__PURE__*/React.createElement("div", {
+      }, "+ Add")), /*#__PURE__*/React.createElement("div", {
+        style: {background:"#fff", borderRadius:13, padding:"14px 16px", marginBottom:16}
+      }, /*#__PURE__*/React.createElement("p", {
+        style: {fontSize:11, fontWeight:700, color:A.g4, textTransform:"uppercase", letterSpacing:.4, marginBottom:10}
+      }, "Size Guide"),
+      /*#__PURE__*/React.createElement("div", {className: "g2"},
+        [["Small","10kg & below","#34c759"],["Medium","11–20kg","#0071e3"],["Large","21–40kg","#ff9f0a"],["Giant","Over 40kg","#ff375f"]].map(([size,range,color]) =>
+          /*#__PURE__*/React.createElement("div", {key:size, style:{display:"flex", alignItems:"center", gap:10, padding:"8px 10px", background:A.g1, borderRadius:10}},
+            /*#__PURE__*/React.createElement("div", {style:{width:8, height:8, borderRadius:"50%", background:color, flexShrink:0}}),
+            /*#__PURE__*/React.createElement("div", null,
+              /*#__PURE__*/React.createElement("p", {style:{fontSize:13, fontWeight:700, color:A.bl}}, size),
+              /*#__PURE__*/React.createElement("p", {style:{fontSize:11, color:A.g4}}, range)
+            )
+          )
+        )
+      )), showSvForm && /*#__PURE__*/React.createElement("div", {
         className: "fbox"
       }, /*#__PURE__*/React.createElement("p", {
         style: {fontSize: 15, fontWeight: 600, marginBottom: 12}
