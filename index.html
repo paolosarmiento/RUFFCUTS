@@ -1758,8 +1758,19 @@ function ApptForm({
 }) {
   const selClient = clients.find(c => c.id === Number(aForm.clientId));
   const avPets = selClient ? selClient.pets : [];
+  const [clientSearch, setClientSearch] = React.useState(selClient ? selClient.name : "");
+  const [showClientList, setShowClientList] = React.useState(false);
+  const filteredClients = clientSearch.length > 0
+    ? clients.filter(c =>
+        c.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
+        c.pets.some(p => p.name.toLowerCase().includes(clientSearch.toLowerCase()))
+      )
+    : clients;
   const handleClientChange = cid => {
     const lv = lastVisitData[Number(cid)];
+    const cl = clients.find(c => c.id === Number(cid));
+    setClientSearch(cl ? cl.name : "");
+    setShowClientList(false);
     if (lv) {
       setAForm(p => ({
         ...p,
@@ -1879,40 +1890,42 @@ function ApptForm({
     key: d.value,
     value: d.value
   }, d.label))))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: 10
-    }
-  }, /*#__PURE__*/React.createElement(Lbl, {
-    c: "Client"
-  }), /*#__PURE__*/React.createElement(Sel, {
-    value: aForm.clientId,
-    onChange: e => handleClientChange(e.target.value)
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "Select client..."), clients.map(c => /*#__PURE__*/React.createElement("option", {
-    key: c.id,
-    value: c.id
-  }, c.name))), isAutofilled && /*#__PURE__*/React.createElement("p", {
-    style: {
-      fontSize: 11,
-      color: A.bu,
-      marginTop: 4,
-      fontWeight: 600
-    }
+    style: {marginBottom: 10}
+  }, /*#__PURE__*/React.createElement(Lbl, {c: "Client"}),
+  /*#__PURE__*/React.createElement("div", {style: {position: "relative"}},
+    /*#__PURE__*/React.createElement("input", {
+      type: "text",
+      value: clientSearch,
+      onChange: e => {
+        setClientSearch(e.target.value);
+        setShowClientList(true);
+        if (!e.target.value) setAForm(p => ({...p, clientId: ""}));
+      },
+      onFocus: () => setShowClientList(true),
+      placeholder: "Search by client or dog name...",
+      autoComplete: "off",
+      style: {background:A.g1, borderRadius:10, border:"none", fontSize:16, padding:"12px 14px", color:A.bl, width:"100%", fontFamily:"inherit", minHeight:44, outline:"none"}
+    }),
+    showClientList && filteredClients.length > 0 && /*#__PURE__*/React.createElement("div", {
+      style: {position:"absolute", top:"100%", left:0, right:0, zIndex:50, background:"#fff", borderRadius:10, boxShadow:"0 4px 20px rgba(0,0,0,.15)", maxHeight:220, overflowY:"auto", marginTop:4, border:"1px solid "+A.g2}
+    }, filteredClients.map(c =>
+      /*#__PURE__*/React.createElement("button", {
+        key: c.id,
+        onClick: () => handleClientChange(String(c.id)),
+        style: {display:"block", width:"100%", textAlign:"left", padding:"10px 14px", background:"none", border:"none", borderBottom:"0.5px solid "+A.g2, cursor:"pointer", fontFamily:"inherit"}
+      },
+        /*#__PURE__*/React.createElement("p", {style:{fontSize:14, fontWeight:600, color:A.bl, marginBottom:2}}, c.name),
+        /*#__PURE__*/React.createElement("p", {style:{fontSize:12, color:A.g4}}, c.pets.map(p => p.name).join(", ") || "No pets")
+      )
+    )),
+    showClientList && filteredClients.length === 0 && clientSearch.length > 0 && /*#__PURE__*/React.createElement("div", {
+      style: {position:"absolute", top:"100%", left:0, right:0, zIndex:50, background:"#fff", borderRadius:10, boxShadow:"0 4px 20px rgba(0,0,0,.15)", padding:"14px", marginTop:4, border:"1px solid "+A.g2, textAlign:"center"}
+    }, /*#__PURE__*/React.createElement("p", {style:{fontSize:13, color:A.g4}}, "No clients found"))
+  ), isAutofilled && /*#__PURE__*/React.createElement("p", {
+    style: {fontSize:11, color:A.bu, marginTop:4, fontWeight:600}
   }, "Auto-filled from last visit"), selClient && selClient.address && /*#__PURE__*/React.createElement("p", {
-    style: {
-      fontSize: 12,
-      color: A.g4,
-      marginTop: 5,
-      display: "flex",
-      alignItems: "flex-start",
-      gap: 4
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      flexShrink: 0
-    }
-  }, "\uD83D\uDCCD"), selClient.address)), /*#__PURE__*/React.createElement("div", {
+    style: {fontSize:12, color:A.g4, marginTop:5, display:"flex", alignItems:"flex-start", gap:4}
+  }, /*#__PURE__*/React.createElement("span", {style:{flexShrink:0}}, "\uD83D\uDCCD"), selClient.address)), /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 10
     }
