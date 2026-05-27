@@ -1859,13 +1859,13 @@ function ApptForm({
       ...p,
       date: e.target.value
     }))
-  })), actA && /*#__PURE__*/React.createElement("p", {
+  })), actA && aForm.date && /*#__PURE__*/React.createElement("p", {
     style: {
       fontSize: 12,
       color: A.g4,
       marginBottom: 10
     }
-  }, "Date: ", fmtD(selDate)), /*#__PURE__*/React.createElement("div", {
+  }, "Date: ", fmtD(aForm.date)), /*#__PURE__*/React.createElement("div", {
     className: "g2",
     style: {
       marginBottom: 10
@@ -3037,7 +3037,7 @@ function MainApp({
     setShowAForm(false);
     showToast("Appointment saved ✓");
   };
-  const openEditAppt = a => {
+  const openEditAppt = (a, date) => {
     setActA(a);
     setAForm({
       clientId: a.clientId,
@@ -3046,6 +3046,7 @@ function MainApp({
       paymentMode: a.paymentMode || "",
       duration: a.duration || 60,
       status: a.status || "pending",
+      date: date || selDate,
       pets: [{
         petId: a.petId,
         furLength: a.furLength || "",
