@@ -3114,8 +3114,38 @@ function MainApp({
   };
   const markAdvancePaid = (id) => { setCashAdvances(prev => prev.map(a => a.id === id ? {...a, remainingDebt:0, status:"paid"} : a)); showToast("Marked as fully paid ✓"); };
   const deleteAdvance = (id) => askConfirm("Delete this cash advance record?", () => { setCashAdvances(prev => prev.filter(a => a.id !== id)); showToast("Advance deleted"); });
-  const freqLabel = f => f === "monthly" ? "Monthly" : f === "biweekly" ? "Every 2 weeks" : "Weekly";
+  const exportData = () => {
+    try {
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        appVersion: "ruffcuts-v1",
+        clients,
+        schedules,
+        expenses,
+        services,
+        staffMembers,
+        staffByDate,
+        cashAdvances,
+        paymentStatus,
+        cashbox
+      };
+      const json = JSON.stringify(payload, null, 2);
+      const blob = new Blob([json], {type: "application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "ruffcuts-backup-" + tod() + ".json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("Data exported ✓");
+    } catch(e) {
+      showToast("Export failed: " + e.message);
+    }
+  };
   const estPayoff = adv => { if (adv.remainingDebt <= 0) return "Fully paid"; const p = Math.ceil(adv.remainingDebt / adv.deductionAmount); const u = adv.frequency === "monthly" ? "mo" : adv.frequency === "biweekly" ? " 2-wk periods" : " wks"; return "~" + p + u + " left"; };
+  const freqLabel = f => f === "monthly" ? "Monthly" : f === "biweekly" ? "Every 2 weeks" : "Weekly";
   // ─────────────────────────────────────────────────────────────
   const delA = (d, id) => setSchedules(prev => ({
     ...prev,
@@ -7071,7 +7101,24 @@ function MainApp({
         className: "phdr"
       }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", null, "Dashboard"), /*#__PURE__*/React.createElement("p", null, "Business overview")), /*#__PURE__*/React.createElement("div", {
         className: "phdr-r"
-      }, availYears.map(y => /*#__PURE__*/React.createElement("button", {
+      }, isOwner && /*#__PURE__*/React.createElement("button", {
+        onClick: exportData,
+        style: {
+          padding: "7px 14px",
+          borderRadius: A.pill,
+          border: "1px solid " + A.g2,
+          background: A.g1,
+          color: A.g4,
+          fontFamily: "inherit",
+          fontSize: 13,
+          fontWeight: 600,
+          cursor: "pointer",
+          minHeight: "auto",
+          display: "flex",
+          alignItems: "center",
+          gap: 5
+        }
+      }, "⬇ Export"), availYears.map(y => /*#__PURE__*/React.createElement("button", {
         key: y,
         onClick: () => setAnnualYear(y),
         style: {
