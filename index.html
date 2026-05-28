@@ -2745,6 +2745,7 @@ function MainApp({
     photo: "",
     idPhoto: ""
   });
+  const [showSmForm, setShowSmForm] = useState(false);
   const [cashAdvances, setCashAdvances] = useState([]);
   const [showCaForm, setShowCaForm] = useState(null); // staffId or null
   const [caForm, setCaForm] = useState({amount:"",purpose:"",dateIssued:tod(),deductionAmount:"",frequency:"weekly"});
