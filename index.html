@@ -808,6 +808,69 @@ class ErrB extends Component {
     return this.props.children;
   }
 }
+class TabErrB extends Component {
+  constructor(p) {
+    super(p);
+    this.state = { err: null };
+  }
+  static getDerivedStateFromError(e) {
+    return { err: e };
+  }
+  render() {
+    if (this.state.err) return /*#__PURE__*/React.createElement("div", {
+      className: "sec",
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "60vh",
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement("p", {
+      style: { fontSize: 36, marginBottom: 16 }
+    }, "⚠️"), /*#__PURE__*/React.createElement("p", {
+      style: { fontSize: 16, fontWeight: 700, color: A.bl, marginBottom: 8 }
+    }, "This tab ran into a problem"), /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontSize: 13,
+        color: A.g4,
+        marginBottom: 24,
+        maxWidth: 280,
+        lineHeight: 1.6
+      }
+    }, this.state.err.message), /*#__PURE__*/React.createElement("div", {
+      style: { display: "flex", gap: 10 }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => this.setState({ err: null }),
+      style: {
+        background: A.bl,
+        color: "#fff",
+        border: "none",
+        borderRadius: "980px",
+        padding: "11px 24px",
+        fontSize: 14,
+        fontWeight: 600,
+        cursor: "pointer",
+        fontFamily: "inherit"
+      }
+    }, "Try again"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => window.location.reload(),
+      style: {
+        background: A.g1,
+        color: A.bl,
+        border: "none",
+        borderRadius: "980px",
+        padding: "11px 24px",
+        fontSize: 14,
+        fontWeight: 600,
+        cursor: "pointer",
+        fontFamily: "inherit"
+      }
+    }, "Reload app")));
+    return this.props.children;
+  }
+}
 function polarToCart(cx, cy, r, deg) {
   const rad = (deg - 90) * Math.PI / 180;
   return {
@@ -7900,7 +7963,7 @@ function MainApp({
       justifyContent: "center",
       gap: 6
     }
-  }, /*#__PURE__*/React.createElement("span", null, "\u26A0\uFE0F"), /*#__PURE__*/React.createElement("span", null, sync === "Offline" ? "You're offline — changes may not be saving" : "Sync error — check your connection")), renderContent()), confirmModal && /*#__PURE__*/React.createElement(ConfirmModal, {
+  }, /*#__PURE__*/React.createElement("span", null, "\u26A0\uFE0F"), /*#__PURE__*/React.createElement("span", null, sync === "Offline" ? "You're offline — changes may not be saving" : "Sync error — check your connection")), /*#__PURE__*/React.createElement(TabErrB, {key: tab}, renderContent())), confirmModal && /*#__PURE__*/React.createElement(ConfirmModal, {
     message: confirmModal.message,
     onConfirm: confirmModal.onConfirm,
     onCancel: closeConfirm
