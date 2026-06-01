@@ -127,10 +127,12 @@ const {
   useState,
   useEffect,
   useRef,
+  useMemo,
   Component
 } = React;
 let db = null,
-  DOCS = {};
+  DOCS = {},
+  SCHED_COL = null;
 try {
   const cfg = {
     apiKey: "AIzaSyByMaYOwnUNhT9QpVwWUrvNJ5l_ypGV6RI",
@@ -148,6 +150,7 @@ try {
   const col = db.collection("ruffcuts");
   ["clients","schedules","expenses","services","staffByDate","staffMembers","paymentStatus","cashbox","cashAdvances"].forEach(n=>{DOCS[n]=col.doc(n);});
   DOCS._legacy = col.doc("appdata");
+  SCHED_COL = db.collection("ruffcuts_schedules");
 } catch (e) {
   console.warn("Firebase:", e.message);
 }
@@ -182,6 +185,11 @@ const DEF_SVC = [
 const FURS = ["Smooth", "Long"];
 const EXP_CATS = ["Fuel", "Grooming Supplies", "Maintenance", "Salaries/Commission", "Parking/Tolls", "Miscellaneous"];
 const ROUTE_CATS = ["Fuel", "Toll", "Parking", "Village Entrance Fee", "Maintenance", "Load"];
+const COMMISSION_RATE = 0.10;
+const DEFAULT_DAILY_SALARY = 700;
+const REBOOK_DAYS = 28;
+const SYNC_DEBOUNCE_MS = 800;
+const MIN_PASSWORD_LENGTH = 4;
 const DESIGS = ["Groomer", "Driver", "Apprentice Groomer"];
 const PAY_MODES = ["Cash", "GCash"];
 const DURATIONS = [{
@@ -421,6 +429,17 @@ const aColor = svc => {
     acc: "#16a34a"
   };
 };
+function buildGroomerCommMap(appts, staffMembers) {
+  const map = {};
+  appts.filter(a => a.groomerId && a.status === "completed").forEach(a => {
+    const member = staffMembers.find(m => m.id === a.groomerId);
+    const name = member ? member.name : "Unknown";
+    if (!map[a.groomerId]) map[a.groomerId] = { name, comm: 0, pets: 0 };
+    map[a.groomerId].comm += Number(a.cost || 0) * COMMISSION_RATE;
+    map[a.groomerId].pets++;
+  });
+  return map;
+}
 const A = {
   bl: "#1c1c1e",
   wh: "#fff",
@@ -1577,7 +1596,7 @@ function OwnPwEdit({
   }, /*#__PURE__*/React.createElement(Btn, {
     onClick: () => {
       if (form.c !== ownerPass) return setMsg("Incorrect.");
-      if (form.n.length < 4) return setMsg("Min 4 chars.");
+      if (form.n.length < MIN_PASSWORD_LENGTH) return setMsg("Min 4 chars.");
       if (form.n !== form.cf) return setMsg("No match.");
       setOwnerPass(form.n);
       setMsg("OK Updated");
@@ -1724,7 +1743,7 @@ function StfPwRow({
     sm: true,
     onClick: () => {
       if (!form.name.trim()) return setMsg("Name required.");
-      if (form.password.length < 4) return setMsg("Min 4 chars.");
+      if (form.password.length < MIN_PASSWORD_LENGTH) return setMsg("Min 4 chars.");
       onSave({
         ...staff,
         ...form,
@@ -2152,7 +2171,7 @@ function EodModal({
       comm: 0,
       pets: 0
     };
-    groomerComm[name].comm += Number(a.cost || 0) * 0.1;
+    groomerComm[name].comm += Number(a.cost || 0) * COMMISSION_RATE;
     groomerComm[name].pets++;
   });
   const totalComm = Object.values(groomerComm).reduce((s, g) => s + g.comm, 0);
@@ -2741,7 +2760,7 @@ function MainApp({
     address: "",
     mobile: "",
     emergencyContact: "",
-    dailySalary: 700,
+    dailySalary: DEFAULT_DAILY_SALARY,
     photo: "",
     idPhoto: ""
   });
@@ -2823,9 +2842,29 @@ function MainApp({
         }
       }).catch(() => {});
     }
+    // Migrate schedules from single doc to monthly sharded docs
+    DOCS.schedules.get().then(snap => {
+      if (snap.exists && !snap.data()._migrated_to_monthly) {
+        const old = snap.data().data;
+        if (old && Object.keys(old).length > 0) {
+          const byMonth = {};
+          Object.entries(old).forEach(([date, appts]) => {
+            const m = date.substring(0, 7);
+            if (!byMonth[m]) byMonth[m] = {};
+            byMonth[m][date] = appts;
+          });
+          const batch = db.batch();
+          Object.entries(byMonth).forEach(([m, data]) => batch.set(SCHED_COL.doc(m), {data}));
+          batch.commit()
+            .then(() => DOCS.schedules.set({_migrated_to_monthly: true}, {merge: true}))
+            .catch(() => {});
+        } else {
+          DOCS.schedules.set({_migrated_to_monthly: true}, {merge: true}).catch(() => {});
+        }
+      }
+    }).catch(() => {});
     const setters = {
       clients: v => { lastR.current.clients = v; setClients(v || []); },
-      schedules: v => { lastR.current.schedules = v; if (v) setSchedules(v); },
       expenses: v => { lastR.current.expenses = v; if (v) setExpenses(v); },
       services: v => { lastR.current.services = v; setServices(v || DEF_SVC); },
       staffByDate: v => { lastR.current.staffByDate = v; if (v) setStaffByDate(v); },
@@ -2837,46 +2876,79 @@ function MainApp({
     const unsubs = Object.entries(setters).map(([name, setter]) =>
       DOCS[name].onSnapshot(snap => { setter(snap.exists ? snap.data().data : null); setSync("Synced"); }, () => setSync("Offline"))
     );
-    return () => unsubs.forEach(u => u());
+    // Monthly schedule collection listener — merges all month docs into schedules state
+    const schedUnsub = SCHED_COL.onSnapshot(snap => {
+      const merged = {};
+      const byMonth = {};
+      snap.docs.forEach(doc => {
+        const data = doc.data().data || {};
+        Object.assign(merged, data);
+        byMonth[doc.id] = data;
+      });
+      lastR.current.schedules = merged;
+      lastR.current.schedulesByMonth = byMonth;
+      setSchedules(merged);
+      setSync("Synced");
+    }, () => setSync("Offline"));
+    return () => { unsubs.forEach(u => u()); schedUnsub(); };
   }, []);
   const sf = (name, v, r) => {
     if (!DOCS[name] || JSON.stringify(v) === JSON.stringify(r)) return;
     DOCS[name].set({data: v}).then(() => setSync("Synced")).catch(() => setSync("Error"));
   };
   useEffect(() => {
-    const t = setTimeout(() => sf("clients", clients, lastR.current.clients), 800);
+    const t = setTimeout(() => sf("clients", clients, lastR.current.clients), SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [clients]);
   useEffect(() => {
-    const t = setTimeout(() => sf("schedules", schedules, lastR.current.schedules), 800);
+    const t = setTimeout(() => {
+      if (!db || !SCHED_COL) return;
+      const byMonth = {};
+      Object.entries(schedules).forEach(([date, appts]) => {
+        const m = date.substring(0, 7);
+        if (!byMonth[m]) byMonth[m] = {};
+        byMonth[m][date] = appts;
+      });
+      const prev = lastR.current.schedulesByMonth || {};
+      Object.entries(byMonth).forEach(([m, data]) => {
+        if (JSON.stringify(data) !== JSON.stringify(prev[m])) {
+          SCHED_COL.doc(m).set({data}).then(() => setSync("Synced")).catch(() => setSync("Error"));
+        }
+      });
+      // Delete month docs whose appointments were all removed
+      Object.keys(prev).forEach(m => {
+        if (!byMonth[m]) SCHED_COL.doc(m).delete().catch(() => {});
+      });
+      lastR.current.schedulesByMonth = byMonth;
+    }, SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [schedules]);
   useEffect(() => {
-    const t = setTimeout(() => sf("expenses", expenses, lastR.current.expenses), 800);
+    const t = setTimeout(() => sf("expenses", expenses, lastR.current.expenses), SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [expenses]);
   useEffect(() => {
-    const t = setTimeout(() => sf("services", services, lastR.current.services), 800);
+    const t = setTimeout(() => sf("services", services, lastR.current.services), SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [services]);
   useEffect(() => {
-    const t = setTimeout(() => sf("staffByDate", staffByDate, lastR.current.staffByDate), 800);
+    const t = setTimeout(() => sf("staffByDate", staffByDate, lastR.current.staffByDate), SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [staffByDate]);
   useEffect(() => {
-    const t = setTimeout(() => sf("staffMembers", staffMembers, lastR.current.staffMembers), 800);
+    const t = setTimeout(() => sf("staffMembers", staffMembers, lastR.current.staffMembers), SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [staffMembers]);
   useEffect(() => {
-    const t = setTimeout(() => sf("paymentStatus", paymentStatus, lastR.current.paymentStatus), 800);
+    const t = setTimeout(() => sf("paymentStatus", paymentStatus, lastR.current.paymentStatus), SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [paymentStatus]);
   useEffect(() => {
-    const t = setTimeout(() => sf("cashbox", cashbox, lastR.current.cashbox), 800);
+    const t = setTimeout(() => sf("cashbox", cashbox, lastR.current.cashbox), SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [cashbox]);
   useEffect(() => {
-    const t = setTimeout(() => sf("cashAdvances", cashAdvances, lastR.current.cashAdvances), 800);
+    const t = setTimeout(() => sf("cashAdvances", cashAdvances, lastR.current.cashAdvances), SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [cashAdvances]);
   useEffect(() => {
@@ -2902,34 +2974,38 @@ function MainApp({
     const onDuty = gSt(d);
     return onDuty.reduce((s, sm) => {
       const member = staffMembers.find(m => m.id === sm.staffId);
-      const rate = member && member.dailySalary ? Number(member.dailySalary) : 700;
+      const rate = member && member.dailySalary ? Number(member.dailySalary) : DEFAULT_DAILY_SALARY;
       return s + rate;
     }, 0);
   };
   const gRev = d => gA(d).filter(a => a.status === "completed").reduce((s, a) => s + Number(a.cost || 0), 0);
   const gExpR = d => gE(d).reduce((s, e) => s + Number(e.amount || 0), 0);
-  const gComm = d => gA(d).filter(a => a.groomerId && a.status === "completed").reduce((s, a) => s + Number(a.cost || 0) * 0.1, 0);
+  const gComm = d => gA(d).filter(a => a.groomerId && a.status === "completed").reduce((s, a) => s + Number(a.cost || 0) * COMMISSION_RATE, 0);
   const gExp = d => gExpR(d) + gSal(d);
   const gP = d => gRev(d) - gExp(d) - gComm(d);
-  const allD = [...new Set([...Object.keys(schedules), ...Object.keys(expenses), ...Object.keys(staffByDate).filter(d => (staffByDate[d] || []).length > 0)])];
+  const allD = useMemo(() => [...new Set([
+    ...Object.keys(schedules),
+    ...Object.keys(expenses),
+    ...Object.keys(staffByDate).filter(d => (staffByDate[d] || []).length > 0)
+  ])], [schedules, expenses, staffByDate]);
   const totP = ds => ds.reduce((s, d) => s + gP(d), 0);
   const thiswk = getWeek(0);
   const thismo = allD.filter(d => d.startsWith(now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0")));
   const thisyr = allD.filter(d => d.startsWith("" + now.getFullYear()));
-  const allAppts = Object.values(schedules).flat();
+  const allAppts = useMemo(() => Object.values(schedules).flat(), [schedules]);
   const availYears = [...new Set([...allD.map(d => parseInt(d.split("-")[0])), now.getFullYear()])].sort((a, b) => b - a);
-  const lastVisitData = {};
-  clients.forEach(cl => {
-    const hist = [];
-    Object.entries(schedules).forEach(([date, appts]) => {
-      appts.filter(a => a.clientId === cl.id).forEach(a => hist.push({
-        ...a,
-        date
-      }));
+  const lastVisitData = useMemo(() => {
+    const result = {};
+    clients.forEach(cl => {
+      const hist = [];
+      Object.entries(schedules).forEach(([date, appts]) => {
+        appts.filter(a => a.clientId === cl.id).forEach(a => hist.push({...a, date}));
+      });
+      hist.sort((a, b) => b.date.localeCompare(a.date));
+      if (hist.length > 0) result[cl.id] = hist[0];
     });
-    hist.sort((a, b) => b.date.localeCompare(a.date));
-    if (hist.length > 0) lastVisitData[cl.id] = hist[0];
-  });
+    return result;
+  }, [clients, schedules]);
   const getPay = key => getPayE(paymentStatus[key]);
   const isPaid = key => getPay(key).status === "paid";
   const togglePay = (key, amount) => setPaymentStatus(p => ({
@@ -2986,7 +3062,7 @@ function MainApp({
     if (!smForm.name.trim()) return;
     const data = {
       ...smForm,
-      dailySalary: Number(smForm.dailySalary) || 700
+      dailySalary: Number(smForm.dailySalary) || DEFAULT_DAILY_SALARY
     };
     if (smForm.id) setStaffMembers(p => p.map(s => s.id === smForm.id ? data : s));else setStaffMembers(p => [...p, {
       ...data,
@@ -3000,7 +3076,7 @@ function MainApp({
       address: "",
       mobile: "",
       emergencyContact: "",
-      dailySalary: 700,
+      dailySalary: DEFAULT_DAILY_SALARY,
       photo: "",
       idPhoto: ""
     });
@@ -3087,18 +3163,7 @@ function MainApp({
       if (String(adv.staffId) !== String(staffId) || adv.status !== "active") return adv;
       const deduct = getAdvanceDeductionForPeriod(adv, periodEnd);
       if (deduct <= 0) return adv;
-      const issued = new Date(adv.dateIssued + "T12:00:00");
-      const end = new Date(periodEnd + "T12:00:00");
-      let totalDue = 0;
-      for (let i = 1; ; i++) {
-        const d2 = new Date(issued);
-        if (adv.frequency === "monthly") d2.setMonth(d2.getMonth() + i);
-        else if (adv.frequency === "biweekly") d2.setDate(d2.getDate() + 14 * i);
-        else d2.setDate(d2.getDate() + 7 * i);
-        if (d2 > end) break;
-        totalDue++;
-      }
-      const pending = Math.max(0, totalDue - (adv.deductionsMade || 0));
+      const pending = Math.round(deduct / adv.deductionAmount);
       const newRemaining = Math.max(0, adv.remainingDebt - deduct);
       return {...adv, remainingDebt: newRemaining, deductionsMade: (adv.deductionsMade || 0) + pending, status: newRemaining <= 0 ? "paid" : "active"};
     }));
@@ -3148,7 +3213,6 @@ function MainApp({
   const freqLabel = f => f === "monthly" ? "Monthly" : f === "biweekly" ? "Every 2 weeks" : "Weekly";
   // ─────────────────────────────────────────────────────────────
   const delA = (d, id) => setSchedules(prev => ({
-    ...prev,
     ...prev,
     [d]: (prev[d] || []).filter(a => a.id !== id)
   }));
@@ -3263,7 +3327,7 @@ function MainApp({
         dates: []
       };
       const member = staffMembers.find(m => m.id === s.staffId);
-      const rate = member && member.dailySalary ? Number(member.dailySalary) : 700;
+      const rate = member && member.dailySalary ? Number(member.dailySalary) : DEFAULT_DAILY_SALARY;
       salByStaff[salId].days++;
       salByStaff[salId].total += rate;
       salByStaff[salId].dates.push({
@@ -3286,7 +3350,7 @@ function MainApp({
         pets: 0,
         breakdown: []
       };
-      const comm = Number(a.cost || 0) * 0.1;
+      const comm = Number(a.cost || 0) * COMMISSION_RATE;
       commByGroomer[a.groomerId].total += comm;
       commByGroomer[a.groomerId].pets++;
       commByGroomer[a.groomerId].breakdown.push({
@@ -3418,18 +3482,7 @@ function MainApp({
       const todCancelled = todAppts.filter(a => a.status === "cancelled").length;
       const total = todAppts.filter(a => a.status !== "cancelled").length;
       const pct = total > 0 ? Math.round(done.length / total * 100) : 0;
-      const groomerCommToday = {};
-      todAppts.filter(a => a.groomerId && a.status === "completed").forEach(a => {
-        const member = staffMembers.find(m => m.id === a.groomerId);
-        const name = member ? member.name : "Unknown";
-        if (!groomerCommToday[a.groomerId]) groomerCommToday[a.groomerId] = {
-          name,
-          comm: 0,
-          pets: 0
-        };
-        groomerCommToday[a.groomerId].comm += Number(a.cost || 0) * 0.1;
-        groomerCommToday[a.groomerId].pets++;
-      });
+      const groomerCommToday = buildGroomerCommMap(todAppts, staffMembers);
       const myStaffMember = loggedInStaff ? loggedInStaff.staffMemberId ? staffMembers.find(m => String(m.id) === String(loggedInStaff.staffMemberId)) : staffMembers.find(m => m.name.toLowerCase() === loggedInStaff.name.toLowerCase()) : null;
       const myTodayComm = myStaffMember ? groomerCommToday[myStaffMember.id] || null : null;
       function TodayApptCard({
@@ -4041,7 +4094,7 @@ function MainApp({
       }), /*#__PURE__*/React.createElement("button", {
         onClick: () => {
           const d = new Date(todStr + "T12:00:00");
-          d.setDate(d.getDate() + 28);
+          d.setDate(d.getDate() + REBOOK_DAYS);
           const nd = d.toISOString().split("T")[0];
           if (isOwner) setSelDate(nd);
           setActA(null);
@@ -5142,20 +5195,7 @@ function MainApp({
           }
         }, fmt(gcashRev)))));
       })(), (() => {
-        const gc = {};
-        appts.filter(a => a.groomerId && a.status === "completed").forEach(a => {
-          const member = staffMembers.find(m => m.id === a.groomerId);
-          const name = member ? member.name : (dSt.find(s => String(s.staffId) === String(a.groomerId)) || {
-            name: "Unknown"
-          }).name;
-          if (!gc[a.groomerId]) gc[a.groomerId] = {
-            name,
-            comm: 0,
-            pets: 0
-          };
-          gc[a.groomerId].comm += Number(a.cost || 0) * 0.1;
-          gc[a.groomerId].pets++;
-        });
+        const gc = buildGroomerCommMap(appts, staffMembers);
         const entries = Object.values(gc);
         if (!entries.length) return null;
         return /*#__PURE__*/React.createElement("div", {
@@ -6020,7 +6060,7 @@ function MainApp({
             address: "",
             mobile: "",
             emergencyContact: "",
-            dailySalary: 700,
+            dailySalary: DEFAULT_DAILY_SALARY,
             photo: "",
             idPhoto: ""
           });
@@ -6367,7 +6407,7 @@ function MainApp({
           onClick: () => {
             setSmForm({
               ...sm,
-              dailySalary: sm.dailySalary || 700
+              dailySalary: sm.dailySalary || DEFAULT_DAILY_SALARY
             });
             setShowSmForm(true);
           }
@@ -6385,7 +6425,7 @@ function MainApp({
           style: {
             color: A.ok
           }
-        }, "P", (sm.dailySalary || 700).toLocaleString())), sm.mobile && /*#__PURE__*/React.createElement("p", {
+        }, "P", (sm.dailySalary || DEFAULT_DAILY_SALARY).toLocaleString())), sm.mobile && /*#__PURE__*/React.createElement("p", {
           style: {
             fontSize: 13,
             color: A.g4
@@ -6659,7 +6699,7 @@ function MainApp({
       }, h)))), /*#__PURE__*/React.createElement("tbody", null, trkDates.flatMap(d => gSt(d).map((s, i) => {
         const paid = isPaid(salKey(s.staffId || s.name));
         const member = staffMembers.find(m => m.id === s.staffId);
-        const rate = member && member.dailySalary ? Number(member.dailySalary) : 700;
+        const rate = member && member.dailySalary ? Number(member.dailySalary) : DEFAULT_DAILY_SALARY;
         return /*#__PURE__*/React.createElement("tr", {
           key: d + s.name + i,
           style: {
@@ -6875,18 +6915,7 @@ function MainApp({
         key: h,
         className: "th"
       }, h)))), /*#__PURE__*/React.createElement("tbody", null, trkDates.flatMap(d => {
-        const dayComm = {};
-        gA(d).filter(a => a.groomerId && a.status === "completed").forEach(a => {
-          if (!dayComm[a.groomerId]) dayComm[a.groomerId] = {
-            name: (staffMembers.find(m => m.id === a.groomerId) || {
-              name: "Unknown"
-            }).name,
-            pets: 0,
-            comm: 0
-          };
-          dayComm[a.groomerId].pets++;
-          dayComm[a.groomerId].comm += Number(a.cost || 0) * 0.1;
-        });
+        const dayComm = buildGroomerCommMap(gA(d), staffMembers);
         return Object.entries(dayComm).map(([sid, dc], i) => {
           const paid = isPaid(comKey(sid));
           return /*#__PURE__*/React.createElement("tr", {
