@@ -10,8 +10,6 @@
 <meta name="theme-color" content="#000"/>
 <link rel="apple-touch-icon" href="https://i.imgur.com/NWOIvxv.png"/>
 <title>Ruff Cuts</title>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
 
@@ -121,7 +119,9 @@ setTimeout(function(){
   if(m)m.textContent='Taking longer than usual... please wait.';
 },15000);
 </script>
-<script>
+<script type="module">
+import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, writeBatch, enableMultiTabIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 const {
   useState,
@@ -142,15 +142,13 @@ try {
     messagingSenderId: "74298911810",
     appId: "1:74298911810:web:627341170ba007779ad1db"
   };
-  if (!firebase.apps.length) firebase.initializeApp(cfg);
-  db = firebase.firestore();
-  db.enablePersistence({
-    synchronizeTabs: true
-  }).catch(() => {});
-  const col = db.collection("ruffcuts");
-  ["clients","schedules","expenses","services","staffByDate","staffMembers","paymentStatus","cashbox","cashAdvances"].forEach(n=>{DOCS[n]=col.doc(n);});
-  DOCS._legacy = col.doc("appdata");
-  SCHED_COL = db.collection("ruffcuts_schedules");
+  const app = getApps().length === 0 ? initializeApp(cfg) : getApps()[0];
+  db = getFirestore(app);
+  enableMultiTabIndexedDbPersistence(db).catch(() => {});
+  const col = collection(db, "ruffcuts");
+  ["clients","schedules","expenses","services","staffByDate","staffMembers","paymentStatus","cashbox","cashAdvances"].forEach(n=>{DOCS[n]=doc(col, n);});
+  DOCS._legacy = doc(col, "appdata");
+  SCHED_COL = collection(db, "ruffcuts_schedules");
 } catch (e) {
   console.warn("Firebase:", e.message);
 }
@@ -2894,20 +2892,20 @@ function MainApp({
     if (!db) { setSync("Offline"); return; }
     // Migrate from legacy single document if needed
     if (DOCS._legacy) {
-      DOCS._legacy.get().then(snap => {
-        if (snap.exists && !snap.data()._migrated) {
+      getDoc(DOCS._legacy).then(snap => {
+        if (snap.exists() && !snap.data()._migrated) {
           const d = snap.data();
-          const batch = db.batch();
+          const batch = writeBatch(db);
           ["clients","schedules","expenses","services","staffByDate","staffMembers","paymentStatus","cashbox"].forEach(n => {
             if (d[n] !== undefined) batch.set(DOCS[n], {data: d[n]});
           });
-          batch.commit().then(() => DOCS._legacy.set({_migrated: true}, {merge: true})).catch(() => {});
+          batch.commit().then(() => setDoc(DOCS._legacy, {_migrated: true}, {merge: true})).catch(() => {});
         }
       }).catch(() => {});
     }
     // Migrate schedules from single doc to monthly sharded docs
-    DOCS.schedules.get().then(snap => {
-      if (snap.exists && !snap.data()._migrated_to_monthly) {
+    getDoc(DOCS.schedules).then(snap => {
+      if (snap.exists() && !snap.data()._migrated_to_monthly) {
         const old = snap.data().data;
         if (old && Object.keys(old).length > 0) {
           const byMonth = {};
@@ -2916,13 +2914,13 @@ function MainApp({
             if (!byMonth[m]) byMonth[m] = {};
             byMonth[m][date] = appts;
           });
-          const batch = db.batch();
-          Object.entries(byMonth).forEach(([m, data]) => batch.set(SCHED_COL.doc(m), {data}));
+          const batch = writeBatch(db);
+          Object.entries(byMonth).forEach(([m, data]) => batch.set(doc(SCHED_COL, m), {data}));
           batch.commit()
-            .then(() => DOCS.schedules.set({_migrated_to_monthly: true}, {merge: true}))
+            .then(() => setDoc(DOCS.schedules, {_migrated_to_monthly: true}, {merge: true}))
             .catch(() => {});
         } else {
-          DOCS.schedules.set({_migrated_to_monthly: true}, {merge: true}).catch(() => {});
+          setDoc(DOCS.schedules, {_migrated_to_monthly: true}, {merge: true}).catch(() => {});
         }
       }
     }).catch(() => {});
@@ -2937,10 +2935,10 @@ function MainApp({
       cashAdvances: v => { lastR.current.cashAdvances = v; setCashAdvances(v || []); },
     };
     const unsubs = Object.entries(setters).map(([name, setter]) =>
-      DOCS[name].onSnapshot(snap => { setter(snap.exists ? snap.data().data : null); setSync("Synced"); }, () => setSync("Offline"))
+      onSnapshot(DOCS[name], snap => { setter(snap.exists() ? snap.data().data : null); setSync("Synced"); }, () => setSync("Offline"))
     );
     // Monthly schedule collection listener — merges all month docs into schedules state
-    const schedUnsub = SCHED_COL.onSnapshot(snap => {
+    const schedUnsub = onSnapshot(SCHED_COL, snap => {
       const merged = {};
       const byMonth = {};
       snap.docs.forEach(doc => {
@@ -2957,7 +2955,7 @@ function MainApp({
   }, []);
   const sf = (name, v, r) => {
     if (!DOCS[name] || JSON.stringify(v) === JSON.stringify(r)) return;
-    DOCS[name].set({data: v}).then(() => setSync("Synced")).catch(() => setSync("Error"));
+    setDoc(DOCS[name], {data: v}).then(() => setSync("Synced")).catch(() => setSync("Error"));
   };
   useEffect(() => {
     const t = setTimeout(() => sf("clients", clients, lastR.current.clients), SYNC_DEBOUNCE_MS);
@@ -2975,12 +2973,12 @@ function MainApp({
       const prev = lastR.current.schedulesByMonth || {};
       Object.entries(byMonth).forEach(([m, data]) => {
         if (JSON.stringify(data) !== JSON.stringify(prev[m])) {
-          SCHED_COL.doc(m).set({data}).then(() => setSync("Synced")).catch(() => setSync("Error"));
+          setDoc(doc(SCHED_COL, m), {data}).then(() => setSync("Synced")).catch(() => setSync("Error"));
         }
       });
       // Delete month docs whose appointments were all removed
       Object.keys(prev).forEach(m => {
-        if (!byMonth[m]) SCHED_COL.doc(m).delete().catch(() => {});
+        if (!byMonth[m]) deleteDoc(doc(SCHED_COL, m)).catch(() => {});
       });
       lastR.current.schedulesByMonth = byMonth;
     }, SYNC_DEBOUNCE_MS);
