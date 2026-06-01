@@ -146,7 +146,7 @@ try {
   db = getFirestore(app);
   enableMultiTabIndexedDbPersistence(db).catch(() => {});
   const col = collection(db, "ruffcuts");
-  ["clients","schedules","expenses","services","staffByDate","staffMembers","paymentStatus","cashbox","cashAdvances"].forEach(n=>{DOCS[n]=doc(col, n);});
+  ["clients","schedules","expenses","services","staffByDate","staffMembers","paymentStatus","cashbox","cashAdvances","balances","ownerFinances"].forEach(n=>{DOCS[n]=doc(col, n);});
   DOCS._legacy = doc(col, "appdata");
   SCHED_COL = collection(db, "ruffcuts_schedules");
 } catch (e) {
@@ -188,6 +188,9 @@ const DEFAULT_DAILY_SALARY = 700;
 const REBOOK_DAYS = 28;
 const SYNC_DEBOUNCE_MS = 800;
 const MIN_PASSWORD_LENGTH = 4;
+const DEF_BAL = {cashOnHand:0, gcashBalance:0, bankBalance:0, deposits:[]};
+const DEF_OWN = {salaryCycle:"monthly", salaryAmount:0, capitalItems:[], salaryPayments:[]};
+const CAP_CATS = ["Equipment","Vehicle","Marketing","Renovation","Technology","Other"];
 const DESIGS = ["Groomer", "Driver", "Apprentice Groomer"];
 const PAY_MODES = ["Cash", "GCash"];
 const DURATIONS = [{
@@ -2774,7 +2777,7 @@ function MainApp({
   loggedInStaff
 }) {
   const isOwner = role === "owner";
-  const TABS = isOwner ? [["today", "Today"], ["schedule", "Schedule"], ["weekly", "Weekly"], ["clients", "Clients"], ["services", "Services"], ["staff", "Staff"], ["dashboard", "Dashboard"], ["permissions", "Permissions"]] : [["today", "Today"], ["schedule", "Schedule"]];
+  const TABS = isOwner ? [["today","Today"],["schedule","Schedule"],["weekly","Weekly"],["clients","Clients"],["services","Services"],["staff","Staff"],["dashboard","Dashboard"],["finances","Finances"],["permissions","Permissions"]] : [["today","Today"],["schedule","Schedule"]];
   const now = new Date();
   const [tab, setTab] = useState("today");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -2836,6 +2839,17 @@ function MainApp({
   const [staffDetailId, setStaffDetailId] = useState(null);
   const [commDetailId, setCommDetailId] = useState(null);
   const [cashbox, setCashbox] = useState({});
+  const [balances, setBalances] = useState(DEF_BAL);
+  const [ownerFinances, setOwnerFinances] = useState(DEF_OWN);
+  const [depositModal, setDepositModal] = useState(null);
+  const [depositAmt, setDepositAmt] = useState("");
+  const [depositNotes, setDepositNotes] = useState("");
+  const [showCapForm, setShowCapForm] = useState(false);
+  const [capForm, setCapForm] = useState({id:null,name:"",amount:"",date:tod(),category:"Equipment",notes:""});
+  const [showOwnerSalEdit, setShowOwnerSalEdit] = useState(false);
+  const [ownerSalForm, setOwnerSalForm] = useState({amount:"",cycle:"monthly"});
+  const [editBalKey, setEditBalKey] = useState(null);
+  const [editBalVal, setEditBalVal] = useState("");
   const [showQExp, setShowQExp] = useState(false);
   const [qExpForm, setQExpForm] = useState({
     cat: "",
@@ -2933,6 +2947,8 @@ function MainApp({
       paymentStatus: v => { lastR.current.paymentStatus = v; setPaymentStatus(v || {}); },
       cashbox: v => { lastR.current.cashbox = v; setCashbox(v || {}); },
       cashAdvances: v => { lastR.current.cashAdvances = v; setCashAdvances(v || []); },
+      balances: v => { lastR.current.balances = v; setBalances(v || DEF_BAL); },
+      ownerFinances: v => { lastR.current.ownerFinances = v; setOwnerFinances(v || DEF_OWN); },
     };
     const unsubs = Object.entries(setters).map(([name, setter]) =>
       onSnapshot(DOCS[name], snap => { setter(snap.exists() ? snap.data().data : null); setSync("Synced"); }, () => setSync("Offline"))
@@ -3012,6 +3028,14 @@ function MainApp({
     const t = setTimeout(() => sf("cashAdvances", cashAdvances, lastR.current.cashAdvances), SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [cashAdvances]);
+  useEffect(() => {
+    const t = setTimeout(() => sf("balances", balances, lastR.current.balances), SYNC_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [balances]);
+  useEffect(() => {
+    const t = setTimeout(() => sf("ownerFinances", ownerFinances, lastR.current.ownerFinances), SYNC_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [ownerFinances]);
   useEffect(() => {
     if (!isOwner) setSelDate(tod());
   }, [isOwner]);
@@ -3240,6 +3264,59 @@ function MainApp({
   };
   const markAdvancePaid = (id) => { setCashAdvances(prev => prev.map(a => a.id === id ? {...a, remainingDebt:0, status:"paid"} : a)); showToast("Marked as fully paid ✓"); };
   const deleteAdvance = (id) => askConfirm("Delete this cash advance record?", () => { setCashAdvances(prev => prev.filter(a => a.id !== id)); showToast("Advance deleted"); });
+  const recordDeposit = () => {
+    const amt = Number(depositAmt);
+    if (!amt || !depositModal) return;
+    setBalances(prev => {
+      const entry = {id:Date.now(), type:depositModal, amount:amt, date:tod(), notes:depositNotes.trim()};
+      const deps = [...(prev.deposits||[]), entry];
+      if (depositModal==="cash") return {...prev, cashOnHand:Math.max(0,(prev.cashOnHand||0)-amt), bankBalance:(prev.bankBalance||0)+amt, deposits:deps};
+      if (depositModal==="gcash") return {...prev, gcashBalance:Math.max(0,(prev.gcashBalance||0)-amt), bankBalance:(prev.bankBalance||0)+amt, deposits:deps};
+      if (depositModal==="bank-credit") return {...prev, bankBalance:(prev.bankBalance||0)+amt, deposits:deps};
+      if (depositModal==="bank-debit") return {...prev, bankBalance:Math.max(0,(prev.bankBalance||0)-amt), deposits:deps};
+      return prev;
+    });
+    setDepositModal(null); setDepositAmt(""); setDepositNotes("");
+    showToast("Balance updated ✓");
+  };
+  const saveCapItem = () => {
+    if (!capForm.name.trim() || !capForm.amount) return;
+    const item = {...capForm, amount:Number(capForm.amount), id:capForm.id||Date.now()};
+    setOwnerFinances(prev => ({...prev, capitalItems:capForm.id?(prev.capitalItems||[]).map(c=>c.id===capForm.id?item:c):[...(prev.capitalItems||[]),item]}));
+    setCapForm({id:null,name:"",amount:"",date:tod(),category:"Equipment",notes:""});
+    setShowCapForm(false);
+    showToast("Capital item saved ✓");
+  };
+  const saveOwnerSal = () => {
+    const amt = Number(ownerSalForm.amount);
+    if (!amt) return;
+    setOwnerFinances(prev => ({...prev, salaryAmount:amt, salaryCycle:ownerSalForm.cycle||"monthly"}));
+    setShowOwnerSalEdit(false);
+    showToast("Owner salary updated ✓");
+  };
+  const markOwnerSalPaid = (period) => {
+    const amt = ownerFinances.salaryAmount||0;
+    setOwnerFinances(prev => ({...prev, salaryPayments:[...(prev.salaryPayments||[]).filter(p=>p.period!==period),{id:Date.now(),period,amount:amt,paidOn:tod()}]}));
+    showToast("Salary marked paid ✓");
+  };
+  const getOwnerSalPeriods = () => {
+    const periods = [];
+    for (let i=5; i>=0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+      const key = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+      const label = MN[d.getMonth()]+" "+d.getFullYear();
+      const payment = (ownerFinances.salaryPayments||[]).find(p=>p.period===key);
+      periods.push({key,label,payment});
+    }
+    return periods;
+  };
+  const saveBalEdit = () => {
+    const val = Number(editBalVal);
+    if (isNaN(val)||!editBalKey) return;
+    setBalances(prev=>({...prev,[editBalKey]:Math.max(0,val)}));
+    setEditBalKey(null); setEditBalVal("");
+    showToast("Balance updated ✓");
+  };
   const exportData = () => {
     try {
       const payload = {
@@ -3253,7 +3330,9 @@ function MainApp({
         staffByDate,
         cashAdvances,
         paymentStatus,
-        cashbox
+        cashbox,
+        balances,
+        ownerFinances
       };
       const json = JSON.stringify(payload, null, 2);
       const blob = new Blob([json], {type: "application/json"});
@@ -7128,6 +7207,10 @@ function MainApp({
       const yrExp = yrDates.reduce((s, d) => s + gExp(d), 0);
       const yrComm = yrDates.reduce((s, d) => s + gComm(d), 0);
       const yrP = yrDates.reduce((s, d) => s + gP(d), 0);
+      const yrOwnerDraw = (ownerFinances.salaryPayments||[]).filter(p=>p.period.startsWith(""+annualYear)).reduce((s,p)=>s+Number(p.amount||0),0);
+      const yrTakeHome = yrP - yrOwnerDraw;
+      const annualRows = [["Revenue",fmt(yrRev),A.bu],["Expenses",fmt(yrExp),A.er],["Commission",fmt(yrComm),A.wn],["Net Profit",fmt(yrP),yrP>=0?A.ok:A.er]];
+      if (yrOwnerDraw>0) { annualRows.push(["Owner Draw","-"+fmt(yrOwnerDraw),"#5e5ce6"]); annualRows.push(["Take-Home",fmt(yrTakeHome),yrTakeHome>=0?A.ok:A.er]); }
       const monthlyData = Array.from({
         length: 12
       }, (_, mi) => {
@@ -7265,7 +7348,7 @@ function MainApp({
         }
       }, annualYear, " Summary"), /*#__PURE__*/React.createElement("div", {
         className: "g4"
-      }, [["Revenue", fmt(yrRev), A.bu], ["Expenses", fmt(yrExp), A.er], ["Commission", fmt(yrComm), A.wn], ["Net Profit", fmt(yrP), yrP >= 0 ? A.ok : A.er]].map(([l, val, c]) => /*#__PURE__*/React.createElement("div", {
+      }, annualRows.map(([l, val, c]) => /*#__PURE__*/React.createElement("div", {
         key: l,
         style: {
           background: A.g1,
@@ -7663,6 +7746,247 @@ function MainApp({
         expenses: expenses,
         setExpenses: setExpenses
       })));
+    }
+    if (tab === "finances") {
+      const capItems = ownerFinances.capitalItems||[];
+      const salPayments = ownerFinances.salaryPayments||[];
+      const totalCapital = capItems.reduce((s,c)=>s+Number(c.amount||0),0);
+      const allTimeProfit = allD.reduce((s,d)=>s+gP(d),0);
+      const ownerSalPaidTotal = salPayments.reduce((s,p)=>s+Number(p.amount||0),0);
+      const recovered = Math.max(0, allTimeProfit-ownerSalPaidTotal);
+      const remaining = Math.max(0, totalCapital-recovered);
+      const roiPct = totalCapital>0?Math.min(100,Math.round(recovered/totalCapital*100)):0;
+      const last3Mo = Array.from({length:3},(_,i)=>{const d=new Date(now.getFullYear(),now.getMonth()-1-i,1);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");});
+      const avg3MoProfit = last3Mo.reduce((s,m)=>s+allD.filter(d=>d.startsWith(m)).reduce((ss,d)=>ss+gP(d),0),0)/3;
+      const estMonths = remaining>0&&avg3MoProfit>0?Math.ceil(remaining/avg3MoProfit):null;
+      const salPeriods = getOwnerSalPeriods();
+      const recentDeps = [...(balances.deposits||[])].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
+      const totalLiquid = (balances.cashOnHand||0)+(balances.gcashBalance||0)+(balances.bankBalance||0);
+      function BalCard({bKey,label,color,actionLabel,onAction}) {
+        const isEditing = editBalKey===bKey;
+        const val = balances[bKey]||0;
+        return /*#__PURE__*/React.createElement("div", {style:{background:"#fff",borderRadius:14,padding:16,flex:1,minWidth:140,boxShadow:"0 1px 4px rgba(0,0,0,.06)"}},
+          /*#__PURE__*/React.createElement("p", {style:{fontSize:11,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.4,marginBottom:8}}, label),
+          isEditing
+            ? /*#__PURE__*/React.createElement("div", {style:{marginBottom:8}},
+                /*#__PURE__*/React.createElement(Inp, {type:"number",value:editBalVal,onChange:e=>setEditBalVal(e.target.value),autoFocus:true,style:{marginBottom:6}}),
+                /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:6}},
+                  /*#__PURE__*/React.createElement(Btn, {sm:true,onClick:saveBalEdit}, "Save"),
+                  /*#__PURE__*/React.createElement(Btn, {sm:true,v:"can",onClick:()=>{setEditBalKey(null);setEditBalVal("");}}, "Cancel")
+                )
+              )
+            : /*#__PURE__*/React.createElement("p", {onClick:()=>{setEditBalKey(bKey);setEditBalVal(String(val));},title:"Tap to edit",style:{fontSize:22,fontWeight:700,color,marginBottom:10,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}, fmt(val)),
+          !isEditing&&/*#__PURE__*/React.createElement(Btn, {sm:true,v:"sec",onClick:onAction,style:{width:"100%",justifyContent:"center"}}, actionLabel)
+        );
+      }
+      return /*#__PURE__*/React.createElement("div", {className:"sec"},
+        depositModal&&/*#__PURE__*/React.createElement("div", {className:"mdbg",onClick:()=>{setDepositModal(null);setDepositAmt("");setDepositNotes("");}},
+          /*#__PURE__*/React.createElement("div", {className:"md",onClick:e=>e.stopPropagation()},
+            /*#__PURE__*/React.createElement("div", {className:"mdh"}),
+            /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}},
+              /*#__PURE__*/React.createElement("p", {style:{fontSize:17,fontWeight:700}},
+                depositModal==="cash"?"Deposit Cash to Bank":depositModal==="gcash"?"Transfer GCash to Bank":depositModal==="bank-credit"?"Bank Deposit / Credit":"Bank Withdrawal"
+              ),
+              /*#__PURE__*/React.createElement("button", {onClick:()=>{setDepositModal(null);setDepositAmt("");setDepositNotes("");},style:{background:A.g1,borderRadius:"50%",width:32,height:32,border:"none",fontSize:18,color:A.g4,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto"}}, "×")
+            ),
+            /*#__PURE__*/React.createElement("div", {style:{marginBottom:12}},
+              /*#__PURE__*/React.createElement(Lbl, {c:"Amount (₱)"}),
+              /*#__PURE__*/React.createElement(Inp, {type:"number",value:depositAmt,onChange:e=>setDepositAmt(e.target.value),placeholder:"0",autoFocus:true})
+            ),
+            /*#__PURE__*/React.createElement("div", {style:{marginBottom:20}},
+              /*#__PURE__*/React.createElement(Lbl, {c:"Notes (optional)"}),
+              /*#__PURE__*/React.createElement(Inp, {value:depositNotes,onChange:e=>setDepositNotes(e.target.value),placeholder:"e.g. BDO branch deposit"})
+            ),
+            /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:10}},
+              /*#__PURE__*/React.createElement(Btn, {v:"sec",style:{flex:1},onClick:()=>{setDepositModal(null);setDepositAmt("");setDepositNotes("");}}, "Cancel"),
+              /*#__PURE__*/React.createElement(Btn, {style:{flex:1},onClick:recordDeposit}, "Confirm")
+            )
+          )
+        ),
+        showCapForm&&/*#__PURE__*/React.createElement("div", {className:"mdbg",onClick:()=>setShowCapForm(false)},
+          /*#__PURE__*/React.createElement("div", {className:"md",onClick:e=>e.stopPropagation()},
+            /*#__PURE__*/React.createElement("div", {className:"mdh"}),
+            /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}},
+              /*#__PURE__*/React.createElement("p", {style:{fontSize:17,fontWeight:700}}, capForm.id?"Edit Capital Item":"Add Capital Item"),
+              /*#__PURE__*/React.createElement("button", {onClick:()=>setShowCapForm(false),style:{background:A.g1,borderRadius:"50%",width:32,height:32,border:"none",fontSize:18,color:A.g4,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto"}}, "×")
+            ),
+            /*#__PURE__*/React.createElement("div", {style:{marginBottom:10}},
+              /*#__PURE__*/React.createElement(Lbl, {c:"Item Name"}),
+              /*#__PURE__*/React.createElement(Inp, {value:capForm.name,onChange:e=>setCapForm(p=>({...p,name:e.target.value})),placeholder:"e.g. Grooming Van"})
+            ),
+            /*#__PURE__*/React.createElement("div", {className:"g2",style:{marginBottom:10}},
+              /*#__PURE__*/React.createElement("div", null,
+                /*#__PURE__*/React.createElement(Lbl, {c:"Amount (₱)"}),
+                /*#__PURE__*/React.createElement(Inp, {type:"number",value:capForm.amount,onChange:e=>setCapForm(p=>({...p,amount:e.target.value})),placeholder:"0"})
+              ),
+              /*#__PURE__*/React.createElement("div", null,
+                /*#__PURE__*/React.createElement(Lbl, {c:"Date"}),
+                /*#__PURE__*/React.createElement(Inp, {type:"date",value:capForm.date,onChange:e=>setCapForm(p=>({...p,date:e.target.value}))})
+              )
+            ),
+            /*#__PURE__*/React.createElement("div", {style:{marginBottom:10}},
+              /*#__PURE__*/React.createElement(Lbl, {c:"Category"}),
+              /*#__PURE__*/React.createElement(Sel, {value:capForm.category,onChange:e=>setCapForm(p=>({...p,category:e.target.value}))},
+                CAP_CATS.map(c=>/*#__PURE__*/React.createElement("option", {key:c}, c))
+              )
+            ),
+            /*#__PURE__*/React.createElement("div", {style:{marginBottom:20}},
+              /*#__PURE__*/React.createElement(Lbl, {c:"Notes (optional)"}),
+              /*#__PURE__*/React.createElement(Inp, {value:capForm.notes,onChange:e=>setCapForm(p=>({...p,notes:e.target.value})),placeholder:"e.g. Purchased 2nd hand"})
+            ),
+            /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:10}},
+              /*#__PURE__*/React.createElement(Btn, {v:"sec",style:{flex:1},onClick:()=>setShowCapForm(false)}, "Cancel"),
+              /*#__PURE__*/React.createElement(Btn, {style:{flex:1},onClick:saveCapItem}, "Save")
+            )
+          )
+        ),
+        /*#__PURE__*/React.createElement("div", {className:"phdr"},
+          /*#__PURE__*/React.createElement("div", null,
+            /*#__PURE__*/React.createElement("h1", null, "Finances"),
+            /*#__PURE__*/React.createElement("p", null, "Balances · Investment · Owner pay")
+          )
+        ),
+        /*#__PURE__*/React.createElement(Shdr, {c:"Balances",style:{marginBottom:12}}),
+        /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap"}},
+          /*#__PURE__*/React.createElement(BalCard, {bKey:"cashOnHand",label:"Cash on Hand",color:A.ok,actionLabel:"Deposit to Bank →",onAction:()=>{setDepositAmt(String(balances.cashOnHand||0));setDepositModal("cash");}}),
+          /*#__PURE__*/React.createElement(BalCard, {bKey:"gcashBalance",label:"GCash Wallet",color:A.bu,actionLabel:"Transfer to Bank →",onAction:()=>{setDepositAmt(String(balances.gcashBalance||0));setDepositModal("gcash");}}),
+          /*#__PURE__*/React.createElement("div", {style:{background:"#fff",borderRadius:14,padding:16,flex:1,minWidth:140,boxShadow:"0 1px 4px rgba(0,0,0,.06)"}},
+            /*#__PURE__*/React.createElement("p", {style:{fontSize:11,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.4,marginBottom:8}}, "Bank Account"),
+            editBalKey==="bankBalance"
+              ? /*#__PURE__*/React.createElement("div", {style:{marginBottom:8}},
+                  /*#__PURE__*/React.createElement(Inp, {type:"number",value:editBalVal,onChange:e=>setEditBalVal(e.target.value),autoFocus:true,style:{marginBottom:6}}),
+                  /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:6}},
+                    /*#__PURE__*/React.createElement(Btn, {sm:true,onClick:saveBalEdit}, "Save"),
+                    /*#__PURE__*/React.createElement(Btn, {sm:true,v:"can",onClick:()=>{setEditBalKey(null);setEditBalVal("");}}, "Cancel")
+                  )
+                )
+              : /*#__PURE__*/React.createElement("p", {onClick:()=>{setEditBalKey("bankBalance");setEditBalVal(String(balances.bankBalance||0));},title:"Tap to edit",style:{fontSize:22,fontWeight:700,color:"#5e5ce6",marginBottom:10,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}, fmt(balances.bankBalance||0)),
+            !editBalKey&&/*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:6}},
+              /*#__PURE__*/React.createElement(Btn, {sm:true,v:"ok",style:{flex:1,justifyContent:"center"},onClick:()=>{setDepositAmt("");setDepositModal("bank-credit");}}, "+ In"),
+              /*#__PURE__*/React.createElement(Btn, {sm:true,v:"can",style:{flex:1,justifyContent:"center"},onClick:()=>{setDepositAmt("");setDepositModal("bank-debit");}}, "- Out")
+            )
+          )
+        ),
+        /*#__PURE__*/React.createElement("div", {style:{background:"#111",borderRadius:12,padding:"12px 16px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}},
+          /*#__PURE__*/React.createElement("p", {style:{fontSize:13,color:"rgba(255,255,255,.5)",fontWeight:600}}, "Total Liquid Assets"),
+          /*#__PURE__*/React.createElement("p", {style:{fontSize:18,fontWeight:700,color:"#fff"}}, fmt(totalLiquid))
+        ),
+        recentDeps.length>0&&/*#__PURE__*/React.createElement("div", {className:"card",style:{marginBottom:20}},
+          /*#__PURE__*/React.createElement("div", {style:{padding:"12px 16px",borderBottom:".5px solid "+A.g2,display:"flex",justifyContent:"space-between",alignItems:"center"}},
+            /*#__PURE__*/React.createElement("p", {style:{fontSize:13,fontWeight:700}}, "Recent Movements"),
+            /*#__PURE__*/React.createElement("p", {style:{fontSize:12,color:A.g4}}, recentDeps.length+" entries")
+          ),
+          recentDeps.map((dep,i)=>/*#__PURE__*/React.createElement("div", {key:dep.id,style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 16px",borderBottom:i<recentDeps.length-1?".5px solid "+A.g2:"none"}},
+            /*#__PURE__*/React.createElement("div", null,
+              /*#__PURE__*/React.createElement("p", {style:{fontSize:14,fontWeight:600,color:A.bl}},
+                dep.type==="cash"?"Cash → Bank":dep.type==="gcash"?"GCash → Bank":dep.type==="bank-credit"?"Bank Deposit":"Bank Withdrawal"
+              ),
+              /*#__PURE__*/React.createElement("p", {style:{fontSize:12,color:A.g4,marginTop:1}}, fmtD(dep.date)+(dep.notes?" · "+dep.notes:""))
+            ),
+            /*#__PURE__*/React.createElement("p", {style:{fontSize:15,fontWeight:700,color:dep.type==="bank-debit"?A.er:A.ok}},
+              (dep.type==="bank-debit"?"-":"+")+fmt(dep.amount)
+            )
+          ))
+        ),
+        /*#__PURE__*/React.createElement(Shdr, {c:"Startup Investment",style:{marginBottom:12}}),
+        /*#__PURE__*/React.createElement("div", {className:"card",style:{padding:16,marginBottom:14}},
+          totalCapital===0
+            ? /*#__PURE__*/React.createElement("div", {style:{textAlign:"center",padding:"24px 0"}},
+                /*#__PURE__*/React.createElement("p", {style:{fontSize:36,marginBottom:10}}, "💰"),
+                /*#__PURE__*/React.createElement("p", {style:{fontWeight:700,fontSize:16,color:A.bl,marginBottom:6}}, "Track your startup investment"),
+                /*#__PURE__*/React.createElement("p", {style:{fontSize:13,color:A.g4,maxWidth:260,margin:"0 auto 16px",lineHeight:1.6}}, "Add the money you invested to get the business started"),
+                /*#__PURE__*/React.createElement(Btn, {sm:true,onClick:()=>{setCapForm({id:null,name:"",amount:"",date:tod(),category:"Equipment",notes:""});setShowCapForm(true);}}, "+ Add Capital Item")
+              )
+            : /*#__PURE__*/React.createElement("div", null,
+                /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}},
+                  /*#__PURE__*/React.createElement("div", null,
+                    /*#__PURE__*/React.createElement("p", {style:{fontSize:12,color:A.g4,marginBottom:4,textTransform:"uppercase",fontWeight:600,letterSpacing:.3}}, "Investment Recovery"),
+                    /*#__PURE__*/React.createElement("p", {style:{fontSize:30,fontWeight:700,color:roiPct>=100?A.ok:A.bl,lineHeight:1.1}},
+                      roiPct>=100?"ROI Achieved! 🎉":roiPct+"%"
+                    )
+                  ),
+                  /*#__PURE__*/React.createElement(Btn, {sm:true,v:"sec",onClick:()=>{setCapForm({id:null,name:"",amount:"",date:tod(),category:"Equipment",notes:""});setShowCapForm(true);}}, "+ Item")
+                ),
+                /*#__PURE__*/React.createElement("div", {style:{background:A.g2,borderRadius:99,height:10,marginBottom:16,overflow:"hidden"}},
+                  /*#__PURE__*/React.createElement("div", {style:{height:"100%",borderRadius:99,background:roiPct>=100?A.ok:"linear-gradient(90deg,#0071e3,#34c759)",width:roiPct+"%",transition:"width .4s"}})
+                ),
+                /*#__PURE__*/React.createElement("div", {className:"g3",style:{marginBottom:roiPct<100&&estMonths?10:16}},
+                  [["Invested",fmt(totalCapital),A.er],["Recovered",fmt(recovered),A.ok],["Remaining",fmt(remaining),remaining>0?A.wn:A.g3]].map(([l,v,c])=>/*#__PURE__*/React.createElement("div", {key:l,style:{background:A.g1,borderRadius:10,padding:"10px",textAlign:"center"}},
+                    /*#__PURE__*/React.createElement("p", {style:{fontSize:10,color:A.g4,textTransform:"uppercase",fontWeight:600,marginBottom:3}}, l),
+                    /*#__PURE__*/React.createElement("p", {style:{fontSize:14,fontWeight:700,color:c}}, v)
+                  ))
+                ),
+                roiPct<100&&estMonths&&/*#__PURE__*/React.createElement("p", {style:{fontSize:12,color:A.g4,textAlign:"center",marginBottom:16}},
+                  "At current pace (~"+fmt(Math.round(avg3MoProfit))+"/mo) · ~"+estMonths+" month"+(estMonths!==1?"s":"")+" to full ROI"
+                ),
+                /*#__PURE__*/React.createElement("div", {style:{borderTop:".5px solid "+A.g2,paddingTop:12}},
+                  /*#__PURE__*/React.createElement("p", {style:{fontSize:12,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.3,marginBottom:8}}, "Capital Items"),
+                  capItems.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(item=>/*#__PURE__*/React.createElement("div", {key:item.id,style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",paddingBottom:10,marginBottom:10,borderBottom:".5px solid "+A.g2}},
+                    /*#__PURE__*/React.createElement("div", null,
+                      /*#__PURE__*/React.createElement("p", {style:{fontSize:14,fontWeight:600}}, item.name),
+                      /*#__PURE__*/React.createElement("p", {style:{fontSize:12,color:A.g4,marginTop:2}}, fmtD(item.date)+" · "+item.category+(item.notes?" · "+item.notes:""))
+                    ),
+                    /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",gap:8,flexShrink:0}},
+                      /*#__PURE__*/React.createElement("p", {style:{fontSize:15,fontWeight:700,color:A.er}}, fmt(item.amount)),
+                      /*#__PURE__*/React.createElement(Btn, {sm:true,v:"sec",onClick:()=>{setCapForm({...item,amount:String(item.amount)});setShowCapForm(true);}}, "Edit"),
+                      /*#__PURE__*/React.createElement(Btn, {sm:true,v:"gho",onClick:()=>askConfirm("Delete this capital item?",()=>setOwnerFinances(prev=>({...prev,capitalItems:(prev.capitalItems||[]).filter(c=>c.id!==item.id)})),"Item deleted")}, "Del")
+                    )
+                  ))
+                )
+              )
+        ),
+        /*#__PURE__*/React.createElement(Shdr, {c:"Owner Salary",style:{marginBottom:12}}),
+        /*#__PURE__*/React.createElement("div", {className:"card",style:{marginBottom:12}},
+          showOwnerSalEdit
+            ? /*#__PURE__*/React.createElement("div", {style:{padding:16}},
+                /*#__PURE__*/React.createElement("p", {style:{fontSize:15,fontWeight:700,marginBottom:14}}, "Owner Salary Settings"),
+                /*#__PURE__*/React.createElement("div", {className:"g2",style:{marginBottom:14}},
+                  /*#__PURE__*/React.createElement("div", null,
+                    /*#__PURE__*/React.createElement(Lbl, {c:"Monthly Draw (₱)"}),
+                    /*#__PURE__*/React.createElement(Inp, {type:"number",value:ownerSalForm.amount,onChange:e=>setOwnerSalForm(p=>({...p,amount:e.target.value})),placeholder:"0"})
+                  ),
+                  /*#__PURE__*/React.createElement("div", null,
+                    /*#__PURE__*/React.createElement(Lbl, {c:"Frequency"}),
+                    /*#__PURE__*/React.createElement(Sel, {value:ownerSalForm.cycle,onChange:e=>setOwnerSalForm(p=>({...p,cycle:e.target.value}))},
+                      /*#__PURE__*/React.createElement("option", {value:"weekly"}, "Weekly"),
+                      /*#__PURE__*/React.createElement("option", {value:"biweekly"}, "Every 2 Weeks"),
+                      /*#__PURE__*/React.createElement("option", {value:"monthly"}, "Monthly")
+                    )
+                  )
+                ),
+                /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:8}},
+                  /*#__PURE__*/React.createElement(Btn, {onClick:saveOwnerSal}, "Save"),
+                  /*#__PURE__*/React.createElement(Btn, {v:"can",onClick:()=>setShowOwnerSalEdit(false)}, "Cancel")
+                )
+              )
+            : /*#__PURE__*/React.createElement("div", {className:"crow"},
+                /*#__PURE__*/React.createElement("div", null,
+                  /*#__PURE__*/React.createElement("p", {style:{fontWeight:600}}, ownerFinances.salaryAmount>0?"Owner Draw · "+freqLabel(ownerFinances.salaryCycle):"No salary configured"),
+                  ownerFinances.salaryAmount>0&&/*#__PURE__*/React.createElement("p", {style:{fontSize:13,color:A.g4}}, fmt(ownerFinances.salaryAmount)+" per period · "+fmt(ownerSalPaidTotal)+" paid to date")
+                ),
+                /*#__PURE__*/React.createElement(Btn, {sm:true,v:"sec",onClick:()=>{setOwnerSalForm({amount:String(ownerFinances.salaryAmount||""),cycle:ownerFinances.salaryCycle||"monthly"});setShowOwnerSalEdit(true);}},
+                  ownerFinances.salaryAmount>0?"Edit":"Set Up"
+                )
+              )
+        ),
+        ownerFinances.salaryAmount>0&&/*#__PURE__*/React.createElement("div", {className:"card",style:{marginBottom:24}},
+          /*#__PURE__*/React.createElement("div", {style:{padding:"12px 16px",borderBottom:".5px solid "+A.g2}},
+            /*#__PURE__*/React.createElement("p", {style:{fontSize:13,fontWeight:700}}, "Salary Periods")
+          ),
+          salPeriods.map((sp,i)=>/*#__PURE__*/React.createElement("div", {key:sp.key,style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",borderBottom:i<salPeriods.length-1?".5px solid "+A.g2:"none"}},
+            /*#__PURE__*/React.createElement("div", null,
+              /*#__PURE__*/React.createElement("p", {style:{fontSize:14,fontWeight:600,color:sp.payment?A.g3:A.bl}}, sp.label),
+              sp.payment&&/*#__PURE__*/React.createElement("p", {style:{fontSize:12,color:A.ok,marginTop:2}}, "Paid · "+fmtD(sp.payment.paidOn))
+            ),
+            /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",gap:10}},
+              /*#__PURE__*/React.createElement("p", {style:{fontSize:15,fontWeight:700,color:sp.payment?A.g3:A.wn}}, fmt(ownerFinances.salaryAmount)),
+              sp.payment
+                ? /*#__PURE__*/React.createElement("span", {style:{background:A.sbg,borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:700,color:A.ok}}, "✓ Paid")
+                : /*#__PURE__*/React.createElement(Btn, {sm:true,v:"blue",onClick:()=>markOwnerSalPaid(sp.key)}, "Mark Paid")
+            )
+          ))
+        )
+      );
     }
     if (tab === "permissions") {
       return /*#__PURE__*/React.createElement("div", {
