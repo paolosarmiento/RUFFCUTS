@@ -849,9 +849,18 @@ class TabErrB extends Component {
         minHeight: "60vh",
         textAlign: "center"
       }
-    }, /*#__PURE__*/React.createElement("p", {
-      style: { fontSize: 36, marginBottom: 16 }
-    }, "⚠️"), /*#__PURE__*/React.createElement("p", {
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 64,
+        height: 64,
+        borderRadius: 20,
+        background: "rgba(255,69,58,.1)",
+        marginBottom: 16
+      }
+    }, /*#__PURE__*/React.createElement(IconAlert, { size: 32, color: A.er })), /*#__PURE__*/React.createElement("p", {
       style: { fontSize: 16, fontWeight: 700, color: A.bl, marginBottom: 8 }
     }, "This tab ran into a problem"), /*#__PURE__*/React.createElement("p", {
       style: {
@@ -3491,6 +3500,13 @@ function MainApp({
   };
   const markAdvancePaid = (id) => { setCashAdvances(prev => prev.map(a => a.id === id ? {...a, remainingDebt:0, status:"paid"} : a)); showToast("Marked as fully paid ✓"); };
   const deleteAdvance = (id) => askConfirm("Delete this cash advance record?", () => { setCashAdvances(prev => prev.filter(a => a.id !== id)); showToast("Advance deleted"); });
+  const deleteDeposit = (depositId) => {
+    setBalances(prev => ({
+      ...prev,
+      deposits: (prev.deposits || []).filter(d => d.id !== depositId)
+    }));
+    showToast("Deposit removed");
+  };
   const recordDeposit = () => {
     const amt = Number(depositAmt);
     if (!amt || !depositModal) return;
@@ -8046,6 +8062,24 @@ function MainApp({
       const salPeriods = getOwnerSalPeriods();
       const recentDeps = [...(balances.deposits||[])].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
       const totalLiquid = (balances.cashOnHand||0)+(balances.gcashBalance||0)+(balances.bankBalance||0);
+      const IconCheck = ({size=24,color="#32D74B"}) => /*#__PURE__*/React.createElement("svg", {width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:color,strokeWidth:2.5,strokeLinecap:"round",strokeLinejoin:"round"},
+        /*#__PURE__*/React.createElement("path", {d:"M20 6L9 17l-5-5"})
+      );
+      const IconCelebrate = ({size=24,color="#FF9F0A"}) => /*#__PURE__*/React.createElement("svg", {width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:color,strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"},
+        /*#__PURE__*/React.createElement("path", {d:"M8 2v4"}),
+        /*#__PURE__*/React.createElement("path", {d:"M16 2v4"}),
+        /*#__PURE__*/React.createElement("path", {d:"M12 11v6"}),
+        /*#__PURE__*/React.createElement("circle", {cx:12,cy:18,r:3}),
+        /*#__PURE__*/React.createElement("path", {d:"M4 7l2 2"}),
+        /*#__PURE__*/React.createElement("path", {d:"M20 7l-2 2"}),
+        /*#__PURE__*/React.createElement("path", {d:"M4 17l2-2"}),
+        /*#__PURE__*/React.createElement("path", {d:"M20 17l-2-2"})
+      );
+      const IconAlert = ({size=24,color="#FF453A"}) => /*#__PURE__*/React.createElement("svg", {width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:color,strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"},
+        /*#__PURE__*/React.createElement("path", {d:"M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"}),
+        /*#__PURE__*/React.createElement("line", {x1:12,y1:9,x2:12,y2:13}),
+        /*#__PURE__*/React.createElement("line", {x1:12,y1:17,x2:12.01,y2:17})
+      );
       const IconCash = ({size=24,color="#32D74B"}) => /*#__PURE__*/React.createElement("svg", {width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:color,strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"},
         /*#__PURE__*/React.createElement("rect", {x:2,y:6,width:20,height:12,rx:2}),
         /*#__PURE__*/React.createElement("circle", {cx:12,cy:12,r:2}),
@@ -8182,15 +8216,16 @@ function MainApp({
             /*#__PURE__*/React.createElement("p", {style:{fontSize:12,color:A.g4}}, recentDeps.length+" entries")
           ),
           recentDeps.map((dep,i)=>/*#__PURE__*/React.createElement("div", {key:dep.id,style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 16px",borderBottom:i<recentDeps.length-1?".5px solid "+A.g2:"none"}},
-            /*#__PURE__*/React.createElement("div", null,
+            /*#__PURE__*/React.createElement("div", {style:{flex:1}},
               /*#__PURE__*/React.createElement("p", {style:{fontSize:14,fontWeight:600,color:A.bl}},
                 dep.type==="cash"?"Cash → Bank":dep.type==="gcash"?"GCash → Bank":dep.type==="bank-credit"?"Bank Deposit":"Bank Withdrawal"
               ),
               /*#__PURE__*/React.createElement("p", {style:{fontSize:12,color:A.g4,marginTop:1}}, fmtD(dep.date)+(dep.notes?" · "+dep.notes:""))
             ),
-            /*#__PURE__*/React.createElement("p", {style:{fontSize:15,fontWeight:700,color:dep.type==="bank-debit"?A.er:A.ok}},
+            /*#__PURE__*/React.createElement("p", {style:{fontSize:15,fontWeight:700,color:dep.type==="bank-debit"?A.er:A.ok,marginRight:12}},
               (dep.type==="bank-debit"?"-":"+")+fmt(dep.amount)
-            )
+            ),
+            /*#__PURE__*/React.createElement("button", {onClick:()=>askConfirm("Delete this deposit entry?",()=>deleteDeposit(dep.id),"Deposit removed"),style:{background:A.g1,border:"none",borderRadius:"50%",width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:A.g4,fontSize:16,minHeight:"auto",transition:"all .2s ease"}}, "×")
           ))
         ),
         /*#__PURE__*/React.createElement(Shdr, {c:"Startup Investment",style:{marginBottom:12}}),
@@ -8208,9 +8243,12 @@ function MainApp({
                 /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}},
                   /*#__PURE__*/React.createElement("div", null,
                     /*#__PURE__*/React.createElement("p", {style:{fontSize:12,color:A.g4,marginBottom:4,textTransform:"uppercase",fontWeight:600,letterSpacing:.3}}, "Investment Recovery"),
-                    /*#__PURE__*/React.createElement("p", {style:{fontSize:30,fontWeight:700,color:roiPct>=100?A.ok:A.bl,lineHeight:1.1}},
-                      roiPct>=100?"ROI Achieved! 🎉":roiPct+"%"
-                    )
+                    roiPct>=100
+                      ? /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",gap:8}},
+                          /*#__PURE__*/React.createElement(IconCelebrate, {size:28,color:A.ok}),
+                          /*#__PURE__*/React.createElement("p", {style:{fontSize:30,fontWeight:700,color:A.ok,lineHeight:1.1}}, "ROI Achieved!")
+                        )
+                      : /*#__PURE__*/React.createElement("p", {style:{fontSize:30,fontWeight:700,color:A.bl,lineHeight:1.1}}, roiPct+"%")
                   ),
                   /*#__PURE__*/React.createElement(Btn, {sm:true,v:"sec",onClick:()=>{setCapForm({id:null,name:"",amount:"",date:tod(),category:"Equipment",notes:""});setShowCapForm(true);}}, "+ Item")
                 ),
