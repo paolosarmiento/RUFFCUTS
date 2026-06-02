@@ -2213,6 +2213,7 @@ function EodModal({
   expenses,
   cashboxBal,
   staffMembers,
+  staffByDate,
   onClose
 }) {
   const done = todAppts.filter(a => a.status === "completed");
@@ -2242,10 +2243,12 @@ function EodModal({
     groomerComm[name].pets++;
   });
   const totalComm = Object.values(groomerComm).reduce((s, g) => s + g.comm, 0);
-  const netProfit = revenue - totalExp - totalComm;
+  const staffList = staffByDate[date] || [];
+  const totalSalaries = staffList.reduce((s, m) => s + Number(m.daySalary || DEFAULT_DAILY_SALARY), 0);
+  const netProfit = revenue - totalExp - totalComm - totalSalaries;
   const [copied, setCopied] = useState(false);
   const copyReport = () => {
-    const lines = ["END OF DAY — " + fmtD(date), "", "APPOINTMENTS", "Completed: " + done.length + (cancelled.length > 0 ? "  Cancelled: " + cancelled.length : "") + (pending.length > 0 ? "  Pending: " + pending.length : ""), "", "REVENUE", "Total: " + fmt(revenue), cashRev > 0 ? "Cash: " + fmt(cashRev) : "", gcashRev > 0 ? "GCash: " + fmt(gcashRev) : "", unpaidRev > 0 ? "⚠️ Unpaid: " + fmt(unpaidRev) : "All collected ✓", "", "💰 CASHBOX", "Opening: " + fmt(openBal), "+ Cash Received: " + fmt(cashRev), "- Cash Expenses: " + fmt(cashboxExp), "= Closing: " + fmt(closingBal), expenses.length > 0 ? "\nEXPENSES\n" + Object.entries(expByCat).map(([cat, amt]) => cat + ": " + fmt(amt)).join("\n") + "\nTotal: " + fmt(totalExp) : "", Object.keys(groomerComm).length > 0 ? "\nCOMMISSION\n" + Object.entries(groomerComm).map(([name, g]) => name + ": " + fmt(g.comm) + " (" + g.pets + " dog" + (g.pets !== 1 ? "s" : "") + ")").join("\n") : "", "", "NET PROFIT: " + fmt(netProfit)].filter(l => l !== "").join("\n");
+    const lines = ["END OF DAY — " + fmtD(date), "", "APPOINTMENTS", "Completed: " + done.length + (cancelled.length > 0 ? "  Cancelled: " + cancelled.length : "") + (pending.length > 0 ? "  Pending: " + pending.length : ""), "", "REVENUE", "Total: " + fmt(revenue), cashRev > 0 ? "Cash: " + fmt(cashRev) : "", gcashRev > 0 ? "GCash: " + fmt(gcashRev) : "", unpaidRev > 0 ? "⚠️ Unpaid: " + fmt(unpaidRev) : "All collected ✓", "", "💰 CASHBOX", "Opening: " + fmt(openBal), "+ Cash Received: " + fmt(cashRev), "- Cash Expenses: " + fmt(cashboxExp), "= Closing: " + fmt(closingBal), expenses.length > 0 ? "\nEXPENSES\n" + Object.entries(expByCat).map(([cat, amt]) => cat + ": " + fmt(amt)).join("\n") + "\nTotal: " + fmt(totalExp) : "", Object.keys(groomerComm).length > 0 ? "\nCOMMISSION\n" + Object.entries(groomerComm).map(([name, g]) => name + ": " + fmt(g.comm) + " (" + g.pets + " dog" + (g.pets !== 1 ? "s" : "") + ")").join("\n") + "\nTotal: " + fmt(totalComm) : "", staffList.length > 0 ? "\nSALARIES\n" + staffList.map(m => m.name + ": " + fmt(m.daySalary || DEFAULT_DAILY_SALARY)).join("\n") + "\nTotal: " + fmt(totalSalaries) : "", "", "NET PROFIT: " + fmt(netProfit)].filter(l => l !== "").join("\n");
     navigator.clipboard.writeText(lines).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
@@ -2626,7 +2629,62 @@ function EodModal({
       fontWeight: 700,
       color: A.wn
     }
-  }, fmt(totalComm)))), /*#__PURE__*/React.createElement("div", {
+  }, fmt(totalComm)))), staffList.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: A.g1,
+      borderRadius: 12,
+      padding: "12px 14px",
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: A.g4,
+      textTransform: "uppercase",
+      letterSpacing: .4,
+      marginBottom: 10
+    }
+  }, "Salaries"), staffList.map((m, i, arr) => /*#__PURE__*/React.createElement("div", {
+    key: m.id,
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingBottom: 7,
+      marginBottom: 7,
+      borderBottom: i < arr.length - 1 ? "0.5px solid " + A.g2 : "none"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600
+    }
+  }, m.name), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14,
+      fontWeight: 700,
+      color: A.g4
+    }
+  }, fmt(m.daySalary || DEFAULT_DAILY_SALARY)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      paddingTop: 7,
+      borderTop: "0.5px solid " + A.g2
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700
+    }
+  }, "Total Salaries"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14,
+      fontWeight: 700,
+      color: A.g4
+    }
+  }, fmt(totalSalaries)))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: netProfit >= 0 ? A.sbg : A.dbg,
       borderRadius: 12,
@@ -3783,6 +3841,7 @@ function MainApp({
         expenses: gE(todStr),
         cashboxBal: cashbox[todStr] || 0,
         staffMembers: staffMembers,
+        staffByDate: staffByDate,
         onClose: () => setShowEod(false)
       }), /*#__PURE__*/React.createElement("div", {
         style: {
@@ -4358,6 +4417,7 @@ function MainApp({
         expenses: gE(selDate),
         cashboxBal: cashbox[selDate] || 0,
         staffMembers: staffMembers,
+        staffByDate: staffByDate,
         onClose: () => setShowSchedEod(false)
       }), /*#__PURE__*/React.createElement("div", {
         style: {
