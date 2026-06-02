@@ -2651,7 +2651,7 @@ function EodModal({
       letterSpacing: .4,
       marginBottom: 10
     }
-  }, "\uD83D\uDCB0 Cashbox"), [["Opening Balance", fmt(openBal), "rgba(255,255,255,.55)"], ["+ Cash Received", fmt(cashRev), "#34c759"], ["− Cash Expenses", fmt(cashboxExp), "#ff375f"]].map(([l, v, c]) => /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",gap:6}}, /*#__PURE__*/React.createElement(IconCash, {size:14,color:"rgba(255,255,255,.55)"}), /*#__PURE__*/React.createElement("span", null, "Cashbox"))), [["Opening Balance", fmt(openBal), "rgba(255,255,255,.55)"], ["+ Cash Received", fmt(cashRev), "#34c759"], ["− Cash Expenses", fmt(cashboxExp), "#ff375f"]].map(([l, v, c]) => /*#__PURE__*/React.createElement("div", {
     key: l,
     style: {
       display: "flex",
@@ -5046,9 +5046,12 @@ function MainApp({
           color: "rgba(255,255,255,.4)",
           textTransform: "uppercase",
           letterSpacing: .5,
-          flexShrink: 0
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          gap: 6
         }
-      }, "\uD83D\uDCB0 Cashbox"), /*#__PURE__*/React.createElement("div", {
+      }, /*#__PURE__*/React.createElement(IconCash, {size:14,color:"rgba(255,255,255,.55)"}), /*#__PURE__*/React.createElement("span", null, "Cashbox")), /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
           alignItems: "center",
@@ -5690,7 +5693,7 @@ function MainApp({
             letterSpacing: .4,
             marginBottom: 12
           }
-        }, "\uD83D\uDCB0 Cashbox Balance"), /*#__PURE__*/React.createElement("div", {
+        }, /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",gap:6}}, /*#__PURE__*/React.createElement(IconCash, {size:14,color:"rgba(255,255,255,.55)"}), /*#__PURE__*/React.createElement("span", null, "Cashbox Balance"))), /*#__PURE__*/React.createElement("div", {
           style: {
             display: "flex",
             flexDirection: "column",
