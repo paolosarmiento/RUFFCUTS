@@ -3526,6 +3526,10 @@ function MainApp({
     setOwnerFinances(prev => ({...prev, salaryPayments:[...(prev.salaryPayments||[]).filter(p=>p.period!==period),{id:Date.now(),period,amount:amt,paidOn:tod()}]}));
     showToast("Salary marked paid ✓");
   };
+  const unmarkOwnerSalPaid = (period) => {
+    setOwnerFinances(prev => ({...prev, salaryPayments:(prev.salaryPayments||[]).filter(p=>p.period!==period)}));
+    showToast("Salary payment removed");
+  };
   const getOwnerSalPeriods = () => {
     const periods = [];
     for (let i=5; i>=0; i--) {
@@ -8243,7 +8247,7 @@ function MainApp({
             /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",gap:10}},
               /*#__PURE__*/React.createElement("p", {style:{fontSize:15,fontWeight:700,color:sp.payment?A.g3:A.wn}}, fmt(ownerFinances.salaryAmount)),
               sp.payment
-                ? /*#__PURE__*/React.createElement("span", {style:{background:A.sbg,borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:700,color:A.ok}}, "✓ Paid")
+                ? /*#__PURE__*/React.createElement(Btn, {sm:true,v:"ok",onClick:()=>askConfirm("Remove this salary payment?",()=>unmarkOwnerSalPaid(sp.key),"Payment removed")}, "✓ Paid")
                 : /*#__PURE__*/React.createElement(Btn, {sm:true,v:"blue",onClick:()=>markOwnerSalPaid(sp.key)}, "Mark Paid")
             )
           ))
