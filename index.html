@@ -15,56 +15,60 @@
 
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{min-height:100dvh;min-height:-webkit-fill-available;background:#f2f2f7;}
-body{min-height:100dvh;min-height:-webkit-fill-available;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#f2f2f7;color:#1c1c1e;-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;overscroll-behavior:none;overflow-x:hidden;}
+html{min-height:100dvh;min-height:-webkit-fill-available;background:#F5F5F7;}
+body{min-height:100dvh;min-height:-webkit-fill-available;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',sans-serif;background:#F5F5F7;color:#1c1c1e;-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overscroll-behavior:none;overflow-x:hidden;}
 input,select,textarea,button{font-family:inherit;font-size:16px;outline:none;-webkit-appearance:none;appearance:none;border-radius:0;}
-input,select,textarea{border-radius:10px;border:none;background:#f5f5f7;color:#1c1c1e;padding:12px 14px;width:100%;min-height:44px;}
-input:focus,select:focus,textarea:focus{background:#e8e8ed;}
-button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;min-height:44px;border:none;background:none;}
-textarea{resize:vertical;min-height:80px;}
+input,select,textarea{border-radius:12px;border:1px solid rgba(0,0,0,.06);background:#fff;color:#1c1c1e;padding:14px 16px;width:100%;min-height:52px;transition:all .2s ease;}
+input:focus,select:focus,textarea:focus{background:#fff;border-color:#0A84FF;box-shadow:0 0 0 4px rgba(10,132,255,.1);}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;min-height:44px;border:none;background:none;transition:all .15s ease;}
+textarea{resize:vertical;min-height:96px;line-height:1.5;}
 ::placeholder{color:#aeaeb2;}
 ::-webkit-scrollbar{display:none;}
 *{scrollbar-width:none;}
-.shell{display:block;min-height:100dvh;min-height:-webkit-fill-available;width:100%;background:#f2f2f7;}
-.sidebar{display:none;width:180px;background:#000;flex-direction:column;position:fixed;top:0;left:0;height:100%;z-index:100;overflow-y:auto;padding-top:env(safe-area-inset-top);}
-.sidebar-logo{padding:20px;border-bottom:.5px solid rgba(255,255,255,.1);display:flex;justify-content:center;}
+.shell{display:block;min-height:100dvh;min-height:-webkit-fill-available;width:100%;background:#F5F5F7;}
+.sidebar{display:none;width:200px;background:rgba(0,0,0,.95);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);flex-direction:column;position:fixed;top:0;left:0;height:100%;z-index:100;overflow-y:auto;padding-top:env(safe-area-inset-top);border-right:1px solid rgba(255,255,255,.08);}
+.sidebar-logo{padding:24px 20px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:center;}
 .sidebar-logo img{height:90px;width:auto;object-fit:contain;}
-.snav{display:flex;align-items:center;padding:0 16px;height:42px;font-size:13px;font-weight:500;color:rgba(255,255,255,.5);cursor:pointer;border:none;background:none;width:100%;text-align:left;border-bottom:.5px solid rgba(255,255,255,.06);}
-.snav.on{color:#fff;font-weight:600;background:rgba(255,255,255,.12);}
-.sidebar-footer{padding:16px;border-top:.5px solid rgba(255,255,255,.1);margin-top:auto;}
-.main{flex:1;background:#000;min-height:100dvh;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:calc(54px + env(safe-area-inset-top));}
-.mob-hdr{display:flex;align-items:center;background:#000;position:fixed;top:0;left:0;right:0;z-index:90;width:100%;padding-top:env(safe-area-inset-top);padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));padding-bottom:10px;min-height:calc(44px + env(safe-area-inset-top));border-bottom:none;box-shadow:0 2px 0 #000;}
-.dbk{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;}
-.drw{position:fixed;top:0;right:0;bottom:0;width:min(300px,75vw);background:#000;z-index:300;display:flex;flex-direction:column;box-shadow:-8px 0 40px rgba(0,0,0,.6);padding-top:env(safe-area-inset-top);}
-.drw-top{padding:12px 16px;border-bottom:.5px solid rgba(255,255,255,.1);display:flex;align-items:center;min-height:52px;}
-.drw-nav{flex:1;overflow-y:auto;padding:4px 0;}
-.drw-item{display:block;width:100%;padding:0 20px;height:52px;font-size:17px;font-weight:500;color:rgba(255,255,255,.55);border:none;background:none;text-align:left;cursor:pointer;border-bottom:.5px solid rgba(255,255,255,.06);line-height:52px;}
-.drw-item.on{font-weight:700;color:#fff;background:rgba(255,255,255,.1);}
-.drw-foot{padding:20px;border-top:.5px solid rgba(255,255,255,.1);}
-.sec{padding:16px;padding-bottom:max(24px,env(safe-area-inset-bottom));background:#f2f2f7;min-height:calc(100dvh - 54px - env(safe-area-inset-top));}
-.card{background:#fff;border-radius:13px;overflow:hidden;margin-bottom:12px;}
-.crow{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:.5px solid rgba(0,0,0,.08);min-height:48px;}
+.snav{display:flex;align-items:center;padding:0 20px;height:48px;font-size:14px;font-weight:500;color:rgba(255,255,255,.55);cursor:pointer;border:none;background:none;width:100%;text-align:left;border-bottom:1px solid rgba(255,255,255,.04);position:relative;transition:all .2s ease;}
+.snav::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:0;background:linear-gradient(135deg,#0A84FF,#5E5CE6);border-radius:0 2px 2px 0;transition:height .2s ease;}
+.snav:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.05);}
+.snav.on{color:#fff;font-weight:600;background:rgba(10,132,255,.12);}
+.snav.on::before{height:24px;}
+.sidebar-footer{padding:20px;border-top:1px solid rgba(255,255,255,.08);margin-top:auto;}
+.main{flex:1;background:#F5F5F7;min-height:100dvh;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:calc(60px + env(safe-area-inset-top));}
+.mob-hdr{display:flex;align-items:center;background:rgba(0,0,0,.95);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);position:fixed;top:0;left:0;right:0;z-index:90;width:100%;padding-top:env(safe-area-inset-top);padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));padding-bottom:12px;min-height:calc(48px + env(safe-area-inset-top));border-bottom:1px solid rgba(255,255,255,.08);box-shadow:0 4px 16px rgba(0,0,0,.12);}
+.dbk{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:200;}
+.drw{position:fixed;top:0;right:0;bottom:0;width:min(320px,80vw);background:rgba(0,0,0,.95);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);z-index:300;display:flex;flex-direction:column;box-shadow:-8px 0 40px rgba(0,0,0,.3);padding-top:env(safe-area-inset-top);border-left:1px solid rgba(255,255,255,.08);}
+.drw-top{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;min-height:60px;}
+.drw-nav{flex:1;overflow-y:auto;padding:8px 0;}
+.drw-item{display:block;width:100%;padding:0 24px;height:56px;font-size:16px;font-weight:500;color:rgba(255,255,255,.6);border:none;background:none;text-align:left;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04);line-height:56px;transition:all .2s ease;}
+.drw-item:hover{color:rgba(255,255,255,.9);background:rgba(255,255,255,.05);}
+.drw-item.on{font-weight:600;color:#fff;background:rgba(10,132,255,.15);border-left:3px solid #0A84FF;}
+.drw-foot{padding:24px 20px;border-top:1px solid rgba(255,255,255,.08);}
+.sec{padding:20px;padding-bottom:max(32px,env(safe-area-inset-bottom));background:#F5F5F7;min-height:calc(100dvh - 60px - env(safe-area-inset-top));}
+.card{background:#fff;border-radius:16px;overflow:hidden;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06);}
+.crow{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(0,0,0,.06);min-height:56px;}
 .crow:last-child{border-bottom:none;}
-.phdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:12px;flex-wrap:wrap;}
-.phdr h1{font-size:26px;font-weight:700;letter-spacing:-.02em;}
-.phdr p{font-size:13px;color:#8e8e93;margin-top:3px;}
-.phdr-r{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-.fbox{background:#fff;border-radius:13px;padding:16px;margin-bottom:14px;}
-.pbox{background:#f9f9f9;border-radius:10px;padding:14px;margin-bottom:10px;border:.5px solid rgba(0,0,0,.08);}
-.twrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:13px;background:#fff;}
-.th{text-align:left;padding:9px 13px;border-bottom:.5px solid rgba(0,0,0,.1);font-size:11px;color:#8e8e93;font-weight:600;letter-spacing:.3px;text-transform:uppercase;background:#f9f9f9;white-space:nowrap;}
-.td{padding:11px 13px;border-bottom:.5px solid rgba(0,0,0,.06);color:#1c1c1e;font-size:14px;vertical-align:top;}
-.sc{background:#fff;border-radius:13px;padding:14px;text-align:center;}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
-.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
-.gm{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.gw{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
-.gf{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;}
-.mdbg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;display:flex;align-items:flex-end;justify-content:center;}
-.md{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:640px;max-height:92vh;overflow-y:auto;padding:8px 20px max(24px,env(safe-area-inset-bottom));}
-.mdh{width:36px;height:5px;background:#d1d1d6;border-radius:3px;margin:0 auto 14px;}
-@media(min-width:640px){.mdbg{align-items:center;}.md{border-radius:16px;margin:20px;padding:20px;max-height:88vh;}}
+.phdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;gap:16px;flex-wrap:wrap;}
+.phdr h1{font-size:32px;font-weight:800;letter-spacing:-.03em;color:#1c1c1e;}
+.phdr p{font-size:14px;color:#8e8e93;margin-top:4px;font-weight:500;letter-spacing:-.01em;}
+.phdr-r{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+.fbox{background:#fff;border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06);}
+.pbox{background:#F9F9FB;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid rgba(0,0,0,.06);}
+.twrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:16px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06);}
+.th{text-align:left;padding:12px 16px;border-bottom:1px solid rgba(0,0,0,.08);font-size:11px;color:#8e8e93;font-weight:700;letter-spacing:.5px;text-transform:uppercase;background:#F9F9FB;white-space:nowrap;}
+.td{padding:14px 16px;border-bottom:1px solid rgba(0,0,0,.04);color:#1c1c1e;font-size:15px;vertical-align:top;}
+.sc{background:#fff;border-radius:16px;padding:20px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.gm{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.gw{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.gf{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;}
+.mdbg{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:400;display:flex;align-items:flex-end;justify-content:center;}
+.md{background:#fff;border-radius:24px 24px 0 0;width:100%;max-width:680px;max-height:92vh;overflow-y:auto;padding:12px 24px max(32px,env(safe-area-inset-bottom));box-shadow:0 -4px 32px rgba(0,0,0,.16);}
+.mdh{width:40px;height:5px;background:#d1d1d6;border-radius:3px;margin:0 auto 16px;}
+@media(min-width:640px){.mdbg{align-items:center;}.md{border-radius:20px;margin:24px;padding:28px;max-height:88vh;}}
 .cal-wrap{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;background:#fff;}
 .cal-col-hdr{position:sticky;top:0;z-index:20;display:flex;background:#fff;border-bottom:1px solid #e8e8ed;}
 .cal-time-hdr{width:52px;flex-shrink:0;position:sticky;left:0;z-index:25;background:#fff;border-right:.5px solid #e8e8ed;display:flex;align-items:center;justify-content:center;}
@@ -74,9 +78,9 @@ textarea{resize:vertical;min-height:80px;}
 .cal-time-lbl{position:absolute;right:7px;font-size:10px;color:#aeaeb2;font-weight:600;transform:translateY(-50%);}
 .cal-abs-col{flex:1 0 150px;position:relative;border-right:.5px solid #f0f0f0;cursor:pointer;}
 .cal-abs-col:active{background:rgba(0,0,0,.02);}
-.sp{display:inline-flex;align-items:center;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;border:none;font-family:inherit;min-height:32px;}
-.today-card{background:#fff;border-radius:12px;padding:13px 14px;margin-bottom:8px;border-left:4px solid #e8e8ed;box-shadow:0 1px 4px rgba(0,0,0,.06);}
-.today-card-primary{background:#fff;border-radius:12px;padding:14px;margin-bottom:8px;border:1.5px solid #e8e8ed;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.sp{display:inline-flex;align-items:center;padding:6px 14px;border-radius:24px;font-size:12px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;border:none;font-family:inherit;min-height:36px;letter-spacing:.2px;}
+.today-card{background:#fff;border-radius:14px;padding:16px 18px;margin-bottom:12px;border-left:4px solid #e8e8ed;box-shadow:0 2px 6px rgba(0,0,0,.05),0 4px 12px rgba(0,0,0,.06);}
+.today-card-primary{background:#fff;border-radius:16px;padding:18px;margin-bottom:12px;border:2px solid rgba(10,132,255,.12);box-shadow:0 4px 12px rgba(0,0,0,.06),0 8px 24px rgba(0,0,0,.08);}
 .att-dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
 #boot{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;}
 #boot img{height:90px;object-fit:contain;margin-bottom:16px;}
@@ -84,26 +88,26 @@ textarea{resize:vertical;min-height:80px;}
 @keyframes toastIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
 @media(max-width:767px){
   .sidebar{display:none!important;}.mob-hdr{display:flex!important;}.main{margin-left:0!important;}
-  .sec{padding:12px;padding-bottom:max(20px,env(safe-area-inset-bottom));background:#f2f2f7;min-height:calc(100dvh - 54px - env(safe-area-inset-top));}
-  .phdr h1{font-size:22px;}.g2{grid-template-columns:1fr;}.g3{grid-template-columns:1fr 1fr;}
-  .g4{grid-template-columns:1fr 1fr;}.gm{grid-template-columns:1fr 1fr;}.gw{gap:3px;}.gf{grid-template-columns:1fr 1fr;}
-  .md{border-radius:20px 20px 0 0;-webkit-overflow-scrolling:touch;}
+  .sec{padding:16px;padding-bottom:max(24px,env(safe-area-inset-bottom));background:#F5F5F7;min-height:calc(100dvh - 60px - env(safe-area-inset-top));}
+  .phdr h1{font-size:26px;}.g2{grid-template-columns:1fr;}.g3{grid-template-columns:1fr 1fr;}
+  .g4{grid-template-columns:1fr 1fr;}.gm{grid-template-columns:1fr 1fr;}.gw{gap:4px;}.gf{grid-template-columns:1fr 1fr;}
+  .md{border-radius:24px 24px 0 0;-webkit-overflow-scrolling:touch;}
   .cal-wrap{-webkit-overflow-scrolling:touch;}
 }
 @media(min-width:768px){
-  .shell{flex-direction:row;}.sidebar{display:flex!important;}.mob-hdr{display:none!important;}.main{margin-left:180px;}
-  .sec{padding:24px 28px;}.gm{grid-template-columns:repeat(3,1fr);}.g4{grid-template-columns:1fr 1fr;}
+  .shell{flex-direction:row;}.sidebar{display:flex!important;}.mob-hdr{display:none!important;}.main{margin-left:200px;}
+  .sec{padding:28px 32px;}.gm{grid-template-columns:repeat(3,1fr);}.g4{grid-template-columns:1fr 1fr;}
   .md{-webkit-overflow-scrolling:touch;}
 }
 @media(min-width:768px) and (max-width:1024px){
-  .sec{padding:20px 24px;}
+  .sec{padding:24px 28px;}
   .gm{grid-template-columns:repeat(2,1fr);}
   .g4{grid-template-columns:1fr 1fr;}
 }
-@media(min-width:1024px){.sec{padding:28px 36px;}.gm{grid-template-columns:repeat(4,1fr);}}
+@media(min-width:1024px){.sec{padding:32px 40px;}.gm{grid-template-columns:repeat(4,1fr);}}
 @media(min-width:1400px){
-  .sidebar{width:180px;}.main{margin-left:180px;}
-  .sec{padding:40px 52px;}.gm{grid-template-columns:repeat(5,1fr);}
+  .sidebar{width:200px;}.main{margin-left:200px;}
+  .sec{padding:48px 64px;}.gm{grid-template-columns:repeat(5,1fr);}
 }
 </style>
 </head>
@@ -444,18 +448,27 @@ function buildGroomerCommMap(appts, staffMembers) {
 const A = {
   bl: "#1c1c1e",
   wh: "#fff",
-  bu: "#0071e3",
-  g1: "#f5f5f7",
-  g2: "#e8e8ed",
-  g3: "#aeaeb2",
-  g4: "#8e8e93",
-  ok: "#34c759",
-  er: "#ff375f",
-  wn: "#ff9f0a",
-  sbg: "#f0fff4",
-  dbg: "#fff0f3",
-  wbg: "#fffaf0",
-  pill: "980px"
+  bu: "#0A84FF",
+  buDark: "#0066CC",
+  buGrad: "linear-gradient(135deg, #0A84FF 0%, #5E5CE6 100%)",
+  g1: "#F5F5F7",
+  g2: "#E5E5EA",
+  g3: "#AEAEB2",
+  g4: "#8E8E93",
+  g5: "#636366",
+  ok: "#32D74B",
+  okLight: "#F0FDF4",
+  er: "#FF453A",
+  erLight: "#FEF2F2",
+  wn: "#FF9F0A",
+  wnLight: "#FFFBF0",
+  sbg: "#F0FDF4",
+  dbg: "#FEF2F2",
+  wbg: "#FFFBF0",
+  pill: "980px",
+  shadow1: "0 2px 8px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06)",
+  shadow2: "0 4px 12px rgba(0,0,0,.06), 0 12px 32px rgba(0,0,0,.08)",
+  shadowHover: "0 6px 16px rgba(0,0,0,.08), 0 16px 40px rgba(0,0,0,.1)"
 };
 const iS = {
   background: A.g1,
@@ -479,46 +492,54 @@ function Btn({
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    padding: sm ? "9px 16px" : "12px 20px",
-    borderRadius: A.pill,
+    gap: 8,
+    padding: sm ? "10px 18px" : "14px 24px",
+    borderRadius: "980px",
     border: "none",
     fontSize: sm ? 14 : 16,
-    fontWeight: 500,
+    fontWeight: 600,
     cursor: "pointer",
     fontFamily: "inherit",
     whiteSpace: "nowrap",
-    minHeight: sm ? 38 : 44,
+    minHeight: sm ? 40 : 52,
+    letterSpacing: ".2px",
+    transition: "all .15s ease",
     ...style
   };
   const vs = {
     pri: {
-      background: A.bl,
-      color: A.wh
+      background: A.buGrad,
+      color: A.wh,
+      boxShadow: "0 2px 8px rgba(10,132,255,.25)"
     },
     sec: {
       background: A.g1,
-      color: A.bl
+      color: A.bl,
+      border: "1.5px solid " + A.g2
     },
     dan: {
-      background: A.dbg,
-      color: A.er
+      background: A.erLight,
+      color: A.er,
+      border: "1.5px solid rgba(255,69,58,.2)"
     },
     can: {
-      background: A.g1,
-      color: A.er
+      background: "transparent",
+      color: A.g4,
+      border: "1.5px solid " + A.g2
     },
     gho: {
       background: "transparent",
       color: A.er
     },
     blue: {
-      background: A.bu,
-      color: A.wh
+      background: A.buGrad,
+      color: A.wh,
+      boxShadow: "0 2px 8px rgba(10,132,255,.25)"
     },
     ok: {
-      background: A.sbg,
-      color: A.ok
+      background: A.okLight,
+      color: A.ok,
+      border: "1.5px solid rgba(50,215,75,.2)"
     }
   };
   return /*#__PURE__*/React.createElement("button", {
@@ -1071,6 +1092,110 @@ function LineChart({
     fill: A.g3
   }, p.label))))));
 }
+function BarChart({
+  data,
+  color,
+  title
+}) {
+  if (!data.length || data.every(d => d.value === 0)) return /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 14,
+      color: A.g4,
+      padding: "20px 0",
+      textAlign: "center"
+    }
+  }, "No data yet.");
+  const W = 440,
+    H = 180,
+    PX = 60,
+    PY = 24,
+    BAR_GAP = 6;
+  const vals = data.map(d => d.value);
+  const max = Math.max(...vals, 1);
+  const min = Math.min(0, ...vals);
+  const range = max - min || 1;
+  const barWidth = (W - PX - PY - (data.length - 1) * BAR_GAP) / data.length;
+  const toY = v => H - PY - (v - min) / range * (H - PY * 2);
+  const zeroY = toY(0);
+  const bars = data.map((d, i) => ({
+    x: PX + i * (barWidth + BAR_GAP),
+    y: d.value >= 0 ? toY(d.value) : zeroY,
+    h: Math.abs(toY(d.value) - zeroY),
+    value: d.value,
+    label: d.label
+  }));
+  const gid = "bg" + color.replace("#", "");
+  return /*#__PURE__*/React.createElement("div", null, title && /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontWeight: 700,
+      fontSize: 15,
+      marginBottom: 16,
+      color: A.bl
+    }
+  }, title), /*#__PURE__*/React.createElement("div", {
+    style: {
+      overflowX: "auto"
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "100%",
+    viewBox: "0 0 " + W + " " + H,
+    style: {
+      minWidth: 280
+    }
+  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
+    id: gid,
+    x1: "0",
+    y1: "0",
+    x2: "0",
+    y2: "1"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0%",
+    stopColor: color,
+    stopOpacity: ".85"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "100%",
+    stopColor: color,
+    stopOpacity: ".45"
+  }))), [0, .5, 1].map((t, i) => {
+    const v = min + t * range;
+    const y = toY(v);
+    return /*#__PURE__*/React.createElement("g", {
+      key: i
+    }, /*#__PURE__*/React.createElement("line", {
+      x1: PX,
+      y1: y,
+      x2: W - PY,
+      y2: y,
+      stroke: A.g2,
+      strokeWidth: 1,
+      strokeDasharray: "2,3"
+    }), /*#__PURE__*/React.createElement("text", {
+      x: PX - 6,
+      y: y + 4,
+      fontSize: 10,
+      textAnchor: "end",
+      fill: A.g4,
+      fontWeight: "600"
+    }, fmt(v)));
+  }), bars.map((b, i) => /*#__PURE__*/React.createElement("g", {
+    key: i
+  }, /*#__PURE__*/React.createElement("rect", {
+    x: b.x,
+    y: b.y,
+    width: barWidth,
+    height: b.h,
+    fill: "url(#" + gid + ")",
+    rx: 3,
+    ry: 3
+  }), /*#__PURE__*/React.createElement("text", {
+    x: b.x + barWidth / 2,
+    y: H - 4,
+    fontSize: 10,
+    textAnchor: "middle",
+    fill: A.g4,
+    fontWeight: "600"
+  }, b.label))))));
+}
 function MonthCard({
   label,
   data,
@@ -1247,139 +1372,180 @@ function ExpTable({
     });
     setEditId(null);
   };
+  if (sorted.length === 0) return /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 14,
+      color: A.g4,
+      padding: "20px 0",
+      textAlign: "center"
+    }
+  }, "No expenses yet.");
   return /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 14
-    },
-    className: "twrap"
-  }, /*#__PURE__*/React.createElement("table", {
-    style: {
-      width: "100%",
-      borderCollapse: "collapse"
+      marginTop: 16,
+      display: "flex",
+      flexDirection: "column",
+      gap: 12
     }
-  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, ["Date", "Category", "Amount", "Notes", ""].map(h => /*#__PURE__*/React.createElement("th", {
-    key: h,
-    className: "th"
-  }, h)))), /*#__PURE__*/React.createElement("tbody", null, sorted.map((e, i) => {
-    if (editId === e.id) return /*#__PURE__*/React.createElement("tr", {
+  }, sorted.map(e => {
+    if (editId === e.id) return /*#__PURE__*/React.createElement("div", {
       key: e.id,
       style: {
-        background: "#fffbeb"
+        background: "#FFFBF0",
+        borderRadius: 16,
+        padding: 20,
+        border: "2px solid " + A.wn,
+        boxShadow: A.shadow1
       }
-    }, /*#__PURE__*/React.createElement("td", {
-      className: "td"
-    }, /*#__PURE__*/React.createElement(Inp, {
+    }, /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontSize: 12,
+        fontWeight: 700,
+        color: A.wn,
+        textTransform: "uppercase",
+        letterSpacing: ".5px",
+        marginBottom: 16
+      }
+    }, "Editing Expense"), /*#__PURE__*/React.createElement("div", {
+      className: "g2",
+      style: {
+        marginBottom: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Lbl, {
+      c: "Date"
+    }), /*#__PURE__*/React.createElement(Inp, {
       type: "date",
       value: ef.date,
       onChange: ev => setEf(p => ({
         ...p,
         date: ev.target.value
-      })),
-      style: {
-        fontSize: 16,
-        padding: "8px 10px",
-        minHeight: 40
-      }
-    })), /*#__PURE__*/React.createElement("td", {
-      className: "td"
-    }, /*#__PURE__*/React.createElement(Sel, {
-      value: ef.cat,
-      onChange: ev => setEf(p => ({
-        ...p,
-        cat: ev.target.value
-      })),
-      style: {
-        fontSize: 16,
-        padding: "8px 10px",
-        minHeight: 40
-      }
-    }, /*#__PURE__*/React.createElement("option", {
-      value: ""
-    }, "Select..."), EXP_CATS.map(c => /*#__PURE__*/React.createElement("option", {
-      key: c
-    }, c))), ef.cat === "Other" && /*#__PURE__*/React.createElement(Inp, {
-      value: ef.custCat,
-      onChange: ev => setEf(p => ({
-        ...p,
-        custCat: ev.target.value
-      })),
-      placeholder: "Custom",
-      style: {
-        marginTop: 4,
-        fontSize: 16,
-        padding: "8px 10px",
-        minHeight: 40
-      }
-    })), /*#__PURE__*/React.createElement("td", {
-      className: "td"
-    }, /*#__PURE__*/React.createElement(Inp, {
+      }))
+    })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Lbl, {
+      c: "Amount"
+    }), /*#__PURE__*/React.createElement(Inp, {
       type: "number",
       value: ef.amt,
       onChange: ev => setEf(p => ({
         ...p,
         amt: ev.target.value
       })),
+      placeholder: "0"
+    }))), /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 16,
-        padding: "8px 10px",
-        minHeight: 40
+        marginBottom: 12
       }
-    })), /*#__PURE__*/React.createElement("td", {
-      className: "td"
-    }, /*#__PURE__*/React.createElement("span", {
+    }, /*#__PURE__*/React.createElement(Lbl, {
+      c: "Category"
+    }), /*#__PURE__*/React.createElement(Sel, {
+      value: ef.cat,
+      onChange: ev => setEf(p => ({
+        ...p,
+        cat: ev.target.value
+      }))
+    }, /*#__PURE__*/React.createElement("option", {
+      value: ""
+    }, "Select..."), EXP_CATS.map(c => /*#__PURE__*/React.createElement("option", {
+      key: c
+    }, c)))), ef.cat === "Other" && /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 12,
-        color: A.g4
+        marginBottom: 12
       }
-    }, "\u2014")), /*#__PURE__*/React.createElement("td", {
-      className: "td"
-    }, /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement(Lbl, {
+      c: "Custom Category"
+    }), /*#__PURE__*/React.createElement(Inp, {
+      value: ef.custCat,
+      onChange: ev => setEf(p => ({
+        ...p,
+        custCat: ev.target.value
+      })),
+      placeholder: "e.g., Marketing"
+    })), /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
-        gap: 6
+        gap: 8
       }
     }, /*#__PURE__*/React.createElement(Btn, {
-      sm: true,
-      onClick: () => saveEdit(e)
-    }, "Save"), /*#__PURE__*/React.createElement(Btn, {
-      sm: true,
+      onClick: () => saveEdit(e),
+      style: {
+        flex: 1
+      }
+    }, "Save Changes"), /*#__PURE__*/React.createElement(Btn, {
       v: "can",
-      onClick: () => setEditId(null)
-    }, "Cancel"))));
-    return /*#__PURE__*/React.createElement("tr", {
+      onClick: () => setEditId(null),
+      style: {
+        flex: 1
+      }
+    }, "Cancel")));
+    return /*#__PURE__*/React.createElement("div", {
       key: e.id,
       style: {
-        background: i % 2 === 0 ? "#fff" : "#fafafa"
+        background: "#fff",
+        borderRadius: 16,
+        padding: "18px 20px",
+        border: "1px solid " + A.g2,
+        boxShadow: A.shadow1,
+        display: "flex",
+        alignItems: "center",
+        gap: 16,
+        transition: "all .2s ease"
       }
-    }, /*#__PURE__*/React.createElement("td", {
-      className: "td"
-    }, fmtD(e.date)), /*#__PURE__*/React.createElement("td", {
-      className: "td"
-    }, /*#__PURE__*/React.createElement(Bdg, {
-      color: "orange"
-    }, e.category)), /*#__PURE__*/React.createElement("td", {
-      className: "td",
+    }, /*#__PURE__*/React.createElement("div", {
       style: {
-        color: A.er,
-        fontWeight: 600
+        flex: 1,
+        minWidth: 0
       }
-    }, fmt(e.amount)), /*#__PURE__*/React.createElement("td", {
-      className: "td",
-      style: {
-        fontSize: 12,
-        color: A.g4,
-        maxWidth: 160
-      }
-    }, e.notes || /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: A.g2
-      }
-    }, "\u2014")), /*#__PURE__*/React.createElement("td", {
-      className: "td"
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
-        gap: 6
+        alignItems: "center",
+        gap: 10,
+        marginBottom: 6
+      }
+    }, /*#__PURE__*/React.createElement(Bdg, {
+      color: "orange"
+    }, e.category), e.cashbox && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        fontWeight: 700,
+        color: A.wn,
+        background: A.wnLight,
+        padding: "3px 8px",
+        borderRadius: 12,
+        textTransform: "uppercase",
+        letterSpacing: ".3px"
+      }
+    }, "Cashbox")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "baseline",
+        gap: 12,
+        flexWrap: "wrap"
+      }
+    }, /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontSize: 20,
+        fontWeight: 700,
+        color: A.er,
+        letterSpacing: "-.02em"
+      }
+    }, fmt(e.amount)), /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontSize: 13,
+        color: A.g4,
+        fontWeight: 500
+      }
+    }, fmtD(e.date))), e.notes && /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontSize: 13,
+        color: A.g5,
+        marginTop: 6,
+        lineHeight: 1.4
+      }
+    }, e.notes)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 8,
+        flexShrink: 0
       }
     }, /*#__PURE__*/React.createElement(Btn, {
       sm: true,
@@ -1392,8 +1558,8 @@ function ExpTable({
         ...prev,
         [e.date]: (prev[e.date] || []).filter(x => x.id !== e.id)
       })), "Expense deleted")
-    }, "Del"))));
-  }))));
+    }, "Del")));
+  }));
 }
 function PetModal({
   pet,
@@ -7643,7 +7809,7 @@ function MainApp({
           padding: 16,
           marginBottom: 12
         }
-      }, /*#__PURE__*/React.createElement(LineChart, {
+      }, /*#__PURE__*/React.createElement(BarChart, {
         data: profitLine,
         color: A.ok,
         title: annualYear + " Monthly Profit"
@@ -7835,11 +8001,31 @@ function MainApp({
       const salPeriods = getOwnerSalPeriods();
       const recentDeps = [...(balances.deposits||[])].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
       const totalLiquid = (balances.cashOnHand||0)+(balances.gcashBalance||0)+(balances.bankBalance||0);
-      function BalCard({bKey,label,color,actionLabel,onAction}) {
+      const IconCash = ({size=24,color="#32D74B"}) => /*#__PURE__*/React.createElement("svg", {width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:color,strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"},
+        /*#__PURE__*/React.createElement("rect", {x:2,y:6,width:20,height:12,rx:2}),
+        /*#__PURE__*/React.createElement("circle", {cx:12,cy:12,r:2}),
+        /*#__PURE__*/React.createElement("path", {d:"M6 6V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"}),
+        /*#__PURE__*/React.createElement("path", {d:"M6 18v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1"})
+      );
+      const IconPhone = ({size=24,color="#0A84FF"}) => /*#__PURE__*/React.createElement("svg", {width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:color,strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"},
+        /*#__PURE__*/React.createElement("rect", {x:5,y:2,width:14,height:20,rx:2,ry:2}),
+        /*#__PURE__*/React.createElement("path", {d:"M12 18h.01"})
+      );
+      const IconBank = ({size=24,color="#5E5CE6"}) => /*#__PURE__*/React.createElement("svg", {width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:color,strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"},
+        /*#__PURE__*/React.createElement("path", {d:"m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"}),
+        /*#__PURE__*/React.createElement("path", {d:"M9 22V12h6v10"})
+      );
+      const IconChart = ({size=24,color="#FF9F0A"}) => /*#__PURE__*/React.createElement("svg", {width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:color,strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"},
+        /*#__PURE__*/React.createElement("line", {x1:12,y1:20,x2:12,y2:10}),
+        /*#__PURE__*/React.createElement("line", {x1:18,y1:20,x2:18,y2:4}),
+        /*#__PURE__*/React.createElement("line", {x1:6,y1:20,x2:6,y2:16})
+      );
+      function BalCard({bKey,label,color,actionLabel,onAction,icon}) {
         const isEditing = editBalKey===bKey;
         const val = balances[bKey]||0;
-        return /*#__PURE__*/React.createElement("div", {style:{background:"#fff",borderRadius:14,padding:16,flex:1,minWidth:140,boxShadow:"0 1px 4px rgba(0,0,0,.06)"}},
-          /*#__PURE__*/React.createElement("p", {style:{fontSize:11,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.4,marginBottom:8}}, label),
+        return /*#__PURE__*/React.createElement("div", {style:{background:"#fff",borderRadius:16,padding:20,flex:1,minWidth:160,boxShadow:A.shadow1,border:"1px solid "+A.g2}},
+          /*#__PURE__*/React.createElement("div", {style:{marginBottom:12}}, icon),
+          /*#__PURE__*/React.createElement("p", {style:{fontSize:11,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.5,marginBottom:10}}, label),
           isEditing
             ? /*#__PURE__*/React.createElement("div", {style:{marginBottom:8}},
                 /*#__PURE__*/React.createElement(Inp, {type:"number",value:editBalVal,onChange:e=>setEditBalVal(e.target.value),autoFocus:true,style:{marginBottom:6}}),
@@ -7921,10 +8107,11 @@ function MainApp({
         ),
         /*#__PURE__*/React.createElement(Shdr, {c:"Balances",style:{marginBottom:12}}),
         /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap"}},
-          /*#__PURE__*/React.createElement(BalCard, {bKey:"cashOnHand",label:"Cash on Hand",color:A.ok,actionLabel:"Deposit to Bank →",onAction:()=>{setDepositAmt(String(balances.cashOnHand||0));setDepositModal("cash");}}),
-          /*#__PURE__*/React.createElement(BalCard, {bKey:"gcashBalance",label:"GCash Wallet",color:A.bu,actionLabel:"Transfer to Bank →",onAction:()=>{setDepositAmt(String(balances.gcashBalance||0));setDepositModal("gcash");}}),
-          /*#__PURE__*/React.createElement("div", {style:{background:"#fff",borderRadius:14,padding:16,flex:1,minWidth:140,boxShadow:"0 1px 4px rgba(0,0,0,.06)"}},
-            /*#__PURE__*/React.createElement("p", {style:{fontSize:11,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.4,marginBottom:8}}, "Bank Account"),
+          /*#__PURE__*/React.createElement(BalCard, {bKey:"cashOnHand",label:"Cash on Hand",color:A.ok,actionLabel:"Deposit to Bank →",onAction:()=>{setDepositAmt(String(balances.cashOnHand||0));setDepositModal("cash");},icon:/*#__PURE__*/React.createElement(IconCash, {size:32,color:A.ok})}),
+          /*#__PURE__*/React.createElement(BalCard, {bKey:"gcashBalance",label:"GCash Wallet",color:A.bu,actionLabel:"Transfer to Bank →",onAction:()=>{setDepositAmt(String(balances.gcashBalance||0));setDepositModal("gcash");},icon:/*#__PURE__*/React.createElement(IconPhone, {size:32,color:A.bu})}),
+          /*#__PURE__*/React.createElement("div", {style:{background:"#fff",borderRadius:16,padding:20,flex:1,minWidth:160,boxShadow:A.shadow1,border:"1px solid "+A.g2}},
+            /*#__PURE__*/React.createElement("div", {style:{marginBottom:12}}, /*#__PURE__*/React.createElement(IconBank, {size:32,color:"#5E5CE6"})),
+            /*#__PURE__*/React.createElement("p", {style:{fontSize:11,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.5,marginBottom:10}}, "Bank Account"),
             editBalKey==="bankBalance"
               ? /*#__PURE__*/React.createElement("div", {style:{marginBottom:8}},
                   /*#__PURE__*/React.createElement(Inp, {type:"number",value:editBalVal,onChange:e=>setEditBalVal(e.target.value),autoFocus:true,style:{marginBottom:6}}),
@@ -7964,9 +8151,11 @@ function MainApp({
         /*#__PURE__*/React.createElement(Shdr, {c:"Startup Investment",style:{marginBottom:12}}),
         /*#__PURE__*/React.createElement("div", {className:"card",style:{padding:16,marginBottom:14}},
           totalCapital===0
-            ? /*#__PURE__*/React.createElement("div", {style:{textAlign:"center",padding:"24px 0"}},
-                /*#__PURE__*/React.createElement("p", {style:{fontSize:36,marginBottom:10}}, "💰"),
-                /*#__PURE__*/React.createElement("p", {style:{fontWeight:700,fontSize:16,color:A.bl,marginBottom:6}}, "Track your startup investment"),
+            ? /*#__PURE__*/React.createElement("div", {style:{textAlign:"center",padding:"32px 24px"}},
+                /*#__PURE__*/React.createElement("div", {style:{display:"inline-flex",alignItems:"center",justifyContent:"center",width:64,height:64,borderRadius:20,background:"linear-gradient(135deg, rgba(10,132,255,.1), rgba(94,92,230,.1))",marginBottom:16}},
+                  /*#__PURE__*/React.createElement(IconChart, {size:32,color:A.bu})
+                ),
+                /*#__PURE__*/React.createElement("p", {style:{fontWeight:700,fontSize:18,color:A.bl,marginBottom:8,letterSpacing:"-.02em"}}, "Track your startup investment"),
                 /*#__PURE__*/React.createElement("p", {style:{fontSize:13,color:A.g4,maxWidth:260,margin:"0 auto 16px",lineHeight:1.6}}, "Add the money you invested to get the business started"),
                 /*#__PURE__*/React.createElement(Btn, {sm:true,onClick:()=>{setCapForm({id:null,name:"",amount:"",date:tod(),category:"Equipment",notes:""});setShowCapForm(true);}}, "+ Add Capital Item")
               )
