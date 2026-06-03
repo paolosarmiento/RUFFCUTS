@@ -499,6 +499,7 @@ function Btn({
   onClick,
   v = "pri",
   sm = false,
+  disabled = false,
   style = {}
 }) {
   const b = {
@@ -511,12 +512,13 @@ function Btn({
     border: "none",
     fontSize: sm ? 14 : 16,
     fontWeight: 600,
-    cursor: "pointer",
+    cursor: disabled ? "not-allowed" : "pointer",
     fontFamily: "inherit",
     whiteSpace: "nowrap",
     minHeight: sm ? 44 : 52,
     letterSpacing: ".2px",
     transition: "all .2s cubic-bezier(0.34, 1.56, 0.64, 1)",
+    opacity: disabled ? 0.5 : 1,
     ...style
   };
   const vs = {
@@ -565,7 +567,8 @@ function Btn({
       ...b,
       ...(vs[v] || vs.pri)
     },
-    onClick: onClick
+    onClick: disabled ? undefined : onClick,
+    disabled: disabled
   }, children);
 }
 function Lbl({
@@ -3197,6 +3200,7 @@ function MainApp({
   });
   const [confirmModal, setConfirmModal] = useState(null);
   const [toasts, setToasts] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
   const showToast = (message, type = "success", undoToken = null) => {
     const id = Date.now();
     setToasts(p => [...p, {
@@ -3797,7 +3801,8 @@ function MainApp({
     showToast("Expense logged ✓");
   };
   const saveSv = () => {
-    if (!svForm.name.trim()) return;
+    if (!svForm.name.trim() || isSaving) return;
+    setIsSaving(true);
     if (editSvId) setServices(prev => prev.map(sv => sv.id === editSvId ? {
       ...sv,
       name: svForm.name,
@@ -3809,14 +3814,17 @@ function MainApp({
       price: Number(svForm.price),
       category: svForm.category || ""
     }]);
-    setSvForm({
-      name: "",
-      price: "",
-      category: ""
-    });
-    setEditSvId(null);
-    setShowSvForm(false);
-    showToast("Service saved ✓");
+    setTimeout(() => {
+      setIsSaving(false);
+      setSvForm({
+        name: "",
+        price: "",
+        category: ""
+      });
+      setEditSvId(null);
+      setShowSvForm(false);
+      showToast("Service saved ✓");
+    }, 300);
   };
   const fCl = clients.filter(c => c.name.toLowerCase().includes(nFilter.toLowerCase()) || c.pets.some(p => p.name.toLowerCase().includes(nFilter.toLowerCase())));
   const appts = gA(selDate);
@@ -6549,7 +6557,7 @@ function MainApp({
           )
         )
       ), /*#__PURE__*/React.createElement("div", {style: {display: "flex", gap: 8, alignItems: "flex-end"}},
-        /*#__PURE__*/React.createElement(Btn, {v: "warm", onClick: saveSv}, "Save"),
+        /*#__PURE__*/React.createElement(Btn, {v: "warm", onClick: saveSv, disabled: isSaving}, isSaving ? "Saving..." : "Save"),
         /*#__PURE__*/React.createElement(Btn, {v: "can", onClick: () => {setShowSvForm(false); setSvForm({name: "", price: "", category: ""});}}, "Cancel")
       ))),
       (()=>{
