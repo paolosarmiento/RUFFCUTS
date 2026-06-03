@@ -3638,10 +3638,14 @@ function MainApp({
   };
   const saveOwnerSal = () => {
     const amt = Number(ownerSalForm.amount);
-    if (!amt) return;
+    if (!amt || isSaving) return;
+    setIsSaving(true);
     setOwnerFinances(prev => ({...prev, salaryAmount:amt, salaryCycle:ownerSalForm.cycle||"monthly", businessStartDate:ownerSalForm.startDate||""}));
-    setShowOwnerSalEdit(false);
-    showToast("Owner salary updated ✓");
+    setTimeout(() => {
+      setIsSaving(false);
+      setShowOwnerSalEdit(false);
+      showToast("Owner salary updated ✓");
+    }, 300);
   };
   const markOwnerSalPaid = (period) => {
     const amt = ownerFinances.salaryAmount||0;
@@ -8394,7 +8398,7 @@ function MainApp({
                   )
                 ),
                 /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:8}},
-                  /*#__PURE__*/React.createElement(Btn, {v:"warm",onClick:saveOwnerSal}, "Save"),
+                  /*#__PURE__*/React.createElement(Btn, {v:"warm",onClick:saveOwnerSal,disabled:isSaving}, isSaving?"Saving...":"Save"),
                   /*#__PURE__*/React.createElement(Btn, {v:"can",onClick:()=>setShowOwnerSalEdit(false)}, "Cancel")
                 )
               )
