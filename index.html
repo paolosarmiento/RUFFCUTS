@@ -150,14 +150,14 @@ const {
   Component
 } = React;
 
-// Firebase will be loaded asynchronously - don't block React
+// Firebase imports - await these before using
 let db = null,
   DOCS = {},
   SCHED_COL = null;
 let initializeApp, getApps, getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, writeBatch, enableMultiTabIndexedDbPersistence;
 
-// Load Firebase in background, don't block app mounting
-(async function initFirebase() {
+// Import Firebase modules (await this promise before rendering)
+const firebaseReady = (async function() {
   try {
     const firebaseApp = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js');
     const firebaseFirestore = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
@@ -189,9 +189,9 @@ let initializeApp, getApps, getFirestore, collection, doc, getDoc, setDoc, delet
     ["clients","schedules","expenses","services","staffByDate","staffMembers","paymentStatus","cashbox","cashAdvances","balances","ownerFinances"].forEach(n=>{DOCS[n]=doc(col, n);});
     DOCS._legacy = doc(col, "appdata");
     SCHED_COL = collection(db, "ruffcuts_schedules");
-    console.log("[Firebase] Initialized successfully");
+    console.log("[Firebase] Ready");
   } catch (e) {
-    console.error("[Firebase] Failed to initialize:", e);
+    console.error("[Firebase] Error:", e);
   }
 })();
 const OWN_PASS = "owner1234";
@@ -3277,7 +3277,7 @@ function MainApp({
   const calRef = useRef(null);
   const schedDateRef = useRef(null);
   useEffect(() => {
-    if (!db) { setSync("Offline"); return; }
+    if (!db || !getDoc) { setSync("Offline"); return; }
     // Migrate from legacy single document if needed
     if (DOCS._legacy) {
       getDoc(DOCS._legacy).then(snap => {
@@ -8809,18 +8809,26 @@ function App() {
     setStaffAccounts: setStaffAccounts
   }));
 }
-try {
-  const container = document.getElementById("root");
-  const root = ReactDOM.createRoot(container);
-  root.render(/*#__PURE__*/React.createElement(App, null));
-  console.log("[SUCCESS] React app rendered");
-} catch (error) {
-  console.error("[ERROR] Failed to render:", error);
-  // Remove boot screen even on error so user can see error message
+
+// Wait for Firebase, then render React
+firebaseReady.then(() => {
+  try {
+    const container = document.getElementById("root");
+    const root = ReactDOM.createRoot(container);
+    root.render(/*#__PURE__*/React.createElement(App, null));
+    console.log("[SUCCESS] React rendered");
+  } catch (error) {
+    console.error("[ERROR] Render failed:", error);
+    const bootEl = document.getElementById("boot");
+    if (bootEl) bootEl.style.display = "none";
+    document.body.innerHTML = '<div style="padding:40px;color:red;font-family:monospace;"><h2>Error:</h2><pre>' + error.message + '\n' + error.stack + '</pre></div>';
+  }
+}).catch(err => {
+  console.error("[ERROR] Firebase failed:", err);
   const bootEl = document.getElementById("boot");
   if (bootEl) bootEl.style.display = "none";
-  document.body.innerHTML = '<div style="padding:40px;color:red;font-family:monospace;"><h2>Error rendering app:</h2><pre>' + error.message + '\n' + error.stack + '</pre></div>';
-}
+  document.body.innerHTML = '<div style="padding:40px;color:red;font-family:monospace;"><h2>Failed to load Firebase</h2><pre>' + err.message + '</pre></div>';
+});
 </script>
 </body>
 </html>
