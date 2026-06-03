@@ -89,9 +89,10 @@ textarea{resize:vertical;min-height:96px;line-height:1.5;}
 .today-card-primary{background:#fff;border-radius:18px;padding:18px;margin-bottom:12px;border:2px solid rgba(10,132,255,.12);box-shadow:0 4px 12px rgba(0,0,0,.06),0 8px 24px rgba(0,0,0,.08);transition:all .2s ease;}
 .att-dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
 #boot{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;}
-#boot img{height:90px;object-fit:contain;margin-bottom:16px;}
+#boot img{height:90px;object-fit:contain;margin-bottom:16px;animation:pulse 2s ease-in-out infinite;}
 #boot p{font-size:14px;color:rgba(255,255,255,.35);}
 @keyframes toastIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
 @media(max-width:767px){
   .sidebar{display:none!important;}.mob-hdr{display:flex!important;}.main{margin-left:0!important;}
   .sec{padding:16px;padding-bottom:max(24px,env(safe-area-inset-bottom));background:#F5F5F7;min-height:calc(100dvh - 60px - env(safe-area-inset-top));}
