@@ -8810,8 +8810,8 @@ function App() {
   }));
 }
 
-// Wait for Firebase, then render React
-firebaseReady.then(() => {
+// Render React - use timeout to ensure it happens even if Firebase hangs
+function renderApp() {
   try {
     const container = document.getElementById("root");
     const root = ReactDOM.createRoot(container);
@@ -8823,12 +8823,32 @@ firebaseReady.then(() => {
     if (bootEl) bootEl.style.display = "none";
     document.body.innerHTML = '<div style="padding:40px;color:red;font-family:monospace;"><h2>Error:</h2><pre>' + error.message + '\n' + error.stack + '</pre></div>';
   }
+}
+
+let rendered = false;
+
+// Try to wait for Firebase, but don't wait forever
+firebaseReady.then(() => {
+  if (!rendered) {
+    rendered = true;
+    renderApp();
+  }
 }).catch(err => {
   console.error("[ERROR] Firebase failed:", err);
-  const bootEl = document.getElementById("boot");
-  if (bootEl) bootEl.style.display = "none";
-  document.body.innerHTML = '<div style="padding:40px;color:red;font-family:monospace;"><h2>Failed to load Firebase</h2><pre>' + err.message + '</pre></div>';
+  if (!rendered) {
+    rendered = true;
+    renderApp(); // Render anyway, will show offline
+  }
 });
+
+// Timeout: render after 3 seconds even if Firebase hasn't loaded
+setTimeout(() => {
+  if (!rendered) {
+    console.warn("[TIMEOUT] Firebase taking too long, rendering anyway");
+    rendered = true;
+    renderApp();
+  }
+}, 3000);
 </script>
 </body>
 </html>
