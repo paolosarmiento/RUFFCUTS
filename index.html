@@ -3610,7 +3610,7 @@ function MainApp({
       setCaForm({amount:"", purpose:"", dateIssued:tod(), deductionAmount:"", frequency:"weekly"});
       setShowCaForm(null);
       showToast("Cash advance recorded ✓");
-    }, 400);
+    }, 200);
   };
   const markAdvancePaid = (id) => { setCashAdvances(prev => prev.map(a => a.id === id ? {...a, remainingDebt:0, status:"paid"} : a)); showToast("Marked as fully paid ✓"); };
   const deleteAdvance = (id) => askConfirm("Delete this cash advance record?", () => { setCashAdvances(prev => prev.filter(a => a.id !== id)); showToast("Advance deleted"); });
@@ -3646,7 +3646,7 @@ function MainApp({
       setCapForm({id:null,name:"",amount:"",date:tod(),category:"Equipment",notes:""});
       setShowCapForm(false);
       showToast("Capital item saved ✓");
-    }, 400);
+    }, 200);
   };
   const saveOwnerSal = () => {
     const amt = Number(ownerSalForm.amount);
@@ -3657,7 +3657,7 @@ function MainApp({
       setIsSaving(false);
       setShowOwnerSalEdit(false);
       showToast("Owner salary updated ✓");
-    }, 400);
+    }, 200);
   };
   const markOwnerSalPaid = (period) => {
     const amt = ownerFinances.salaryAmount||0;
@@ -3731,7 +3731,7 @@ function MainApp({
       setEditBalKey(null);
       setEditBalVal("");
       showToast("Balance updated ✓");
-    }, 400);
+    }, 200);
   };
   const exportData = () => {
     try {
@@ -3845,7 +3845,7 @@ function MainApp({
       setEditSvId(null);
       setShowSvForm(false);
       showToast("Service saved ✓");
-    }, 400);
+    }, 200);
   };
   const fCl = clients.filter(c => c.name.toLowerCase().includes(nFilter.toLowerCase()) || c.pets.some(p => p.name.toLowerCase().includes(nFilter.toLowerCase())));
   const appts = gA(selDate);
