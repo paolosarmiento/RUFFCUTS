@@ -14,11 +14,8 @@
 <title>Ruff Cuts</title>
 <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
-<script>
-// Ensure React is available globally before module loads
-window.React = window.React || React;
-window.ReactDOM = window.ReactDOM || ReactDOM;
-</script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -138,10 +135,15 @@ setTimeout(function(){
   if(m)m.textContent='Taking longer than usual... please wait.';
 },15000);
 </script>
-<script type="module">
+<script>
+console.log('[APP] Script started');
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 const React = window.React;
 const ReactDOM = window.ReactDOM;
+const firebase = window.firebase;
+
+console.log('[APP] Libraries loaded:', {React: !!React, ReactDOM: !!ReactDOM, firebase: !!firebase});
+
 const {
   useState,
   useEffect,
@@ -150,50 +152,43 @@ const {
   Component
 } = React;
 
-// Firebase imports - await these before using
+// Firebase setup using compat API
 let db = null,
   DOCS = {},
   SCHED_COL = null;
-let initializeApp, getApps, getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, writeBatch, enableMultiTabIndexedDbPersistence;
 
-// Import Firebase modules (await this promise before rendering)
-const firebaseReady = (async function() {
-  try {
-    const firebaseApp = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js');
-    const firebaseFirestore = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+// Initialize Firebase immediately (using compat API from script tags)
+try {
+  const cfg = {
+    apiKey: "AIzaSyByMaYOwnUNhT9QpVwWUrvNJ5l_ypGV6RI",
+    authDomain: "ruff-cuts-b935f.firebaseapp.com",
+    projectId: "ruff-cuts-b935f",
+    storageBucket: "ruff-cuts-b935f.firebasestorage.app",
+    messagingSenderId: "74298911810",
+    appId: "1:74298911810:web:627341170ba007779ad1db"
+  };
+  const app = firebase.apps.length === 0 ? firebase.initializeApp(cfg) : firebase.apps[0];
+  db = firebase.firestore(app);
+  db.enablePersistence({synchronizeTabs: true}).catch(() => {});
 
-    initializeApp = firebaseApp.initializeApp;
-    getApps = firebaseApp.getApps;
-    getFirestore = firebaseFirestore.getFirestore;
-    collection = firebaseFirestore.collection;
-    doc = firebaseFirestore.doc;
-    getDoc = firebaseFirestore.getDoc;
-    setDoc = firebaseFirestore.setDoc;
-    deleteDoc = firebaseFirestore.deleteDoc;
-    onSnapshot = firebaseFirestore.onSnapshot;
-    writeBatch = firebaseFirestore.writeBatch;
-    enableMultiTabIndexedDbPersistence = firebaseFirestore.enableMultiTabIndexedDbPersistence;
+  ["clients","schedules","expenses","services","staffByDate","staffMembers","paymentStatus","cashbox","cashAdvances","balances","ownerFinances"].forEach(n=>{
+    DOCS[n] = db.collection("ruffcuts").doc(n);
+  });
+  DOCS._legacy = db.collection("ruffcuts").doc("appdata");
+  SCHED_COL = db.collection("ruffcuts_schedules");
+  console.log("[Firebase] Initialized");
+} catch (e) {
+  console.error("[Firebase] Init error:", e);
+}
 
-    const cfg = {
-      apiKey: "AIzaSyByMaYOwnUNhT9QpVwWUrvNJ5l_ypGV6RI",
-      authDomain: "ruff-cuts-b935f.firebaseapp.com",
-      projectId: "ruff-cuts-b935f",
-      storageBucket: "ruff-cuts-b935f.firebasestorage.app",
-      messagingSenderId: "74298911810",
-      appId: "1:74298911810:web:627341170ba007779ad1db"
-    };
-    const app = getApps().length === 0 ? initializeApp(cfg) : getApps()[0];
-    db = getFirestore(app);
-    enableMultiTabIndexedDbPersistence(db).catch(() => {});
-    const col = collection(db, "ruffcuts");
-    ["clients","schedules","expenses","services","staffByDate","staffMembers","paymentStatus","cashbox","cashAdvances","balances","ownerFinances"].forEach(n=>{DOCS[n]=doc(col, n);});
-    DOCS._legacy = doc(col, "appdata");
-    SCHED_COL = collection(db, "ruffcuts_schedules");
-    console.log("[Firebase] Ready");
-  } catch (e) {
-    console.error("[Firebase] Error:", e);
-  }
-})();
+// Compat API wrappers for v9 syntax
+const getDoc = (docRef) => docRef.get();
+const setDoc = (docRef, data, options) => docRef.set(data, options);
+const deleteDoc = (docRef) => docRef.delete();
+const onSnapshot = (ref, callback) => ref.onSnapshot(callback);
+const writeBatch = () => db.batch();
+const doc = (collectionRef, id) => collectionRef.doc(id);
+const collection = (db, path) => db.collection(path);
 const OWN_PASS = "owner1234";
 const STF_PASS = "ruffcuts2024";
 const DEF_SVC = [
@@ -8838,32 +8833,9 @@ window.renderApp = function renderApp() {
   }
 }
 
-let rendered = false;
-
-// Wait for Firebase (but timeout ensures we render anyway)
-firebaseReady.then(() => {
-  console.log('[FIREBASE] Ready, rendering app');
-  if (!rendered) {
-    rendered = true;
-    window.renderApp();
-  }
-}).catch(err => {
-  console.error("[ERROR] Firebase load failed:", err);
-  if (!rendered) {
-    rendered = true;
-    window.renderApp(); // Render anyway, app will show offline status
-  }
-});
-
-// Timeout: render after 3 seconds NO MATTER WHAT
-console.log('[TIMEOUT] Setting 3-second timeout');
-setTimeout(() => {
-  console.warn("[TIMEOUT] Timeout fired after 3s");
-  if (!rendered) {
-    rendered = true;
-    window.renderApp();
-  }
-}, 3000);
+// Render immediately - Firebase is already initialized above
+console.log('[APP] Calling renderApp');
+window.renderApp();
 </script>
 </body>
 </html>
