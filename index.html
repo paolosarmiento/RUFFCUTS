@@ -20,8 +20,6 @@ body{min-height:100dvh;min-height:-webkit-fill-available;font-family:-apple-syst
 input,select,textarea,button{font-family:inherit;font-size:16px;outline:none;-webkit-appearance:none;appearance:none;border-radius:0;}
 input,select,textarea{border-radius:14px;border:1.5px solid rgba(0,0,0,.06);background:#fff;color:#1c1c1e;padding:14px 16px;width:100%;min-height:52px;transition:all .2s ease;}
 input:focus,select:focus,textarea:focus{background:#fff;border-color:#0A84FF;box-shadow:0 0 0 4px rgba(10,132,255,.12);}
-input:invalid:not(:placeholder-shown),textarea:invalid:not(:placeholder-shown){border-color:#FF453A;background:#FEF2F2;}
-input:valid:not(:placeholder-shown),textarea:valid:not(:placeholder-shown){border-color:#32D74B;}
 button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;min-height:44px;border:none;background:none;transition:all .15s ease;}
 textarea{resize:vertical;min-height:96px;line-height:1.5;}
 ::placeholder{color:#aeaeb2;}
@@ -49,7 +47,6 @@ textarea{resize:vertical;min-height:96px;line-height:1.5;}
 .drw-foot{padding:24px 20px;border-top:1px solid rgba(255,255,255,.08);}
 .sec{padding:20px;padding-bottom:max(32px,env(safe-area-inset-bottom));background:#F5F5F7;min-height:calc(100dvh - 60px - env(safe-area-inset-top));}
 .card{background:#fff;border-radius:20px;overflow:hidden;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06);transition:box-shadow .2s ease;}
-.card:hover{box-shadow:0 4px 12px rgba(0,0,0,.08),0 12px 32px rgba(0,0,0,.1);}
 .crow{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(0,0,0,.06);min-height:56px;}
 .crow:last-child{border-bottom:none;}
 .phdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;gap:16px;flex-wrap:wrap;}
@@ -57,7 +54,6 @@ textarea{resize:vertical;min-height:96px;line-height:1.5;}
 .phdr p{font-size:14px;color:#8e8e93;margin-top:4px;font-weight:500;letter-spacing:-.01em;}
 .phdr-r{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
 .fbox{background:#fff;border-radius:20px;padding:20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06);transition:box-shadow .2s ease;}
-.fbox:hover{box-shadow:0 4px 12px rgba(0,0,0,.08),0 12px 32px rgba(0,0,0,.1);}
 .pbox{background:#F9F9FB;border-radius:16px;padding:16px;margin-bottom:12px;border:1px solid rgba(0,0,0,.06);}
 .twrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:20px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06);}
 .th{text-align:left;padding:12px 16px;border-bottom:1px solid rgba(0,0,0,.08);font-size:11px;color:#8e8e93;font-weight:700;letter-spacing:.5px;text-transform:uppercase;background:#F9F9FB;white-space:nowrap;}
@@ -82,17 +78,14 @@ textarea{resize:vertical;min-height:96px;line-height:1.5;}
 .cal-time-lbl{position:absolute;right:7px;font-size:10px;color:#aeaeb2;font-weight:600;transform:translateY(-50%);}
 .cal-abs-col{flex:1 0 150px;position:relative;border-right:.5px solid #f0f0f0;cursor:pointer;}
 .cal-abs-col:active{background:rgba(0,0,0,.02);}
-.sp{display:inline-flex;align-items:center;padding:10px 18px;border-radius:24px;font-size:12px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;border:none;font-family:inherit;min-height:44px;letter-spacing:.3px;transition:all .2s ease;}
-.sp:hover{transform:scale(1.05);}
-.today-card{background:#fff;border-radius:18px;padding:16px 18px;margin-bottom:12px;border-left:4px solid #e8e8ed;box-shadow:0 2px 6px rgba(0,0,0,.05),0 4px 12px rgba(0,0,0,.06);transition:all .2s ease;cursor:pointer;}
-.today-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.08),0 8px 24px rgba(0,0,0,.12);transform:translateY(-1px);}
+.sp{display:inline-flex;align-items:center;padding:8px 16px;border-radius:24px;font-size:12px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;border:none;font-family:inherit;min-height:40px;letter-spacing:.3px;transition:all .2s ease;}
+.today-card{background:#fff;border-radius:18px;padding:16px 18px;margin-bottom:12px;border-left:4px solid #e8e8ed;box-shadow:0 2px 6px rgba(0,0,0,.05),0 4px 12px rgba(0,0,0,.06);transition:all .2s ease;}
 .today-card-primary{background:#fff;border-radius:18px;padding:18px;margin-bottom:12px;border:2px solid rgba(10,132,255,.12);box-shadow:0 4px 12px rgba(0,0,0,.06),0 8px 24px rgba(0,0,0,.08);transition:all .2s ease;}
 .att-dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
 #boot{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;}
-#boot img{height:90px;object-fit:contain;margin-bottom:16px;animation:pulse 2s ease-in-out infinite;}
+#boot img{height:90px;object-fit:contain;margin-bottom:16px;}
 #boot p{font-size:14px;color:rgba(255,255,255,.35);}
 @keyframes toastIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
-@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
 @media(max-width:767px){
   .sidebar{display:none!important;}.mob-hdr{display:flex!important;}.main{margin-left:0!important;}
   .sec{padding:16px;padding-bottom:max(24px,env(safe-area-inset-bottom));background:#F5F5F7;min-height:calc(100dvh - 60px - env(safe-area-inset-top));}
@@ -499,7 +492,6 @@ function Btn({
   onClick,
   v = "pri",
   sm = false,
-  disabled = false,
   style = {}
 }) {
   const b = {
@@ -512,13 +504,12 @@ function Btn({
     border: "none",
     fontSize: sm ? 14 : 16,
     fontWeight: 600,
-    cursor: disabled ? "not-allowed" : "pointer",
+    cursor: "pointer",
     fontFamily: "inherit",
     whiteSpace: "nowrap",
     minHeight: sm ? 44 : 52,
     letterSpacing: ".2px",
     transition: "all .2s cubic-bezier(0.34, 1.56, 0.64, 1)",
-    opacity: disabled ? 0.5 : 1,
     ...style
   };
   const vs = {
@@ -567,8 +558,7 @@ function Btn({
       ...b,
       ...(vs[v] || vs.pri)
     },
-    onClick: disabled ? undefined : onClick,
-    disabled: disabled
+    onClick: onClick
   }, children);
 }
 function Lbl({
@@ -615,18 +605,6 @@ function Inp({
       ...style
     }
   }, p));
-}
-function SearchInp({style = {}, ...p}) {
-  return /*#__PURE__*/React.createElement("div", {style:{position:"relative",width:"100%"}},
-    /*#__PURE__*/React.createElement("svg", {
-      style:{position:"absolute",left:16,top:"50%",transform:"translateY(-50%)",pointerEvents:"none"},
-      width:20,height:20,viewBox:"0 0 24 24",fill:"none",stroke:A.g4,strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"
-    }, /*#__PURE__*/React.createElement("circle",{cx:11,cy:11,r:8}), /*#__PURE__*/React.createElement("path",{d:"m21 21-4.35-4.35"})),
-    /*#__PURE__*/React.createElement("input", _extends({
-      type:"text",
-      style:{...iS,paddingLeft:48,...style}
-    }, p))
-  );
 }
 function Sel({
   children,
@@ -784,7 +762,7 @@ function Toast({
       gap: 12,
       pointerEvents: "all"
     }
-  }, t.type === "success" && /*#__PURE__*/React.createElement("svg", {width:20,height:20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2.5,strokeLinecap:"round",strokeLinejoin:"round",style:{flexShrink:0}}, /*#__PURE__*/React.createElement("polyline", {points:"20 6 9 17 4 12"})), t.type === "error" && /*#__PURE__*/React.createElement("svg", {width:20,height:20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2.5,strokeLinecap:"round",strokeLinejoin:"round",style:{flexShrink:0}}, /*#__PURE__*/React.createElement("circle", {cx:12,cy:12,r:10}), /*#__PURE__*/React.createElement("line", {x1:15,y1:9,x2:9,y2:15}), /*#__PURE__*/React.createElement("line", {x1:9,y1:9,x2:15,y2:15})), t.type === "warn" && /*#__PURE__*/React.createElement("svg", {width:20,height:20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2.5,strokeLinecap:"round",strokeLinejoin:"round",style:{flexShrink:0}}, /*#__PURE__*/React.createElement("path", {d:"M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"}), /*#__PURE__*/React.createElement("line", {x1:12,y1:9,x2:12,y2:13}), /*#__PURE__*/React.createElement("line", {x1:12,y1:17,x2:12.01,y2:17})), /*#__PURE__*/React.createElement("span", null, t.message), t.undoToken && onUndo && /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("span", null, t.message), t.undoToken && onUndo && /*#__PURE__*/React.createElement("button", {
     onClick: () => onUndo(t.undoToken),
     style: {
       background: "rgba(255,255,255,.2)",
@@ -799,46 +777,6 @@ function Toast({
       minHeight: "auto"
     }
   }, "Undo"))));
-}
-function FAB({onClick, icon, label}) {
-  return /*#__PURE__*/React.createElement("button", {
-    onClick: onClick,
-    style: {
-      position: "fixed",
-      bottom: "max(24px, env(safe-area-inset-bottom))",
-      right: "max(24px, env(safe-area-inset-right))",
-      width: 64,
-      height: 64,
-      borderRadius: "50%",
-      background: A.warmGrad,
-      border: "none",
-      boxShadow: "0 4px 16px rgba(249,115,22,0.4), 0 8px 32px rgba(249,115,22,0.2)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      cursor: "pointer",
-      zIndex: 100,
-      transition: "all .3s cubic-bezier(0.34, 1.56, 0.64, 1)",
-      WebkitTapHighlightColor: "transparent"
-    },
-    onMouseEnter: (e) => {
-      e.currentTarget.style.transform = "scale(1.1) rotate(90deg)";
-      e.currentTarget.style.boxShadow = "0 6px 24px rgba(249,115,22,0.5), 0 12px 40px rgba(249,115,22,0.3)";
-    },
-    onMouseLeave: (e) => {
-      e.currentTarget.style.transform = "scale(1) rotate(0deg)";
-      e.currentTarget.style.boxShadow = "0 4px 16px rgba(249,115,22,0.4), 0 8px 32px rgba(249,115,22,0.2)";
-    }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: 32,
-    height: 32,
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "#fff",
-    strokeWidth: 2.5,
-    strokeLinecap: "round",
-    strokeLinejoin: "round"
-  }, /*#__PURE__*/React.createElement("line", {x1: 12, y1: 5, x2: 12, y2: 19}), /*#__PURE__*/React.createElement("line", {x1: 5, y1: 12, x2: 19, y2: 12})));
 }
 class ErrB extends Component {
   constructor(p) {
@@ -2273,7 +2211,8 @@ function ApptForm({
     style: {marginBottom: 10}
   }, /*#__PURE__*/React.createElement(Lbl, {c: "Client"}),
   /*#__PURE__*/React.createElement("div", {style: {marginTop: 4}},
-    /*#__PURE__*/React.createElement(SearchInp, {
+    /*#__PURE__*/React.createElement("input", {
+      type: "text",
       value: clientSearch,
       onChange: e => {
         setClientSearch(e.target.value);
@@ -2282,7 +2221,8 @@ function ApptForm({
       },
       onFocus: () => setShowClientList(true),
       placeholder: "Search by client or dog name...",
-      autoComplete: "off"
+      autoComplete: "off",
+      style: {background:A.g1, borderRadius:10, border:"none", fontSize:16, padding:"12px 14px", color:A.bl, width:"100%", fontFamily:"inherit", minHeight:44, outline:"none"}
     }),
     showClientList && filteredClients.length > 0 && /*#__PURE__*/React.createElement("div", {
       style: {background:"#fff", borderRadius:10, boxShadow:"0 2px 12px rgba(0,0,0,.1)", maxHeight:200, overflowY:"auto", marginTop:4, border:"1px solid "+A.g2}
@@ -3204,11 +3144,6 @@ function MainApp({
   });
   const [confirmModal, setConfirmModal] = useState(null);
   const [toasts, setToasts] = useState([]);
-  const [isSaving, setIsSaving] = useState(false);
-  useEffect(() => {
-    const bootEl = document.getElementById("boot");
-    if (bootEl) bootEl.style.display = "none";
-  }, []);
   const showToast = (message, type = "success", undoToken = null) => {
     const id = Date.now();
     setToasts(p => [...p, {
@@ -3604,17 +3539,13 @@ function MainApp({
     }));
   };
   const saveCashAdvance = (staffId) => {
-    if (!caForm.amount || !caForm.purpose || !caForm.deductionAmount || isSaving) return;
+    if (!caForm.amount || !caForm.purpose || !caForm.deductionAmount) return;
     const amt = Number(caForm.amount); const deduct = Number(caForm.deductionAmount);
     if (!amt || !deduct) return;
-    setIsSaving(true);
     setCashAdvances(prev => [...prev, {id: Date.now(), staffId: Number(staffId), amount: amt, purpose: caForm.purpose.trim(), dateIssued: caForm.dateIssued || tod(), deductionAmount: deduct, frequency: caForm.frequency || "weekly", remainingDebt: amt, deductionsMade: 0, status: "active"}]);
-    setTimeout(() => {
-      setIsSaving(false);
-      setCaForm({amount:"", purpose:"", dateIssued:tod(), deductionAmount:"", frequency:"weekly"});
-      setShowCaForm(null);
-      showToast("Cash advance recorded ✓");
-    }, 200);
+    setCaForm({amount:"", purpose:"", dateIssued:tod(), deductionAmount:"", frequency:"weekly"});
+    setShowCaForm(null);
+    showToast("Cash advance recorded ✓");
   };
   const markAdvancePaid = (id) => { setCashAdvances(prev => prev.map(a => a.id === id ? {...a, remainingDebt:0, status:"paid"} : a)); showToast("Marked as fully paid ✓"); };
   const deleteAdvance = (id) => askConfirm("Delete this cash advance record?", () => { setCashAdvances(prev => prev.filter(a => a.id !== id)); showToast("Advance deleted"); });
@@ -3641,27 +3572,19 @@ function MainApp({
     showToast("Balance updated ✓");
   };
   const saveCapItem = () => {
-    if (!capForm.name.trim() || !capForm.amount || isSaving) return;
-    setIsSaving(true);
+    if (!capForm.name.trim() || !capForm.amount) return;
     const item = {...capForm, amount:Number(capForm.amount), id:capForm.id||Date.now()};
     setOwnerFinances(prev => ({...prev, capitalItems:capForm.id?(prev.capitalItems||[]).map(c=>c.id===capForm.id?item:c):[...(prev.capitalItems||[]),item]}));
-    setTimeout(() => {
-      setIsSaving(false);
-      setCapForm({id:null,name:"",amount:"",date:tod(),category:"Equipment",notes:""});
-      setShowCapForm(false);
-      showToast("Capital item saved ✓");
-    }, 200);
+    setCapForm({id:null,name:"",amount:"",date:tod(),category:"Equipment",notes:""});
+    setShowCapForm(false);
+    showToast("Capital item saved ✓");
   };
   const saveOwnerSal = () => {
     const amt = Number(ownerSalForm.amount);
-    if (!amt || isSaving) return;
-    setIsSaving(true);
+    if (!amt) return;
     setOwnerFinances(prev => ({...prev, salaryAmount:amt, salaryCycle:ownerSalForm.cycle||"monthly", businessStartDate:ownerSalForm.startDate||""}));
-    setTimeout(() => {
-      setIsSaving(false);
-      setShowOwnerSalEdit(false);
-      showToast("Owner salary updated ✓");
-    }, 200);
+    setShowOwnerSalEdit(false);
+    showToast("Owner salary updated ✓");
   };
   const markOwnerSalPaid = (period) => {
     const amt = ownerFinances.salaryAmount||0;
@@ -3727,15 +3650,10 @@ function MainApp({
   };
   const saveBalEdit = () => {
     const val = Number(editBalVal);
-    if (isNaN(val)||!editBalKey||isSaving) return;
-    setIsSaving(true);
+    if (isNaN(val)||!editBalKey) return;
     setBalances(prev=>({...prev,[editBalKey]:Math.max(0,val)}));
-    setTimeout(() => {
-      setIsSaving(false);
-      setEditBalKey(null);
-      setEditBalVal("");
-      showToast("Balance updated ✓");
-    }, 200);
+    setEditBalKey(null); setEditBalVal("");
+    showToast("Balance updated ✓");
   };
   const exportData = () => {
     try {
@@ -3826,8 +3744,7 @@ function MainApp({
     showToast("Expense logged ✓");
   };
   const saveSv = () => {
-    if (!svForm.name.trim() || isSaving) return;
-    setIsSaving(true);
+    if (!svForm.name.trim()) return;
     if (editSvId) setServices(prev => prev.map(sv => sv.id === editSvId ? {
       ...sv,
       name: svForm.name,
@@ -3839,17 +3756,14 @@ function MainApp({
       price: Number(svForm.price),
       category: svForm.category || ""
     }]);
-    setTimeout(() => {
-      setIsSaving(false);
-      setSvForm({
-        name: "",
-        price: "",
-        category: ""
-      });
-      setEditSvId(null);
-      setShowSvForm(false);
-      showToast("Service saved ✓");
-    }, 200);
+    setSvForm({
+      name: "",
+      price: "",
+      category: ""
+    });
+    setEditSvId(null);
+    setShowSvForm(false);
+    showToast("Service saved ✓");
   };
   const fCl = clients.filter(c => c.name.toLowerCase().includes(nFilter.toLowerCase()) || c.pets.some(p => p.name.toLowerCase().includes(nFilter.toLowerCase())));
   const appts = gA(selDate);
@@ -4723,13 +4637,7 @@ function MainApp({
           setAForm(bA(selDate));
           setShowAForm(true);
         }
-      }, "+ Add Appointment")), /*#__PURE__*/React.createElement(FAB, {
-        onClick: () => {
-          setActA(null);
-          setAForm(bA(todStr));
-          setShowAForm(true);
-        }
-      }));
+      }, "+ Add Appointment")));
     }
     if (tab === "schedule") {
       const selDayName = DNAMES[new Date(selDate + "T12:00:00").getDay()];
@@ -6111,13 +6019,7 @@ function MainApp({
           fontWeight: 700,
           color: c
         }
-      }, val))))), /*#__PURE__*/React.createElement(FAB, {
-        onClick: () => {
-          setActA(null);
-          setAForm(bA(selDate));
-          setShowAForm(true);
-        }
-      })));
+      }, val))))))));
     }
     if (tab === "weekly") {
       return /*#__PURE__*/React.createElement("div", {
@@ -6230,7 +6132,7 @@ function MainApp({
         style: {
           marginBottom: 14
         }
-      }, /*#__PURE__*/React.createElement(SearchInp, {
+      }, /*#__PURE__*/React.createElement(Inp, {
         value: nFilter,
         onChange: e => setNFilter(e.target.value),
         placeholder: "Search clients or pets...",
@@ -6582,7 +6484,7 @@ function MainApp({
           )
         )
       ), /*#__PURE__*/React.createElement("div", {style: {display: "flex", gap: 8, alignItems: "flex-end"}},
-        /*#__PURE__*/React.createElement(Btn, {v: "warm", onClick: saveSv, disabled: isSaving}, isSaving?"Saving...":"Save"),
+        /*#__PURE__*/React.createElement(Btn, {v: "warm", onClick: saveSv}, "Save"),
         /*#__PURE__*/React.createElement(Btn, {v: "can", onClick: () => {setShowSvForm(false); setSvForm({name: "", price: "", category: ""});}}, "Cancel")
       ))),
       (()=>{
@@ -7595,7 +7497,7 @@ function MainApp({
                 )
               ),
               /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:8}},
-                /*#__PURE__*/React.createElement(Btn,{v:"warm",onClick:()=>saveCashAdvance(sm.id),disabled:isSaving},isSaving?"Saving...":"Save Advance"),
+                /*#__PURE__*/React.createElement(Btn,{v:"warm",onClick:()=>saveCashAdvance(sm.id)},"Save Advance"),
                 /*#__PURE__*/React.createElement(Btn,{v:"can",onClick:()=>setShowCaForm(null)},"Cancel")
               )
             ),
@@ -8223,7 +8125,7 @@ function MainApp({
             ? /*#__PURE__*/React.createElement("div", {style:{marginBottom:8}},
                 /*#__PURE__*/React.createElement(Inp, {type:"number",value:editBalVal,onChange:e=>setEditBalVal(e.target.value),autoFocus:true,style:{marginBottom:6}}),
                 /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:6}},
-                  /*#__PURE__*/React.createElement(Btn, {sm:true,v:"warm",onClick:saveBalEdit,disabled:isSaving}, isSaving?"Saving...":"Save"),
+                  /*#__PURE__*/React.createElement(Btn, {sm:true,v:"warm",onClick:saveBalEdit}, "Save"),
                   /*#__PURE__*/React.createElement(Btn, {sm:true,v:"can",onClick:()=>{setEditBalKey(null);setEditBalVal("");}}, "Cancel")
                 )
               )
@@ -8288,7 +8190,7 @@ function MainApp({
             ),
             /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:10}},
               /*#__PURE__*/React.createElement(Btn, {v:"sec",style:{flex:1},onClick:()=>setShowCapForm(false)}, "Cancel"),
-              /*#__PURE__*/React.createElement(Btn, {v:"warm",style:{flex:1},onClick:saveCapItem,disabled:isSaving}, isSaving?"Saving...":"Save")
+              /*#__PURE__*/React.createElement(Btn, {v:"warm",style:{flex:1},onClick:saveCapItem}, "Save")
             )
           )
         ),
@@ -8309,7 +8211,7 @@ function MainApp({
               ? /*#__PURE__*/React.createElement("div", {style:{marginBottom:8}},
                   /*#__PURE__*/React.createElement(Inp, {type:"number",value:editBalVal,onChange:e=>setEditBalVal(e.target.value),autoFocus:true,style:{marginBottom:6}}),
                   /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:6}},
-                    /*#__PURE__*/React.createElement(Btn, {sm:true,v:"warm",onClick:saveBalEdit,disabled:isSaving}, isSaving?"Saving...":"Save"),
+                    /*#__PURE__*/React.createElement(Btn, {sm:true,v:"warm",onClick:saveBalEdit}, "Save"),
                     /*#__PURE__*/React.createElement(Btn, {sm:true,v:"can",onClick:()=>{setEditBalKey(null);setEditBalVal("");}}, "Cancel")
                   )
                 )
@@ -8419,7 +8321,7 @@ function MainApp({
                   )
                 ),
                 /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:8}},
-                  /*#__PURE__*/React.createElement(Btn, {v:"warm",onClick:saveOwnerSal,disabled:isSaving}, isSaving?"Saving...":"Save"),
+                  /*#__PURE__*/React.createElement(Btn, {v:"warm",onClick:saveOwnerSal}, "Save"),
                   /*#__PURE__*/React.createElement(Btn, {v:"can",onClick:()=>setShowOwnerSalEdit(false)}, "Cancel")
                 )
               )
@@ -8801,6 +8703,7 @@ function App() {
 const container = document.getElementById("root");
 const root = ReactDOM.createRoot(container);
 root.render(/*#__PURE__*/React.createElement(App, null));
+document.getElementById("boot").style.display = "none";
 </script>
 </body>
 </html>
