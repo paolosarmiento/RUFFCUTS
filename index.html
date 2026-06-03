@@ -613,6 +613,18 @@ function Inp({
     }
   }, p));
 }
+function SearchInp({style = {}, ...p}) {
+  return /*#__PURE__*/React.createElement("div", {style:{position:"relative",width:"100%"}},
+    /*#__PURE__*/React.createElement("svg", {
+      style:{position:"absolute",left:16,top:"50%",transform:"translateY(-50%)",pointerEvents:"none"},
+      width:20,height:20,viewBox:"0 0 24 24",fill:"none",stroke:A.g4,strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"
+    }, /*#__PURE__*/React.createElement("circle",{cx:11,cy:11,r:8}), /*#__PURE__*/React.createElement("path",{d:"m21 21-4.35-4.35"})),
+    /*#__PURE__*/React.createElement("input", _extends({
+      type:"text",
+      style:{...iS,paddingLeft:48,...style}
+    }, p))
+  );
+}
 function Sel({
   children,
   style = {},
@@ -2218,8 +2230,7 @@ function ApptForm({
     style: {marginBottom: 10}
   }, /*#__PURE__*/React.createElement(Lbl, {c: "Client"}),
   /*#__PURE__*/React.createElement("div", {style: {marginTop: 4}},
-    /*#__PURE__*/React.createElement("input", {
-      type: "text",
+    /*#__PURE__*/React.createElement(SearchInp, {
       value: clientSearch,
       onChange: e => {
         setClientSearch(e.target.value);
@@ -2228,8 +2239,7 @@ function ApptForm({
       },
       onFocus: () => setShowClientList(true),
       placeholder: "Search by client or dog name...",
-      autoComplete: "off",
-      style: {background:A.g1, borderRadius:10, border:"none", fontSize:16, padding:"12px 14px", color:A.bl, width:"100%", fontFamily:"inherit", minHeight:44, outline:"none"}
+      autoComplete: "off"
     }),
     showClientList && filteredClients.length > 0 && /*#__PURE__*/React.createElement("div", {
       style: {background:"#fff", borderRadius:10, boxShadow:"0 2px 12px rgba(0,0,0,.1)", maxHeight:200, overflowY:"auto", marginTop:4, border:"1px solid "+A.g2}
@@ -6139,7 +6149,7 @@ function MainApp({
         style: {
           marginBottom: 14
         }
-      }, /*#__PURE__*/React.createElement(Inp, {
+      }, /*#__PURE__*/React.createElement(SearchInp, {
         value: nFilter,
         onChange: e => setNFilter(e.target.value),
         placeholder: "Search clients or pets...",
