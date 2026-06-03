@@ -133,14 +133,11 @@ setTimeout(function(){
   if(m)m.textContent='Taking longer than usual... please wait.';
 },15000);
 </script>
-<script type="module">
-import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, writeBatch, enableMultiTabIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+<script>
+(async function() {
+const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js');
+const { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, writeBatch, enableMultiTabIndexedDbPersistence } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
-if (!window.React || !window.ReactDOM) {
-  console.error("React not loaded! Check CDN scripts.");
-  throw new Error("React libraries not available");
-}
 const React = window.React;
 const ReactDOM = window.ReactDOM;
 const {
@@ -8796,6 +8793,7 @@ try {
   console.error("[ERROR] Failed to render:", error);
   document.body.innerHTML = '<div style="padding:40px;color:red;font-family:monospace;"><h2>Error rendering app:</h2><pre>' + error.message + '\n' + error.stack + '</pre></div>';
 }
+})();
 </script>
 </body>
 </html>
