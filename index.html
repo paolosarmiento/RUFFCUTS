@@ -136,8 +136,12 @@ setTimeout(function(){
 import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
 import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, writeBatch, enableMultiTabIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
-const React = window.React || {};
-const ReactDOM = window.ReactDOM || {};
+if (!window.React || !window.ReactDOM) {
+  console.error("React not loaded! Check CDN scripts.");
+  throw new Error("React libraries not available");
+}
+const React = window.React;
+const ReactDOM = window.ReactDOM;
 const {
   useState,
   useEffect,
