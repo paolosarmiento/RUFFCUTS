@@ -20,6 +20,8 @@ body{min-height:100dvh;min-height:-webkit-fill-available;font-family:-apple-syst
 input,select,textarea,button{font-family:inherit;font-size:16px;outline:none;-webkit-appearance:none;appearance:none;border-radius:0;}
 input,select,textarea{border-radius:14px;border:1.5px solid rgba(0,0,0,.06);background:#fff;color:#1c1c1e;padding:14px 16px;width:100%;min-height:52px;transition:all .2s ease;}
 input:focus,select:focus,textarea:focus{background:#fff;border-color:#0A84FF;box-shadow:0 0 0 4px rgba(10,132,255,.12);}
+input:invalid:not(:placeholder-shown),textarea:invalid:not(:placeholder-shown){border-color:#FF453A;background:#FEF2F2;}
+input:valid:not(:placeholder-shown),textarea:valid:not(:placeholder-shown){border-color:#32D74B;}
 button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;min-height:44px;border:none;background:none;transition:all .15s ease;}
 textarea{resize:vertical;min-height:96px;line-height:1.5;}
 ::placeholder{color:#aeaeb2;}
