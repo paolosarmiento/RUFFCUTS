@@ -3199,6 +3199,10 @@ function MainApp({
   const [confirmModal, setConfirmModal] = useState(null);
   const [toasts, setToasts] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
+  useEffect(() => {
+    const bootEl = document.getElementById("boot");
+    if (bootEl) bootEl.style.display = "none";
+  }, []);
   const showToast = (message, type = "success", undoToken = null) => {
     const id = Date.now();
     setToasts(p => [...p, {
