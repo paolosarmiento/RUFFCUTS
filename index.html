@@ -8810,41 +8810,47 @@ function App() {
   }));
 }
 
-// Render React - use timeout to ensure it happens even if Firebase hangs
+// Global render function - called by timeout, Firebase success, or Firebase error
 function renderApp() {
+  // ALWAYS hide boot screen first
+  const bootEl = document.getElementById("boot");
+  if (bootEl) bootEl.style.display = "none";
+
   try {
     const container = document.getElementById("root");
+    if (!container) {
+      throw new Error("#root element not found");
+    }
     const root = ReactDOM.createRoot(container);
     root.render(/*#__PURE__*/React.createElement(App, null));
     console.log("[SUCCESS] React rendered");
   } catch (error) {
+    // Only on ACTUAL render failure, show error (don't delete body in try block!)
     console.error("[ERROR] Render failed:", error);
-    const bootEl = document.getElementById("boot");
-    if (bootEl) bootEl.style.display = "none";
-    document.body.innerHTML = '<div style="padding:40px;color:red;font-family:monospace;"><h2>Error:</h2><pre>' + error.message + '\n' + error.stack + '</pre></div>';
+    document.body.innerHTML = '<div style="padding:40px;color:red;font-family:monospace;"><h2>Error rendering app:</h2><pre>' + error.message + '\n' + error.stack + '</pre></div>';
   }
 }
 
 let rendered = false;
 
-// Try to wait for Firebase, but don't wait forever
+// Wait for Firebase (but timeout ensures we render anyway)
 firebaseReady.then(() => {
   if (!rendered) {
     rendered = true;
     renderApp();
   }
 }).catch(err => {
-  console.error("[ERROR] Firebase failed:", err);
+  console.error("[ERROR] Firebase load failed:", err);
   if (!rendered) {
     rendered = true;
-    renderApp(); // Render anyway, will show offline
+    renderApp(); // Render anyway, app will show offline status
   }
 });
 
-// Timeout: render after 3 seconds even if Firebase hasn't loaded
+// Timeout: render after 3 seconds NO MATTER WHAT
 setTimeout(() => {
   if (!rendered) {
-    console.warn("[TIMEOUT] Firebase taking too long, rendering anyway");
+    console.warn("[TIMEOUT] Rendering app after 3s timeout");
     rendered = true;
     renderApp();
   }
