@@ -193,7 +193,7 @@ const REBOOK_DAYS = 28;
 const SYNC_DEBOUNCE_MS = 800;
 const MIN_PASSWORD_LENGTH = 4;
 const DEF_BAL = {cashOnHand:0, gcashBalance:0, bankBalance:0, deposits:[]};
-const DEF_OWN = {salaryCycle:"monthly", salaryAmount:0, capitalItems:[], salaryPayments:[]};
+const DEF_OWN = {salaryCycle:"monthly", salaryAmount:0, capitalItems:[], salaryPayments:[], businessStartDate:""};
 const CAP_CATS = ["Equipment","Vehicle","Marketing","Renovation","Technology","Other"];
 const DESIGS = ["Groomer", "Driver", "Apprentice Groomer"];
 const PAY_MODES = ["Cash", "GCash"];
@@ -3582,7 +3582,7 @@ function MainApp({
   const saveOwnerSal = () => {
     const amt = Number(ownerSalForm.amount);
     if (!amt) return;
-    setOwnerFinances(prev => ({...prev, salaryAmount:amt, salaryCycle:ownerSalForm.cycle||"monthly"}));
+    setOwnerFinances(prev => ({...prev, salaryAmount:amt, salaryCycle:ownerSalForm.cycle||"monthly", businessStartDate:ownerSalForm.startDate||""}));
     setShowOwnerSalEdit(false);
     showToast("Owner salary updated ✓");
   };
@@ -3599,11 +3599,12 @@ function MainApp({
     const cycle = ownerFinances.salaryCycle || "monthly";
     const periods = [];
 
-    // Find earliest date with business activity (first appointment or expense)
+    // Use businessStartDate if set, otherwise use first appointment/expense date
+    const configuredStart = ownerFinances.businessStartDate || "";
     const allDates = [...allD];
-    const earliestDate = allDates.length > 0 ? allDates.sort()[0] : tod();
-    const [eYear, eMonth] = earliestDate.split("-").map(Number);
-    const startDate = new Date(eYear, eMonth - 1, 1);
+    const earliestDate = configuredStart || (allDates.length > 0 ? allDates.sort()[0] : tod());
+    const [eYear, eMonth, eDay] = earliestDate.split("-").map(Number);
+    const startDate = new Date(eYear, eMonth - 1, eDay || 1);
 
     if (cycle === "monthly") {
       // Show months from business start to current month
@@ -8300,6 +8301,11 @@ function MainApp({
           showOwnerSalEdit
             ? /*#__PURE__*/React.createElement("div", {style:{padding:16}},
                 /*#__PURE__*/React.createElement("p", {style:{fontSize:15,fontWeight:700,marginBottom:14}}, "Owner Salary Settings"),
+                /*#__PURE__*/React.createElement("div", {style:{marginBottom:14}},
+                  /*#__PURE__*/React.createElement(Lbl, {c:"Business Start Date"}),
+                  /*#__PURE__*/React.createElement(Inp, {type:"date",value:ownerSalForm.startDate||"",onChange:e=>setOwnerSalForm(p=>({...p,startDate:e.target.value})),placeholder:"Select date"}),
+                  /*#__PURE__*/React.createElement("p", {style:{fontSize:12,color:A.g4,marginTop:6}}, "Salary periods begin from this date")
+                ),
                 /*#__PURE__*/React.createElement("div", {className:"g2",style:{marginBottom:14}},
                   /*#__PURE__*/React.createElement("div", null,
                     /*#__PURE__*/React.createElement(Lbl, {c:"Monthly Draw (₱)"}),
@@ -8324,7 +8330,7 @@ function MainApp({
                   /*#__PURE__*/React.createElement("p", {style:{fontWeight:600}}, ownerFinances.salaryAmount>0?"Owner Draw · "+freqLabel(ownerFinances.salaryCycle):"No salary configured"),
                   ownerFinances.salaryAmount>0&&/*#__PURE__*/React.createElement("p", {style:{fontSize:13,color:A.g4}}, fmt(ownerFinances.salaryAmount)+" per period · "+fmt(ownerSalPaidTotal)+" paid to date")
                 ),
-                /*#__PURE__*/React.createElement(Btn, {sm:true,v:"sec",onClick:()=>{setOwnerSalForm({amount:String(ownerFinances.salaryAmount||""),cycle:ownerFinances.salaryCycle||"monthly"});setShowOwnerSalEdit(true);}},
+                /*#__PURE__*/React.createElement(Btn, {sm:true,v:"sec",onClick:()=>{setOwnerSalForm({amount:String(ownerFinances.salaryAmount||""),cycle:ownerFinances.salaryCycle||"monthly",startDate:ownerFinances.businessStartDate||""});setShowOwnerSalEdit(true);}},
                   ownerFinances.salaryAmount>0?"Edit":"Set Up"
                 )
               )
@@ -8335,8 +8341,12 @@ function MainApp({
           ),
           salPeriods.length===0
             ? /*#__PURE__*/React.createElement("div", {style:{padding:"32px 20px",textAlign:"center"}},
-                /*#__PURE__*/React.createElement("p", {style:{fontSize:14,color:A.g4}}, "No periods to show yet."),
-                /*#__PURE__*/React.createElement("p", {style:{fontSize:13,color:A.g4,marginTop:6}}, "Periods will appear once you have business activity.")
+                /*#__PURE__*/React.createElement("p", {style:{fontSize:14,color:A.g4}}, "No salary periods yet."),
+                /*#__PURE__*/React.createElement("p", {style:{fontSize:13,color:A.g4,marginTop:6}},
+                  ownerFinances.businessStartDate
+                    ? "Business starts on " + fmtD(ownerFinances.businessStartDate) + " — periods will appear from that date."
+                    : "Set a business start date to track salary periods."
+                )
               )
             : salPeriods.map((sp,i)=>/*#__PURE__*/React.createElement("div", {key:sp.key,style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",borderBottom:i<salPeriods.length-1?".5px solid "+A.g2:"none"}},
             /*#__PURE__*/React.createElement("div", null,
