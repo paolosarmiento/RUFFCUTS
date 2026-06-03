@@ -8810,11 +8810,18 @@ function App() {
   }));
 }
 
-// Global render function - called by timeout, Firebase success, or Firebase error
-function renderApp() {
+console.log('[MODULE] Script started');
+
+// Expose render function to window so setTimeout can access it (module scope issue)
+window.renderApp = function renderApp() {
+  console.log('[RENDER] renderApp called');
+
   // ALWAYS hide boot screen first
   const bootEl = document.getElementById("boot");
-  if (bootEl) bootEl.style.display = "none";
+  if (bootEl) {
+    bootEl.style.display = "none";
+    console.log('[RENDER] Boot screen hidden');
+  }
 
   try {
     const container = document.getElementById("root");
@@ -8825,7 +8832,7 @@ function renderApp() {
     root.render(/*#__PURE__*/React.createElement(App, null));
     console.log("[SUCCESS] React rendered");
   } catch (error) {
-    // Only on ACTUAL render failure, show error (don't delete body in try block!)
+    // Only on ACTUAL render failure, show error
     console.error("[ERROR] Render failed:", error);
     document.body.innerHTML = '<div style="padding:40px;color:red;font-family:monospace;"><h2>Error rendering app:</h2><pre>' + error.message + '\n' + error.stack + '</pre></div>';
   }
@@ -8835,24 +8842,26 @@ let rendered = false;
 
 // Wait for Firebase (but timeout ensures we render anyway)
 firebaseReady.then(() => {
+  console.log('[FIREBASE] Ready, rendering app');
   if (!rendered) {
     rendered = true;
-    renderApp();
+    window.renderApp();
   }
 }).catch(err => {
   console.error("[ERROR] Firebase load failed:", err);
   if (!rendered) {
     rendered = true;
-    renderApp(); // Render anyway, app will show offline status
+    window.renderApp(); // Render anyway, app will show offline status
   }
 });
 
 // Timeout: render after 3 seconds NO MATTER WHAT
+console.log('[TIMEOUT] Setting 3-second timeout');
 setTimeout(() => {
+  console.warn("[TIMEOUT] Timeout fired after 3s");
   if (!rendered) {
-    console.warn("[TIMEOUT] Rendering app after 3s timeout");
     rendered = true;
-    renderApp();
+    window.renderApp();
   }
 }, 3000);
 </script>
