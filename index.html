@@ -496,6 +496,7 @@ function Btn({
   onClick,
   v = "pri",
   sm = false,
+  disabled = false,
   style = {}
 }) {
   const b = {
@@ -508,12 +509,13 @@ function Btn({
     border: "none",
     fontSize: sm ? 14 : 16,
     fontWeight: 600,
-    cursor: "pointer",
+    cursor: disabled ? "not-allowed" : "pointer",
     fontFamily: "inherit",
     whiteSpace: "nowrap",
     minHeight: sm ? 44 : 52,
     letterSpacing: ".2px",
     transition: "all .2s cubic-bezier(0.34, 1.56, 0.64, 1)",
+    opacity: disabled ? 0.5 : 1,
     ...style
   };
   const vs = {
@@ -562,7 +564,8 @@ function Btn({
       ...b,
       ...(vs[v] || vs.pri)
     },
-    onClick: onClick
+    onClick: disabled ? undefined : onClick,
+    disabled: disabled
   }, children);
 }
 function Lbl({
@@ -3148,6 +3151,7 @@ function MainApp({
   });
   const [confirmModal, setConfirmModal] = useState(null);
   const [toasts, setToasts] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
   const showToast = (message, type = "success", undoToken = null) => {
     const id = Date.now();
     setToasts(p => [...p, {
@@ -3543,13 +3547,17 @@ function MainApp({
     }));
   };
   const saveCashAdvance = (staffId) => {
-    if (!caForm.amount || !caForm.purpose || !caForm.deductionAmount) return;
+    if (!caForm.amount || !caForm.purpose || !caForm.deductionAmount || isSaving) return;
     const amt = Number(caForm.amount); const deduct = Number(caForm.deductionAmount);
     if (!amt || !deduct) return;
+    setIsSaving(true);
     setCashAdvances(prev => [...prev, {id: Date.now(), staffId: Number(staffId), amount: amt, purpose: caForm.purpose.trim(), dateIssued: caForm.dateIssued || tod(), deductionAmount: deduct, frequency: caForm.frequency || "weekly", remainingDebt: amt, deductionsMade: 0, status: "active"}]);
-    setCaForm({amount:"", purpose:"", dateIssued:tod(), deductionAmount:"", frequency:"weekly"});
-    setShowCaForm(null);
-    showToast("Cash advance recorded ✓");
+    setTimeout(() => {
+      setIsSaving(false);
+      setCaForm({amount:"", purpose:"", dateIssued:tod(), deductionAmount:"", frequency:"weekly"});
+      setShowCaForm(null);
+      showToast("Cash advance recorded ✓");
+    }, 400);
   };
   const markAdvancePaid = (id) => { setCashAdvances(prev => prev.map(a => a.id === id ? {...a, remainingDebt:0, status:"paid"} : a)); showToast("Marked as fully paid ✓"); };
   const deleteAdvance = (id) => askConfirm("Delete this cash advance record?", () => { setCashAdvances(prev => prev.filter(a => a.id !== id)); showToast("Advance deleted"); });
@@ -3576,19 +3584,27 @@ function MainApp({
     showToast("Balance updated ✓");
   };
   const saveCapItem = () => {
-    if (!capForm.name.trim() || !capForm.amount) return;
+    if (!capForm.name.trim() || !capForm.amount || isSaving) return;
+    setIsSaving(true);
     const item = {...capForm, amount:Number(capForm.amount), id:capForm.id||Date.now()};
     setOwnerFinances(prev => ({...prev, capitalItems:capForm.id?(prev.capitalItems||[]).map(c=>c.id===capForm.id?item:c):[...(prev.capitalItems||[]),item]}));
-    setCapForm({id:null,name:"",amount:"",date:tod(),category:"Equipment",notes:""});
-    setShowCapForm(false);
-    showToast("Capital item saved ✓");
+    setTimeout(() => {
+      setIsSaving(false);
+      setCapForm({id:null,name:"",amount:"",date:tod(),category:"Equipment",notes:""});
+      setShowCapForm(false);
+      showToast("Capital item saved ✓");
+    }, 400);
   };
   const saveOwnerSal = () => {
     const amt = Number(ownerSalForm.amount);
-    if (!amt) return;
+    if (!amt || isSaving) return;
+    setIsSaving(true);
     setOwnerFinances(prev => ({...prev, salaryAmount:amt, salaryCycle:ownerSalForm.cycle||"monthly", businessStartDate:ownerSalForm.startDate||""}));
-    setShowOwnerSalEdit(false);
-    showToast("Owner salary updated ✓");
+    setTimeout(() => {
+      setIsSaving(false);
+      setShowOwnerSalEdit(false);
+      showToast("Owner salary updated ✓");
+    }, 400);
   };
   const markOwnerSalPaid = (period) => {
     const amt = ownerFinances.salaryAmount||0;
@@ -3654,10 +3670,15 @@ function MainApp({
   };
   const saveBalEdit = () => {
     const val = Number(editBalVal);
-    if (isNaN(val)||!editBalKey) return;
+    if (isNaN(val)||!editBalKey||isSaving) return;
+    setIsSaving(true);
     setBalances(prev=>({...prev,[editBalKey]:Math.max(0,val)}));
-    setEditBalKey(null); setEditBalVal("");
-    showToast("Balance updated ✓");
+    setTimeout(() => {
+      setIsSaving(false);
+      setEditBalKey(null);
+      setEditBalVal("");
+      showToast("Balance updated ✓");
+    }, 400);
   };
   const exportData = () => {
     try {
@@ -3748,7 +3769,8 @@ function MainApp({
     showToast("Expense logged ✓");
   };
   const saveSv = () => {
-    if (!svForm.name.trim()) return;
+    if (!svForm.name.trim() || isSaving) return;
+    setIsSaving(true);
     if (editSvId) setServices(prev => prev.map(sv => sv.id === editSvId ? {
       ...sv,
       name: svForm.name,
@@ -3760,14 +3782,17 @@ function MainApp({
       price: Number(svForm.price),
       category: svForm.category || ""
     }]);
-    setSvForm({
-      name: "",
-      price: "",
-      category: ""
-    });
-    setEditSvId(null);
-    setShowSvForm(false);
-    showToast("Service saved ✓");
+    setTimeout(() => {
+      setIsSaving(false);
+      setSvForm({
+        name: "",
+        price: "",
+        category: ""
+      });
+      setEditSvId(null);
+      setShowSvForm(false);
+      showToast("Service saved ✓");
+    }, 400);
   };
   const fCl = clients.filter(c => c.name.toLowerCase().includes(nFilter.toLowerCase()) || c.pets.some(p => p.name.toLowerCase().includes(nFilter.toLowerCase())));
   const appts = gA(selDate);
@@ -6488,7 +6513,7 @@ function MainApp({
           )
         )
       ), /*#__PURE__*/React.createElement("div", {style: {display: "flex", gap: 8, alignItems: "flex-end"}},
-        /*#__PURE__*/React.createElement(Btn, {v: "warm", onClick: saveSv}, "Save"),
+        /*#__PURE__*/React.createElement(Btn, {v: "warm", onClick: saveSv, disabled: isSaving}, isSaving?"Saving...":"Save"),
         /*#__PURE__*/React.createElement(Btn, {v: "can", onClick: () => {setShowSvForm(false); setSvForm({name: "", price: "", category: ""});}}, "Cancel")
       ))),
       (()=>{
@@ -7501,7 +7526,7 @@ function MainApp({
                 )
               ),
               /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:8}},
-                /*#__PURE__*/React.createElement(Btn,{v:"warm",onClick:()=>saveCashAdvance(sm.id)},"Save Advance"),
+                /*#__PURE__*/React.createElement(Btn,{v:"warm",onClick:()=>saveCashAdvance(sm.id),disabled:isSaving},isSaving?"Saving...":"Save Advance"),
                 /*#__PURE__*/React.createElement(Btn,{v:"can",onClick:()=>setShowCaForm(null)},"Cancel")
               )
             ),
@@ -8129,7 +8154,7 @@ function MainApp({
             ? /*#__PURE__*/React.createElement("div", {style:{marginBottom:8}},
                 /*#__PURE__*/React.createElement(Inp, {type:"number",value:editBalVal,onChange:e=>setEditBalVal(e.target.value),autoFocus:true,style:{marginBottom:6}}),
                 /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:6}},
-                  /*#__PURE__*/React.createElement(Btn, {sm:true,v:"warm",onClick:saveBalEdit}, "Save"),
+                  /*#__PURE__*/React.createElement(Btn, {sm:true,v:"warm",onClick:saveBalEdit,disabled:isSaving}, isSaving?"Saving...":"Save"),
                   /*#__PURE__*/React.createElement(Btn, {sm:true,v:"can",onClick:()=>{setEditBalKey(null);setEditBalVal("");}}, "Cancel")
                 )
               )
@@ -8194,7 +8219,7 @@ function MainApp({
             ),
             /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:10}},
               /*#__PURE__*/React.createElement(Btn, {v:"sec",style:{flex:1},onClick:()=>setShowCapForm(false)}, "Cancel"),
-              /*#__PURE__*/React.createElement(Btn, {v:"warm",style:{flex:1},onClick:saveCapItem}, "Save")
+              /*#__PURE__*/React.createElement(Btn, {v:"warm",style:{flex:1},onClick:saveCapItem,disabled:isSaving}, isSaving?"Saving...":"Save")
             )
           )
         ),
@@ -8215,7 +8240,7 @@ function MainApp({
               ? /*#__PURE__*/React.createElement("div", {style:{marginBottom:8}},
                   /*#__PURE__*/React.createElement(Inp, {type:"number",value:editBalVal,onChange:e=>setEditBalVal(e.target.value),autoFocus:true,style:{marginBottom:6}}),
                   /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:6}},
-                    /*#__PURE__*/React.createElement(Btn, {sm:true,v:"warm",onClick:saveBalEdit}, "Save"),
+                    /*#__PURE__*/React.createElement(Btn, {sm:true,v:"warm",onClick:saveBalEdit,disabled:isSaving}, isSaving?"Saving...":"Save"),
                     /*#__PURE__*/React.createElement(Btn, {sm:true,v:"can",onClick:()=>{setEditBalKey(null);setEditBalVal("");}}, "Cancel")
                   )
                 )
@@ -8325,7 +8350,7 @@ function MainApp({
                   )
                 ),
                 /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:8}},
-                  /*#__PURE__*/React.createElement(Btn, {v:"warm",onClick:saveOwnerSal}, "Save"),
+                  /*#__PURE__*/React.createElement(Btn, {v:"warm",onClick:saveOwnerSal,disabled:isSaving}, isSaving?"Saving...":"Save"),
                   /*#__PURE__*/React.createElement(Btn, {v:"can",onClick:()=>setShowOwnerSalEdit(false)}, "Cancel")
                 )
               )
