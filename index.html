@@ -98,8 +98,27 @@ textarea{resize:vertical;min-height:96px;line-height:1.5;}
 @keyframes toastIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
 .fab-btn:hover{transform:scale(1.1) rotate(90deg);box-shadow:0 6px 24px rgba(249,115,22,0.5),0 12px 40px rgba(249,115,22,0.3);}
+.btm-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e5e5e5;padding:8px 0;padding-bottom:max(8px,env(safe-area-inset-bottom));z-index:100;box-shadow:0 -2px 10px rgba(0,0,0,0.05);}
+.btm-nav-items{display:flex;align-items:flex-end;max-width:600px;margin:0 auto;}
+.btm-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;background:none;border:none;color:#8e8e93;cursor:pointer;transition:all 0.2s;position:relative;}
+.btm-nav-item.center{margin-top:-8px;}
+.btm-nav-item.active{color:#FC4C02;}
+.btm-nav-icon{width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:24px;}
+.btm-nav-item.center .btm-nav-icon{width:56px;height:56px;background:#FC4C02;border-radius:50%;color:#fff;font-size:32px;box-shadow:0 4px 12px rgba(252,76,2,0.25);}
+.btm-nav-label{font-size:10px;font-weight:500;}
+.btm-nav-item.center .btm-nav-label{color:#FC4C02;}
+.top-bar{display:none;position:fixed;top:0;left:0;right:0;height:calc(44px + env(safe-area-inset-top));padding-top:env(safe-area-inset-top);background:#fff;border-bottom:1px solid #e5e5e5;z-index:89;align-items:flex-end;justify-content:space-between;padding-left:16px;padding-right:16px;padding-bottom:8px;}
+.top-bar-status{font-size:11px;color:#666;}
+.top-bar-menu{background:none;border:none;color:#666;font-size:24px;cursor:pointer;padding:0;min-height:auto;}
+.page-title-bar{background:#fff;padding:16px 20px 12px;border-bottom:1px solid #e5e5e5;}
+.page-title-bar h1{font-size:34px;font-weight:700;letter-spacing:-0.5px;margin:0;}
+.sub-tabs-bar{display:flex;gap:8px;padding:12px 20px;background:#fff;border-bottom:1px solid #e5e5e5;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.sub-tabs-bar::-webkit-scrollbar{display:none;}
+.sub-tab-btn{padding:8px 16px;border-radius:20px;background:transparent;border:1.5px solid #e5e5e5;color:#666;font-size:14px;font-weight:600;white-space:nowrap;cursor:pointer;transition:all 0.2s;flex-shrink:0;font-family:inherit;min-height:auto;}
+.sub-tab-btn.active{background:#FC4C02;border-color:#FC4C02;color:#fff;}
 @media(max-width:767px){
-  .sidebar{display:none!important;}.mob-hdr{display:flex!important;}.main{margin-left:0!important;}
+  .sidebar{display:none!important;}.mob-hdr{display:none!important;}.main{margin-left:0!important;padding-top:calc(44px + env(safe-area-inset-top))!important;padding-bottom:calc(70px + env(safe-area-inset-bottom))!important;}
+  .btm-nav{display:block;}.top-bar{display:flex;}
   .sec{padding:16px;padding-bottom:max(24px,env(safe-area-inset-bottom));background:#F5F5F7;min-height:calc(100dvh - 60px - env(safe-area-inset-top));}
   .phdr h1{font-size:26px;}.g2{grid-template-columns:1fr;}.g3{grid-template-columns:1fr 1fr;}
   .g4{grid-template-columns:1fr 1fr;}.gm{grid-template-columns:1fr 1fr;}.gw{gap:4px;}.gf{grid-template-columns:1fr 1fr;}
@@ -3141,10 +3160,27 @@ function MainApp({
   loggedInStaff
 }) {
   const isOwner = role === "owner";
-  const TABS = isOwner ? [["today","Today"],["schedule","Schedule"],["weekly","Weekly"],["clients","Clients"],["services","Services"],["staff","Staff"],["dashboard","Dashboard"],["finances","Finances"],["permissions","Permissions"]] : [["today","Today"],["schedule","Schedule"]];
+  // Main bottom tabs (Strava-style navigation)
+  const MAIN_TABS = isOwner ? [
+    ["home", "Home"],
+    ["dashboard", "Dashboard"],
+    ["clients", "Clients"],
+    ["services", "Services"]
+  ] : [["home", "Home"]];
+
+  // Sub-tabs configuration
+  const SUB_TABS = {
+    home: [["today","Today"], ["schedule","Schedule"], ["weekly","Weekly"]],
+    dashboard: [["staff","Staff"], ["overview","Overview"], ["finances","Finances"]]
+  };
+
   const now = new Date();
-  const [tab, setTab] = useState("today");
+  const [mainTab, setMainTab] = useState("home");
+  const [subTab, setSubTab] = useState({ home: "today", dashboard: "overview" });
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Computed current tab for backward compatibility
+  const tab = SUB_TABS[mainTab] ? subTab[mainTab] : mainTab;
   const [calView, setCalView] = useState("day");
   const [clients, setClients] = useState([]);
   const [schedules, setSchedules] = useState({});
@@ -3867,8 +3903,39 @@ function MainApp({
   const dSal = gSal(selDate);
   const dComm = gComm(selDate);
   const syncDot = sync === "Synced" ? "#34c759" : sync === "Offline" ? "#ff9f0a" : "rgba(255,255,255,.4)";
+  // Navigation functions
+  const goMainTab = (k) => {
+    setMainTab(k);
+    setMenuOpen(false);
+  };
+
+  const goSubTab = (k) => {
+    setSubTab(prev => ({ ...prev, [mainTab]: k }));
+  };
+
+  // Legacy goTab for backward compatibility with existing code
   const goTab = k => {
-    setTab(k);
+    // Map old flat tabs to new hierarchical structure
+    const tabMap = {
+      today: { main: "home", sub: "today" },
+      schedule: { main: "home", sub: "schedule" },
+      weekly: { main: "home", sub: "weekly" },
+      staff: { main: "dashboard", sub: "staff" },
+      dashboard: { main: "dashboard", sub: "overview" },
+      overview: { main: "dashboard", sub: "overview" },
+      finances: { main: "dashboard", sub: "finances" },
+      clients: { main: "clients", sub: null },
+      services: { main: "services", sub: null },
+      permissions: { main: "permissions", sub: null }
+    };
+
+    const mapped = tabMap[k];
+    if (mapped) {
+      setMainTab(mapped.main);
+      if (mapped.sub) {
+        setSubTab(prev => ({ ...prev, [mapped.main]: mapped.sub }));
+      }
+    }
     setMenuOpen(false);
   };
   const prevDay = () => {
@@ -8790,7 +8857,15 @@ function MainApp({
     onClick: onLogout
   }, "Sign Out")))), /*#__PURE__*/React.createElement("div", {
     className: "main"
-  }, (sync === "Offline" || sync === "Error") && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "page-title-bar"
+  }, /*#__PURE__*/React.createElement("h1", null, MAIN_TABS.find(([k]) => k === mainTab)?.[1] || mainTab.charAt(0).toUpperCase() + mainTab.slice(1))), SUB_TABS[mainTab] && /*#__PURE__*/React.createElement("div", {
+    className: "sub-tabs-bar"
+  }, SUB_TABS[mainTab].map(([k, label]) => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    className: "sub-tab-btn" + (subTab[mainTab] === k ? " active" : ""),
+    onClick: () => goSubTab(k)
+  }, label))), (sync === "Offline" || sync === "Error") && /*#__PURE__*/React.createElement("div", {
     style: {
       position: "sticky",
       top: 0,
@@ -8813,7 +8888,37 @@ function MainApp({
   }), /*#__PURE__*/React.createElement(Toast, {
     toasts: toasts,
     onUndo: undoDelA
-  }));
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "top-bar"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "top-bar-status"
+  }, sync === "Offline" || sync === "Error" ? "⚠️ " + sync : sync), /*#__PURE__*/React.createElement("button", {
+    className: "top-bar-menu",
+    onClick: () => setMenuOpen(true)
+  }, "⋮")), /*#__PURE__*/React.createElement("div", {
+    className: "btm-nav"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "btm-nav-items"
+  }, MAIN_TABS.map(([k, label]) => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    className: "btm-nav-item" + (mainTab === k ? " active" : ""),
+    onClick: () => goMainTab(k)
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "btm-nav-icon"
+  }, k === "home" ? "🏠" : k === "dashboard" ? "📊" : k === "clients" ? "👥" : "✂️"), /*#__PURE__*/React.createElement("div", {
+    className: "btm-nav-label"
+  }, label))), /*#__PURE__*/React.createElement("button", {
+    className: "btm-nav-item center",
+    onClick: () => {
+      setActA(null);
+      setAForm(bA(selDate));
+      setShowAForm(true);
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "btm-nav-icon"
+  }, "+"), /*#__PURE__*/React.createElement("div", {
+    className: "btm-nav-label"
+  }, "Add")))));
 }
 function App() {
   const [role, setRole] = useState(null);
