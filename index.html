@@ -5431,7 +5431,10 @@ function MainApp({
       }, "Cancel")))),
  calView === "day" && /*#__PURE__*/React.createElement("div", {
         ref: calRef,
-        className: "cal-wrap"
+        className: "cal-wrap",
+        style: {
+          paddingTop: 8
+        }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
           minWidth: 52 + Math.max(columns.length, 1) * 150,
