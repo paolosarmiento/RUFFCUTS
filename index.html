@@ -19,8 +19,8 @@
 
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{min-height:100dvh;min-height:-webkit-fill-available;background:#F5F5F7;}
-body{min-height:100dvh;min-height:-webkit-fill-available;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',sans-serif;background:#F5F5F7;color:#1c1c1e;-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overscroll-behavior:none;overflow-x:hidden;}
+html{min-height:100dvh;min-height:-webkit-fill-available;background:#000;}
+body{min-height:100dvh;min-height:-webkit-fill-available;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',sans-serif;background:#000;color:#1c1c1e;-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overscroll-behavior:none;overflow-x:hidden;}
 input,select,textarea,button{font-family:inherit;font-size:16px;outline:none;-webkit-appearance:none;appearance:none;border-radius:0;}
 input,select,textarea{border-radius:14px;border:1.5px solid rgba(0,0,0,.06);background:#fff;color:#1c1c1e;padding:14px 16px;width:100%;min-height:52px;transition:all .2s ease;}
 input:focus,select:focus,textarea:focus{background:#fff;border-color:#0A84FF;box-shadow:0 0 0 4px rgba(10,132,255,.12);}
@@ -4833,28 +4833,19 @@ function MainApp({
         style: {
           flex: 1,
           textAlign: "center",
-          cursor: "pointer",
           padding: "6px 12px",
           borderRadius: 10,
           background: "rgba(255,255,255,0.08)",
           transition: "background 0.2s",
-          WebkitTapHighlightColor: "transparent"
-        },
-        onClick: () => {
-          if (schedDateRef.current) {
-            schedDateRef.current.focus();
-            try {
-              schedDateRef.current.showPicker();
-            } catch (e) {
-              schedDateRef.current.click();
-            }
-          }
+          WebkitTapHighlightColor: "transparent",
+          position: "relative"
         }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
           fontSize: 14,
           fontWeight: 700,
-          color: "#fff"
+          color: "#fff",
+          pointerEvents: "none"
         }
       }, selDayName, ", ", fmtD(selDate), " ▾"), /*#__PURE__*/React.createElement("input", {
         ref: schedDateRef,
@@ -4862,14 +4853,15 @@ function MainApp({
         value: selDate,
         onChange: e => e.target.value && setSelDate(e.target.value),
         style: {
-          position: "fixed",
-          width: 1,
-          height: 1,
+          position: "absolute",
           top: 0,
           left: 0,
+          width: "100%",
+          height: "100%",
           opacity: 0,
-          zIndex: -1,
-          border: "none"
+          cursor: "pointer",
+          border: "none",
+          background: "transparent"
         }
       })), isOwner && /*#__PURE__*/React.createElement("button", {
         onClick: nextDay,
