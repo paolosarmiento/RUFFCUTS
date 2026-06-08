@@ -1,6 +1,8 @@
 <!DOCTYPE html>
+<!-- v2.0.0 - 2026-06-08 - STRAVA NAVIGATION - FORCE RELOAD -->
 <html lang="en">
 <head>
+<!-- v2.0.0 - Navigation Refactor - Force Cache Bust -->
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
@@ -10,63 +12,71 @@
 <meta name="theme-color" content="#000"/>
 <link rel="apple-touch-icon" href="https://i.imgur.com/NWOIvxv.png"/>
 <title>Ruff Cuts</title>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-<script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{min-height:100dvh;min-height:-webkit-fill-available;background:#f2f2f7;}
-body{min-height:100dvh;min-height:-webkit-fill-available;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#f2f2f7;color:#1c1c1e;-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;overscroll-behavior:none;overflow-x:hidden;}
+html{min-height:100dvh;min-height:-webkit-fill-available;background:#000;}
+body{min-height:100dvh;min-height:-webkit-fill-available;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',sans-serif;background:#000;color:#1c1c1e;-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overscroll-behavior:none;overflow-x:hidden;}
 input,select,textarea,button{font-family:inherit;font-size:16px;outline:none;-webkit-appearance:none;appearance:none;border-radius:0;}
-input,select,textarea{border-radius:10px;border:none;background:#f5f5f7;color:#1c1c1e;padding:12px 14px;width:100%;min-height:44px;}
-input:focus,select:focus,textarea:focus{background:#e8e8ed;}
-button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;min-height:44px;border:none;background:none;}
-textarea{resize:vertical;min-height:80px;}
+input,select,textarea{border-radius:14px;border:1.5px solid rgba(0,0,0,.06);background:#fff;color:#1c1c1e;padding:14px 16px;width:100%;min-height:52px;transition:all .2s ease;}
+input:focus,select:focus,textarea:focus{background:#fff;border-color:#0A84FF;box-shadow:0 0 0 4px rgba(10,132,255,.12);}
+input:invalid:not(:placeholder-shown){border-color:#FF453A;background:#FEF2F2;}
+input:valid:not(:placeholder-shown)[type="email"],input:valid:not(:placeholder-shown)[type="tel"]{border-color:#32D74B;}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;min-height:44px;border:none;background:none;transition:all .15s ease;}
+textarea{resize:vertical;min-height:96px;line-height:1.5;}
 ::placeholder{color:#aeaeb2;}
 ::-webkit-scrollbar{display:none;}
 *{scrollbar-width:none;}
-.shell{display:block;min-height:100dvh;min-height:-webkit-fill-available;width:100%;background:#f2f2f7;}
-.sidebar{display:none;width:180px;background:#000;flex-direction:column;position:fixed;top:0;left:0;height:100%;z-index:100;overflow-y:auto;padding-top:env(safe-area-inset-top);}
-.sidebar-logo{padding:20px;border-bottom:.5px solid rgba(255,255,255,.1);display:flex;justify-content:center;}
+.shell{display:block;min-height:100dvh;min-height:-webkit-fill-available;width:100%;background:#000;}
+.sidebar{display:none;width:200px;background:rgba(0,0,0,.95);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);flex-direction:column;position:fixed;top:0;left:0;height:100%;z-index:100;overflow-y:auto;padding-top:env(safe-area-inset-top);border-right:1px solid rgba(255,255,255,.08);}
+.sidebar-logo{padding:24px 20px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:center;}
 .sidebar-logo img{height:90px;width:auto;object-fit:contain;}
-.snav{display:flex;align-items:center;padding:0 16px;height:42px;font-size:13px;font-weight:500;color:rgba(255,255,255,.5);cursor:pointer;border:none;background:none;width:100%;text-align:left;border-bottom:.5px solid rgba(255,255,255,.06);}
-.snav.on{color:#fff;font-weight:600;background:rgba(255,255,255,.12);}
-.sidebar-footer{padding:16px;border-top:.5px solid rgba(255,255,255,.1);margin-top:auto;}
-.main{flex:1;background:#000;min-height:100dvh;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:calc(54px + env(safe-area-inset-top));}
-.mob-hdr{display:flex;align-items:center;background:#000;position:fixed;top:0;left:0;right:0;z-index:90;width:100%;padding-top:env(safe-area-inset-top);padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));padding-bottom:10px;min-height:calc(44px + env(safe-area-inset-top));border-bottom:none;box-shadow:0 2px 0 #000;}
-.dbk{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;}
-.drw{position:fixed;top:0;right:0;bottom:0;width:min(300px,75vw);background:#000;z-index:300;display:flex;flex-direction:column;box-shadow:-8px 0 40px rgba(0,0,0,.6);padding-top:env(safe-area-inset-top);}
-.drw-top{padding:12px 16px;border-bottom:.5px solid rgba(255,255,255,.1);display:flex;align-items:center;min-height:52px;}
-.drw-nav{flex:1;overflow-y:auto;padding:4px 0;}
-.drw-item{display:block;width:100%;padding:0 20px;height:52px;font-size:17px;font-weight:500;color:rgba(255,255,255,.55);border:none;background:none;text-align:left;cursor:pointer;border-bottom:.5px solid rgba(255,255,255,.06);line-height:52px;}
-.drw-item.on{font-weight:700;color:#fff;background:rgba(255,255,255,.1);}
-.drw-foot{padding:20px;border-top:.5px solid rgba(255,255,255,.1);}
-.sec{padding:16px;padding-bottom:max(24px,env(safe-area-inset-bottom));background:#f2f2f7;min-height:calc(100dvh - 54px - env(safe-area-inset-top));}
-.card{background:#fff;border-radius:13px;overflow:hidden;margin-bottom:12px;}
-.crow{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:.5px solid rgba(0,0,0,.08);min-height:48px;}
+.snav{display:flex;align-items:center;padding:0 20px;height:48px;font-size:14px;font-weight:500;color:rgba(255,255,255,.55);cursor:pointer;border:none;background:none;width:100%;text-align:left;border-bottom:1px solid rgba(255,255,255,.04);position:relative;transition:all .2s ease;}
+.snav::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:0;background:linear-gradient(135deg,#0A84FF,#5E5CE6);border-radius:0 2px 2px 0;transition:height .2s ease;}
+.snav:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.05);}
+.snav.on{color:#fff;font-weight:600;background:rgba(10,132,255,.12);}
+.snav.on::before{height:24px;}
+.sidebar-footer{padding:20px;border-top:1px solid rgba(255,255,255,.08);margin-top:auto;}
+.main{flex:1;background:#000;min-height:100dvh;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:calc(60px + env(safe-area-inset-top));}
+.mob-hdr{display:flex;align-items:center;background:rgba(0,0,0,.95);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);position:fixed;top:0;left:0;right:0;z-index:90;width:100%;padding-top:env(safe-area-inset-top);padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));padding-bottom:12px;min-height:calc(48px + env(safe-area-inset-top));border-bottom:1px solid rgba(255,255,255,.08);box-shadow:0 4px 16px rgba(0,0,0,.12);}
+.dbk{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:200;}
+.drw{position:fixed;top:0;right:0;bottom:0;width:min(320px,80vw);background:rgba(0,0,0,.95);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);z-index:300;display:flex;flex-direction:column;box-shadow:-8px 0 40px rgba(0,0,0,.3);padding-top:env(safe-area-inset-top);border-left:1px solid rgba(255,255,255,.08);}
+.drw-top{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;min-height:60px;}
+.drw-nav{flex:1;overflow-y:auto;padding:8px 0;}
+.drw-item{display:block;width:100%;padding:0 24px;height:56px;font-size:16px;font-weight:500;color:rgba(255,255,255,.6);border:none;background:none;text-align:left;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04);line-height:56px;transition:all .2s ease;}
+.drw-item:hover{color:rgba(255,255,255,.9);background:rgba(255,255,255,.05);}
+.drw-item.on{font-weight:600;color:#fff;background:rgba(10,132,255,.15);border-left:3px solid #0A84FF;}
+.drw-foot{padding:24px 20px;border-top:1px solid rgba(255,255,255,.08);}
+.sec{padding:20px;padding-bottom:max(32px,env(safe-area-inset-bottom));background:#F5F5F7;min-height:calc(100dvh - 60px - env(safe-area-inset-top));}
+.card{background:#fff;border-radius:20px;overflow:hidden;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06);transition:box-shadow .2s ease;}
+.card:hover{box-shadow:0 4px 12px rgba(0,0,0,.08),0 12px 32px rgba(0,0,0,.1);}
+.crow{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(0,0,0,.06);min-height:56px;}
 .crow:last-child{border-bottom:none;}
-.phdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:12px;flex-wrap:wrap;}
-.phdr h1{font-size:26px;font-weight:700;letter-spacing:-.02em;}
-.phdr p{font-size:13px;color:#8e8e93;margin-top:3px;}
-.phdr-r{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-.fbox{background:#fff;border-radius:13px;padding:16px;margin-bottom:14px;}
-.pbox{background:#f9f9f9;border-radius:10px;padding:14px;margin-bottom:10px;border:.5px solid rgba(0,0,0,.08);}
-.twrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:13px;background:#fff;}
-.th{text-align:left;padding:9px 13px;border-bottom:.5px solid rgba(0,0,0,.1);font-size:11px;color:#8e8e93;font-weight:600;letter-spacing:.3px;text-transform:uppercase;background:#f9f9f9;white-space:nowrap;}
-.td{padding:11px 13px;border-bottom:.5px solid rgba(0,0,0,.06);color:#1c1c1e;font-size:14px;vertical-align:top;}
-.sc{background:#fff;border-radius:13px;padding:14px;text-align:center;}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
-.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
-.gm{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.gw{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
-.gf{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;}
-.mdbg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;display:flex;align-items:flex-end;justify-content:center;}
-.md{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:640px;max-height:92vh;overflow-y:auto;padding:8px 20px max(24px,env(safe-area-inset-bottom));}
-.mdh{width:36px;height:5px;background:#d1d1d6;border-radius:3px;margin:0 auto 14px;}
-@media(min-width:640px){.mdbg{align-items:center;}.md{border-radius:16px;margin:20px;padding:20px;max-height:88vh;}}
+.phdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;gap:16px;flex-wrap:wrap;}
+.phdr h1{font-size:32px;font-weight:800;letter-spacing:-.03em;color:#1c1c1e;}
+.phdr p{font-size:14px;color:#8e8e93;margin-top:4px;font-weight:500;letter-spacing:-.01em;}
+.phdr-r{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+.fbox{background:#fff;border-radius:20px;padding:20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06);transition:box-shadow .2s ease;}
+.fbox:hover{box-shadow:0 4px 12px rgba(0,0,0,.08),0 12px 32px rgba(0,0,0,.1);}
+.pbox{background:#F9F9FB;border-radius:16px;padding:16px;margin-bottom:12px;border:1px solid rgba(0,0,0,.06);}
+.twrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:20px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06);}
+.th{text-align:left;padding:12px 16px;border-bottom:1px solid rgba(0,0,0,.08);font-size:11px;color:#8e8e93;font-weight:700;letter-spacing:.5px;text-transform:uppercase;background:#F9F9FB;white-space:nowrap;}
+.td{padding:14px 16px;border-bottom:1px solid rgba(0,0,0,.04);color:#1c1c1e;font-size:15px;vertical-align:top;}
+.sc{background:#fff;border-radius:20px;padding:20px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06);transition:box-shadow .2s ease;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.gm{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.gw{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.gf{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;}
+.mdbg{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:400;display:flex;align-items:flex-end;justify-content:center;}
+.md{background:#fff;border-radius:24px 24px 0 0;width:100%;max-width:680px;max-height:92vh;overflow-y:auto;padding:12px 24px max(32px,env(safe-area-inset-bottom));box-shadow:0 -4px 32px rgba(0,0,0,.16);}
+.mdh{width:40px;height:5px;background:#d1d1d6;border-radius:3px;margin:0 auto 16px;}
+@media(min-width:640px){.mdbg{align-items:center;}.md{border-radius:20px;margin:24px;padding:28px;max-height:88vh;}}
 .cal-wrap{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;background:#fff;}
 .cal-col-hdr{position:sticky;top:0;z-index:20;display:flex;background:#fff;border-bottom:1px solid #e8e8ed;}
 .cal-time-hdr{width:52px;flex-shrink:0;position:sticky;left:0;z-index:25;background:#fff;border-right:.5px solid #e8e8ed;display:flex;align-items:center;justify-content:center;}
@@ -76,36 +86,59 @@ textarea{resize:vertical;min-height:80px;}
 .cal-time-lbl{position:absolute;right:7px;font-size:10px;color:#aeaeb2;font-weight:600;transform:translateY(-50%);}
 .cal-abs-col{flex:1 0 150px;position:relative;border-right:.5px solid #f0f0f0;cursor:pointer;}
 .cal-abs-col:active{background:rgba(0,0,0,.02);}
-.sp{display:inline-flex;align-items:center;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;border:none;font-family:inherit;min-height:32px;}
-.today-card{background:#fff;border-radius:12px;padding:13px 14px;margin-bottom:8px;border-left:4px solid #e8e8ed;box-shadow:0 1px 4px rgba(0,0,0,.06);}
-.today-card-primary{background:#fff;border-radius:12px;padding:14px;margin-bottom:8px;border:1.5px solid #e8e8ed;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.sp{display:inline-flex;align-items:center;padding:10px 18px;border-radius:24px;font-size:12px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;border:none;font-family:inherit;min-height:44px;letter-spacing:.3px;transition:all .2s ease;}
+.sp:hover{transform:scale(1.05);}
+.today-card{background:#fff;border-radius:18px;padding:16px 18px;margin-bottom:12px;border-left:4px solid #e8e8ed;box-shadow:0 2px 6px rgba(0,0,0,.05),0 4px 12px rgba(0,0,0,.06);transition:all .2s ease;cursor:pointer;}
+.today-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.08),0 8px 24px rgba(0,0,0,.12);transform:translateY(-1px);}
+.today-card-primary{background:#fff;border-radius:18px;padding:18px;margin-bottom:12px;border:2px solid rgba(10,132,255,.12);box-shadow:0 4px 12px rgba(0,0,0,.06),0 8px 24px rgba(0,0,0,.08);transition:all .2s ease;}
 .att-dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
 #boot{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;}
-#boot img{height:90px;object-fit:contain;margin-bottom:16px;}
+#boot img{height:90px;object-fit:contain;margin-bottom:16px;animation:pulse 2s ease-in-out infinite;}
 #boot p{font-size:14px;color:rgba(255,255,255,.35);}
 @keyframes toastIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
+.fab-btn:hover{transform:scale(1.1) rotate(90deg);box-shadow:0 6px 24px rgba(249,115,22,0.5),0 12px 40px rgba(249,115,22,0.3);}
+.btm-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e5e5e5;padding:8px 0;padding-bottom:max(8px,env(safe-area-inset-bottom));z-index:100;box-shadow:0 -2px 10px rgba(0,0,0,0.05);}
+.btm-nav-items{display:flex;align-items:flex-end;max-width:600px;margin:0 auto;}
+.btm-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;background:none;border:none;color:#8e8e93;cursor:pointer;transition:all 0.2s;position:relative;}
+.btm-nav-item.center{margin-top:-8px;}
+.btm-nav-item.active{color:#FC4C02;}
+.btm-nav-icon{width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:24px;}
+.btm-nav-item.center .btm-nav-icon{width:56px;height:56px;background:#FC4C02;border-radius:50%;color:#fff;font-size:32px;box-shadow:0 4px 12px rgba(252,76,2,0.25);}
+.btm-nav-label{font-size:10px;font-weight:500;}
+.btm-nav-item.center .btm-nav-label{color:#FC4C02;}
+.top-bar{display:none;position:fixed;top:0;left:0;right:0;height:calc(44px + env(safe-area-inset-top));padding-top:env(safe-area-inset-top);background:#fff;border-bottom:1px solid #e5e5e5;z-index:89;align-items:flex-end;justify-content:space-between;padding-left:16px;padding-right:16px;padding-bottom:8px;}
+.top-bar-status{font-size:11px;color:#666;}
+.top-bar-menu{background:none;border:none;color:#666;font-size:24px;cursor:pointer;padding:0;min-height:auto;}
+.page-indicator{background:#fff;padding:8px 20px 6px;border-bottom:1px solid #e5e5e5;position:sticky;top:calc(44px + env(safe-area-inset-top));z-index:88;}
+.page-indicator-text{font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:0.5px;}
+.sub-tabs-bar{display:flex;gap:8px;padding:12px 20px;background:#fff;border-bottom:1px solid #e5e5e5;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:sticky;top:calc(44px + env(safe-area-inset-top) + 30px);z-index:88;}
+.sub-tabs-bar::-webkit-scrollbar{display:none;}
+.sub-tab-btn{padding:8px 16px;border-radius:20px;background:transparent;border:1.5px solid #e5e5e5;color:#666;font-size:14px;font-weight:600;white-space:nowrap;cursor:pointer;transition:all 0.2s;flex-shrink:0;font-family:inherit;min-height:auto;}
+.sub-tab-btn.active{background:#FC4C02;border-color:#FC4C02;color:#fff;}
 @media(max-width:767px){
-  .sidebar{display:none!important;}.mob-hdr{display:flex!important;}.main{margin-left:0!important;}
-  .sec{padding:12px;padding-bottom:max(20px,env(safe-area-inset-bottom));background:#f2f2f7;min-height:calc(100dvh - 54px - env(safe-area-inset-top));}
-  .phdr h1{font-size:22px;}.g2{grid-template-columns:1fr;}.g3{grid-template-columns:1fr 1fr;}
-  .g4{grid-template-columns:1fr 1fr;}.gm{grid-template-columns:1fr 1fr;}.gw{gap:3px;}.gf{grid-template-columns:1fr 1fr;}
-  .md{border-radius:20px 20px 0 0;-webkit-overflow-scrolling:touch;}
+  .sidebar{display:none!important;}.mob-hdr{display:none!important;}.main{margin-left:0!important;padding-top:calc(44px + env(safe-area-inset-top))!important;padding-bottom:calc(70px + env(safe-area-inset-bottom))!important;}
+  .btm-nav{display:block;}.top-bar{display:flex;}
+  .sec{padding:16px;padding-bottom:max(24px,env(safe-area-inset-bottom));background:#F5F5F7;min-height:calc(100dvh - 60px - env(safe-area-inset-top));}
+  .phdr h1{font-size:26px;}.g2{grid-template-columns:1fr;}.g3{grid-template-columns:1fr 1fr;}
+  .g4{grid-template-columns:1fr 1fr;}.gm{grid-template-columns:1fr 1fr;}.gw{gap:4px;}.gf{grid-template-columns:1fr 1fr;}
+  .md{border-radius:24px 24px 0 0;-webkit-overflow-scrolling:touch;}
   .cal-wrap{-webkit-overflow-scrolling:touch;}
 }
 @media(min-width:768px){
-  .shell{flex-direction:row;}.sidebar{display:flex!important;}.mob-hdr{display:none!important;}.main{margin-left:180px;}
-  .sec{padding:24px 28px;}.gm{grid-template-columns:repeat(3,1fr);}.g4{grid-template-columns:1fr 1fr;}
+  .shell{flex-direction:row;}.sidebar{display:flex!important;}.mob-hdr{display:none!important;}.main{margin-left:200px;}
+  .sec{padding:28px 32px;}.gm{grid-template-columns:repeat(3,1fr);}.g4{grid-template-columns:1fr 1fr;}
   .md{-webkit-overflow-scrolling:touch;}
 }
 @media(min-width:768px) and (max-width:1024px){
-  .sec{padding:20px 24px;}
+  .sec{padding:24px 28px;}
   .gm{grid-template-columns:repeat(2,1fr);}
   .g4{grid-template-columns:1fr 1fr;}
 }
-@media(min-width:1024px){.sec{padding:28px 36px;}.gm{grid-template-columns:repeat(4,1fr);}}
+@media(min-width:1024px){.sec{padding:32px 40px;}.gm{grid-template-columns:repeat(4,1fr);}}
 @media(min-width:1400px){
-  .sidebar{width:180px;}.main{margin-left:180px;}
-  .sec{padding:40px 52px;}.gm{grid-template-columns:repeat(5,1fr);}
+  .sidebar{width:200px;}.main{margin-left:200px;}
+  .sec{padding:48px 64px;}.gm{grid-template-columns:repeat(5,1fr);}
 }
 </style>
 </head>
@@ -122,15 +155,28 @@ setTimeout(function(){
 },15000);
 </script>
 <script>
+console.log('[APP] Script started');
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+const React = window.React;
+const ReactDOM = window.ReactDOM;
+const firebase = window.firebase;
+
+console.log('[APP] Libraries loaded:', {React: !!React, ReactDOM: !!ReactDOM, firebase: !!firebase});
+
 const {
   useState,
   useEffect,
   useRef,
+  useMemo,
   Component
 } = React;
+
+// Firebase setup using compat API
 let db = null,
-  DOCS = {};
+  DOCS = {},
+  SCHED_COL = null;
+
+// Initialize Firebase immediately (using compat API from script tags)
 try {
   const cfg = {
     apiKey: "AIzaSyByMaYOwnUNhT9QpVwWUrvNJ5l_ypGV6RI",
@@ -140,17 +186,28 @@ try {
     messagingSenderId: "74298911810",
     appId: "1:74298911810:web:627341170ba007779ad1db"
   };
-  if (!firebase.apps.length) firebase.initializeApp(cfg);
-  db = firebase.firestore();
-  db.enablePersistence({
-    synchronizeTabs: true
-  }).catch(() => {});
-  const col = db.collection("ruffcuts");
-  ["clients","schedules","expenses","services","staffByDate","staffMembers","paymentStatus","cashbox","cashAdvances"].forEach(n=>{DOCS[n]=col.doc(n);});
-  DOCS._legacy = col.doc("appdata");
+  const app = firebase.apps.length === 0 ? firebase.initializeApp(cfg) : firebase.apps[0];
+  db = firebase.firestore(app);
+  db.enablePersistence({synchronizeTabs: true}).catch(() => {});
+
+  ["clients","schedules","expenses","services","staffByDate","staffMembers","paymentStatus","cashbox","cashAdvances","balances","ownerFinances"].forEach(n=>{
+    DOCS[n] = db.collection("ruffcuts").doc(n);
+  });
+  DOCS._legacy = db.collection("ruffcuts").doc("appdata");
+  SCHED_COL = db.collection("ruffcuts_schedules");
+  console.log("[Firebase] Initialized");
 } catch (e) {
-  console.warn("Firebase:", e.message);
+  console.error("[Firebase] Init error:", e);
 }
+
+// Compat API wrappers for v9 syntax
+const getDoc = (docRef) => docRef.get();
+const setDoc = (docRef, data, options) => docRef.set(data, options);
+const deleteDoc = (docRef) => docRef.delete();
+const onSnapshot = (ref, callback) => ref.onSnapshot(callback);
+const writeBatch = () => db.batch();
+const doc = (collectionRef, id) => collectionRef.doc(id);
+const collection = (db, path) => db.collection(path);
 const OWN_PASS = "owner1234";
 const STF_PASS = "ruffcuts2024";
 const DEF_SVC = [
@@ -182,6 +239,14 @@ const DEF_SVC = [
 const FURS = ["Smooth", "Long"];
 const EXP_CATS = ["Fuel", "Grooming Supplies", "Maintenance", "Salaries/Commission", "Parking/Tolls", "Miscellaneous"];
 const ROUTE_CATS = ["Fuel", "Toll", "Parking", "Village Entrance Fee", "Maintenance", "Load"];
+const COMMISSION_RATE = 0.10;
+const DEFAULT_DAILY_SALARY = 700;
+const REBOOK_DAYS = 28;
+const SYNC_DEBOUNCE_MS = 800;
+const MIN_PASSWORD_LENGTH = 4;
+const DEF_BAL = {cashOnHand:0, gcashBalance:0, bankBalance:0, deposits:[]};
+const DEF_OWN = {salaryCycle:"monthly", salaryAmount:0, capitalItems:[], salaryPayments:[], businessStartDate:""};
+const CAP_CATS = ["Equipment","Vehicle","Marketing","Renovation","Technology","Other"];
 const DESIGS = ["Groomer", "Driver", "Apprentice Groomer"];
 const PAY_MODES = ["Cash", "GCash"];
 const DURATIONS = [{
@@ -421,84 +486,125 @@ const aColor = svc => {
     acc: "#16a34a"
   };
 };
+function buildGroomerCommMap(appts, staffMembers) {
+  const map = {};
+  appts.filter(a => a.groomerId && a.status === "completed").forEach(a => {
+    const member = staffMembers.find(m => m.id === a.groomerId);
+    const name = member ? member.name : "Unknown";
+    if (!map[a.groomerId]) map[a.groomerId] = { name, comm: 0, pets: 0 };
+    map[a.groomerId].comm += Number(a.cost || 0) * COMMISSION_RATE;
+    map[a.groomerId].pets++;
+  });
+  return map;
+}
 const A = {
   bl: "#1c1c1e",
   wh: "#fff",
-  bu: "#0071e3",
-  g1: "#f5f5f7",
-  g2: "#e8e8ed",
-  g3: "#aeaeb2",
-  g4: "#8e8e93",
-  ok: "#34c759",
-  er: "#ff375f",
-  wn: "#ff9f0a",
-  sbg: "#f0fff4",
-  dbg: "#fff0f3",
-  wbg: "#fffaf0",
-  pill: "980px"
+  bu: "#0A84FF",
+  buDark: "#0066CC",
+  buGrad: "linear-gradient(135deg, #0A84FF 0%, #5E5CE6 100%)",
+  warm: "#F97316",
+  warmLight: "#FB923C",
+  warmBg: "#FFF7ED",
+  warmGrad: "linear-gradient(135deg, #F97316 0%, #FB923C 100%)",
+  g1: "#F5F5F7",
+  g2: "#E5E5EA",
+  g3: "#AEAEB2",
+  g4: "#8E8E93",
+  g5: "#636366",
+  ok: "#32D74B",
+  okLight: "#F0FDF4",
+  er: "#FF453A",
+  erLight: "#FEF2F2",
+  wn: "#FF9F0A",
+  wnLight: "#FFFBF0",
+  sbg: "#F0FDF4",
+  dbg: "#FEF2F2",
+  wbg: "#FFFBF0",
+  pill: "980px",
+  shadow1: "0 2px 8px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06)",
+  shadow2: "0 4px 12px rgba(0,0,0,.06), 0 12px 32px rgba(0,0,0,.08)",
+  shadowHover: "0 6px 16px rgba(0,0,0,.08), 0 16px 40px rgba(0,0,0,.1)",
+  shadowSoft: "0 4px 16px rgba(249, 115, 22, 0.12), 0 8px 32px rgba(249, 115, 22, 0.08)"
 };
 const iS = {
-  background: A.g1,
-  borderRadius: 10,
-  border: "none",
+  background: A.wh,
+  borderRadius: 14,
+  border: "1.5px solid " + A.g2,
   fontSize: 16,
-  padding: "12px 14px",
+  padding: "14px 16px",
   color: A.bl,
   width: "100%",
   fontFamily: "inherit",
-  minHeight: 44
+  minHeight: 52,
+  transition: "all .2s ease"
 };
 function Btn({
   children,
   onClick,
   v = "pri",
   sm = false,
+  disabled = false,
   style = {}
 }) {
   const b = {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    padding: sm ? "9px 16px" : "12px 20px",
-    borderRadius: A.pill,
+    gap: 8,
+    padding: sm ? "12px 20px" : "16px 28px",
+    borderRadius: "18px",
     border: "none",
     fontSize: sm ? 14 : 16,
-    fontWeight: 500,
-    cursor: "pointer",
+    fontWeight: 600,
+    cursor: disabled ? "not-allowed" : "pointer",
     fontFamily: "inherit",
     whiteSpace: "nowrap",
-    minHeight: sm ? 38 : 44,
+    minHeight: sm ? 44 : 52,
+    letterSpacing: ".2px",
+    transition: "all .2s cubic-bezier(0.34, 1.56, 0.64, 1)",
+    opacity: disabled ? 0.5 : 1,
     ...style
   };
   const vs = {
     pri: {
-      background: A.bl,
-      color: A.wh
+      background: A.buGrad,
+      color: A.wh,
+      boxShadow: "0 2px 8px rgba(10,132,255,.25)"
+    },
+    warm: {
+      background: A.warmGrad,
+      color: A.wh,
+      boxShadow: A.shadowSoft
     },
     sec: {
       background: A.g1,
-      color: A.bl
+      color: A.bl,
+      border: "1.5px solid " + A.g2
     },
     dan: {
-      background: A.dbg,
-      color: A.er
+      background: A.erLight,
+      color: A.er,
+      border: "1.5px solid rgba(255,69,58,.2)"
     },
     can: {
-      background: A.g1,
-      color: A.er
+      background: "transparent",
+      color: A.g4,
+      border: "1.5px solid " + A.g2
     },
     gho: {
       background: "transparent",
       color: A.er
     },
     blue: {
-      background: A.bu,
-      color: A.wh
+      background: A.buGrad,
+      color: A.wh,
+      boxShadow: "0 2px 8px rgba(10,132,255,.25)"
     },
     ok: {
-      background: A.sbg,
-      color: A.ok
+      background: A.okLight,
+      color: A.ok,
+      border: "1.5px solid rgba(50,215,75,.2)"
     }
   };
   return /*#__PURE__*/React.createElement("button", {
@@ -506,7 +612,8 @@ function Btn({
       ...b,
       ...(vs[v] || vs.pri)
     },
-    onClick: onClick
+    onClick: disabled ? undefined : onClick,
+    disabled: disabled
   }, children);
 }
 function Lbl({
@@ -553,6 +660,18 @@ function Inp({
       ...style
     }
   }, p));
+}
+function SearchInp({style = {}, ...p}) {
+  return /*#__PURE__*/React.createElement("div", {style:{position:"relative",width:"100%"}},
+    /*#__PURE__*/React.createElement("svg", {
+      style:{position:"absolute",left:16,top:"50%",transform:"translateY(-50%)",pointerEvents:"none"},
+      width:20,height:20,viewBox:"0 0 24 24",fill:"none",stroke:A.g4,strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"
+    }, /*#__PURE__*/React.createElement("circle",{cx:11,cy:11,r:8}), /*#__PURE__*/React.createElement("path",{d:"m21 21-4.35-4.35"})),
+    /*#__PURE__*/React.createElement("input", _extends({
+      type:"text",
+      style:{...iS,paddingLeft:48,...style}
+    }, p))
+  );
 }
 function Sel({
   children,
@@ -710,7 +829,7 @@ function Toast({
       gap: 12,
       pointerEvents: "all"
     }
-  }, /*#__PURE__*/React.createElement("span", null, t.message), t.undoToken && onUndo && /*#__PURE__*/React.createElement("button", {
+  }, t.type === "success" && /*#__PURE__*/React.createElement("svg", {width:20,height:20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2.5,strokeLinecap:"round",strokeLinejoin:"round",style:{flexShrink:0}}, /*#__PURE__*/React.createElement("polyline", {points:"20 6 9 17 4 12"})), t.type === "error" && /*#__PURE__*/React.createElement("svg", {width:20,height:20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2.5,strokeLinecap:"round",strokeLinejoin:"round",style:{flexShrink:0}}, /*#__PURE__*/React.createElement("circle", {cx:12,cy:12,r:10}), /*#__PURE__*/React.createElement("line", {x1:15,y1:9,x2:9,y2:15}), /*#__PURE__*/React.createElement("line", {x1:9,y1:9,x2:15,y2:15})), t.type === "warn" && /*#__PURE__*/React.createElement("svg", {width:20,height:20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2.5,strokeLinecap:"round",strokeLinejoin:"round",style:{flexShrink:0}}, /*#__PURE__*/React.createElement("path", {d:"M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"}), /*#__PURE__*/React.createElement("line", {x1:12,y1:9,x2:12,y2:13}), /*#__PURE__*/React.createElement("line", {x1:12,y1:17,x2:12.01,y2:17})), /*#__PURE__*/React.createElement("span", null, t.message), t.undoToken && onUndo && /*#__PURE__*/React.createElement("button", {
     onClick: () => onUndo(t.undoToken),
     style: {
       background: "rgba(255,255,255,.2)",
@@ -725,6 +844,39 @@ function Toast({
       minHeight: "auto"
     }
   }, "Undo"))));
+}
+function FAB({onClick}) {
+  return /*#__PURE__*/React.createElement("button", {
+    onClick: onClick,
+    className: "fab-btn",
+    style: {
+      position: "fixed",
+      bottom: "max(24px, env(safe-area-inset-bottom))",
+      right: "max(24px, env(safe-area-inset-right))",
+      width: 64,
+      height: 64,
+      borderRadius: "50%",
+      background: A.warmGrad,
+      border: "none",
+      boxShadow: "0 4px 16px rgba(249,115,22,0.4), 0 8px 32px rgba(249,115,22,0.2)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      cursor: "pointer",
+      zIndex: 100,
+      transition: "all .3s cubic-bezier(0.34, 1.56, 0.64, 1)",
+      WebkitTapHighlightColor: "transparent"
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: 32,
+    height: 32,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "#fff",
+    strokeWidth: 2.5,
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("line", {x1: 12, y1: 5, x2: 12, y2: 19}), /*#__PURE__*/React.createElement("line", {x1: 5, y1: 12, x2: 19, y2: 12})));
 }
 class ErrB extends Component {
   constructor(p) {
@@ -786,6 +938,78 @@ class ErrB extends Component {
         cursor: "pointer"
       }
     }, "Reload"));
+    return this.props.children;
+  }
+}
+class TabErrB extends Component {
+  constructor(p) {
+    super(p);
+    this.state = { err: null };
+  }
+  static getDerivedStateFromError(e) {
+    return { err: e };
+  }
+  render() {
+    if (this.state.err) return /*#__PURE__*/React.createElement("div", {
+      className: "sec",
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "60vh",
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 64,
+        height: 64,
+        borderRadius: 20,
+        background: "rgba(255,69,58,.1)",
+        marginBottom: 16
+      }
+    }, /*#__PURE__*/React.createElement(IconAlert, { size: 32, color: A.er })), /*#__PURE__*/React.createElement("p", {
+      style: { fontSize: 16, fontWeight: 700, color: A.bl, marginBottom: 8 }
+    }, "This tab ran into a problem"), /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontSize: 13,
+        color: A.g4,
+        marginBottom: 24,
+        maxWidth: 280,
+        lineHeight: 1.6
+      }
+    }, this.state.err.message), /*#__PURE__*/React.createElement("div", {
+      style: { display: "flex", gap: 10 }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => this.setState({ err: null }),
+      style: {
+        background: A.bl,
+        color: "#fff",
+        border: "none",
+        borderRadius: "980px",
+        padding: "11px 24px",
+        fontSize: 14,
+        fontWeight: 600,
+        cursor: "pointer",
+        fontFamily: "inherit"
+      }
+    }, "Try again"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => window.location.reload(),
+      style: {
+        background: A.g1,
+        color: A.bl,
+        border: "none",
+        borderRadius: "980px",
+        padding: "11px 24px",
+        fontSize: 14,
+        fontWeight: 600,
+        cursor: "pointer",
+        fontFamily: "inherit"
+      }
+    }, "Reload app")));
     return this.props.children;
   }
 }
@@ -988,6 +1212,147 @@ function LineChart({
     fill: A.g3
   }, p.label))))));
 }
+function BarChart({
+  data,
+  color,
+  title
+}) {
+  if (!data.length || data.every(d => d.value === 0)) return /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 14,
+      color: A.g4,
+      padding: "20px 0",
+      textAlign: "center"
+    }
+  }, "No data yet.");
+  const W = 440,
+    H = 180,
+    PX = 60,
+    PY = 24,
+    BAR_GAP = 6;
+  const vals = data.map(d => d.value);
+  const max = Math.max(...vals, 1);
+  const min = Math.min(0, ...vals);
+  const range = max - min || 1;
+  const barWidth = (W - PX - PY - (data.length - 1) * BAR_GAP) / data.length;
+  const toY = v => H - PY - (v - min) / range * (H - PY * 2);
+  const zeroY = toY(0);
+  const bars = data.map((d, i) => ({
+    x: PX + i * (barWidth + BAR_GAP),
+    y: d.value >= 0 ? toY(d.value) : zeroY,
+    h: Math.abs(toY(d.value) - zeroY),
+    value: d.value,
+    label: d.label
+  }));
+  const gid = "bg" + color.replace("#", "");
+  return /*#__PURE__*/React.createElement("div", null, title && /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontWeight: 700,
+      fontSize: 15,
+      marginBottom: 16,
+      color: A.bl
+    }
+  }, title), /*#__PURE__*/React.createElement("div", {
+    style: {
+      overflowX: "auto"
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "100%",
+    viewBox: "0 0 " + W + " " + H,
+    style: {
+      minWidth: 280
+    }
+  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
+    id: gid,
+    x1: "0",
+    y1: "0",
+    x2: "0",
+    y2: "1"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0%",
+    stopColor: color,
+    stopOpacity: ".85"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "100%",
+    stopColor: color,
+    stopOpacity: ".45"
+  }))), [0, .5, 1].map((t, i) => {
+    const v = min + t * range;
+    const y = toY(v);
+    return /*#__PURE__*/React.createElement("g", {
+      key: i
+    }, /*#__PURE__*/React.createElement("line", {
+      x1: PX,
+      y1: y,
+      x2: W - PY,
+      y2: y,
+      stroke: A.g2,
+      strokeWidth: 1,
+      strokeDasharray: "2,3"
+    }), /*#__PURE__*/React.createElement("text", {
+      x: PX - 6,
+      y: y + 4,
+      fontSize: 10,
+      textAnchor: "end",
+      fill: A.g4,
+      fontWeight: "600"
+    }, fmt(v)));
+  }), bars.map((b, i) => /*#__PURE__*/React.createElement("g", {
+    key: i
+  }, /*#__PURE__*/React.createElement("rect", {
+    x: b.x,
+    y: b.y,
+    width: barWidth,
+    height: b.h,
+    fill: "url(#" + gid + ")",
+    rx: 3,
+    ry: 3
+  }), /*#__PURE__*/React.createElement("text", {
+    x: b.x + barWidth / 2,
+    y: H - 4,
+    fontSize: 10,
+    textAnchor: "middle",
+    fill: A.g4,
+    fontWeight: "600"
+  }, b.label))))));
+}
+const IconCheck = ({size=24,color="#32D74B"}) => /*#__PURE__*/React.createElement("svg", {width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:color,strokeWidth:2.5,strokeLinecap:"round",strokeLinejoin:"round"},
+  /*#__PURE__*/React.createElement("path", {d:"M20 6L9 17l-5-5"})
+);
+const IconCelebrate = ({size=24,color="#FF9F0A"}) => /*#__PURE__*/React.createElement("svg", {width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:color,strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"},
+  /*#__PURE__*/React.createElement("path", {d:"M8 2v4"}),
+  /*#__PURE__*/React.createElement("path", {d:"M16 2v4"}),
+  /*#__PURE__*/React.createElement("path", {d:"M12 11v6"}),
+  /*#__PURE__*/React.createElement("circle", {cx:12,cy:18,r:3}),
+  /*#__PURE__*/React.createElement("path", {d:"M4 7l2 2"}),
+  /*#__PURE__*/React.createElement("path", {d:"M20 7l-2 2"}),
+  /*#__PURE__*/React.createElement("path", {d:"M4 17l2-2"}),
+  /*#__PURE__*/React.createElement("path", {d:"M20 17l-2-2"})
+);
+const IconAlert = ({size=24,color="#FF453A"}) => /*#__PURE__*/React.createElement("svg", {width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:color,strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"},
+  /*#__PURE__*/React.createElement("path", {d:"M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"}),
+  /*#__PURE__*/React.createElement("line", {x1:12,y1:9,x2:12,y2:13}),
+  /*#__PURE__*/React.createElement("line", {x1:12,y1:17,x2:12.01,y2:17})
+);
+const IconCash = ({size=24,color="#32D74B"}) => /*#__PURE__*/React.createElement("svg", {width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:color,strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"},
+  /*#__PURE__*/React.createElement("rect", {x:2,y:6,width:20,height:12,rx:2}),
+  /*#__PURE__*/React.createElement("circle", {cx:12,cy:12,r:2}),
+  /*#__PURE__*/React.createElement("path", {d:"M6 6V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"}),
+  /*#__PURE__*/React.createElement("path", {d:"M6 18v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1"})
+);
+const IconPhone = ({size=24,color="#0A84FF"}) => /*#__PURE__*/React.createElement("svg", {width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:color,strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"},
+  /*#__PURE__*/React.createElement("rect", {x:5,y:2,width:14,height:20,rx:2,ry:2}),
+  /*#__PURE__*/React.createElement("path", {d:"M12 18h.01"})
+);
+const IconBank = ({size=24,color="#5E5CE6"}) => /*#__PURE__*/React.createElement("svg", {width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:color,strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"},
+  /*#__PURE__*/React.createElement("path", {d:"m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"}),
+  /*#__PURE__*/React.createElement("path", {d:"M9 22V12h6v10"})
+);
+const IconChart = ({size=24,color="#FF9F0A"}) => /*#__PURE__*/React.createElement("svg", {width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:color,strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"},
+  /*#__PURE__*/React.createElement("line", {x1:12,y1:20,x2:12,y2:10}),
+  /*#__PURE__*/React.createElement("line", {x1:18,y1:20,x2:18,y2:4}),
+  /*#__PURE__*/React.createElement("line", {x1:6,y1:20,x2:6,y2:16})
+);
 function MonthCard({
   label,
   data,
@@ -1121,7 +1486,8 @@ function MonthCard({
 function ExpTable({
   all,
   expenses,
-  setExpenses
+  setExpenses,
+  askConfirm
 }) {
   const [editId, setEditId] = useState(null);
   const [ef, setEf] = useState({
@@ -1155,145 +1521,189 @@ function ExpTable({
         [ef.date]: [...(w[ef.date] || []), {
           id: e.id,
           category: c,
-          amount: a
+          amount: a,
+          cashbox: e.cashbox || false,
+          notes: e.notes || ""
         }]
       };
     });
     setEditId(null);
   };
+  if (sorted.length === 0) return /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 14,
+      color: A.g4,
+      padding: "20px 0",
+      textAlign: "center"
+    }
+  }, "No expenses yet.");
   return /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 14
-    },
-    className: "twrap"
-  }, /*#__PURE__*/React.createElement("table", {
-    style: {
-      width: "100%",
-      borderCollapse: "collapse"
+      marginTop: 16,
+      display: "flex",
+      flexDirection: "column",
+      gap: 12
     }
-  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, ["Date", "Category", "Amount", "Notes", ""].map(h => /*#__PURE__*/React.createElement("th", {
-    key: h,
-    className: "th"
-  }, h)))), /*#__PURE__*/React.createElement("tbody", null, sorted.map((e, i) => {
-    if (editId === e.id) return /*#__PURE__*/React.createElement("tr", {
+  }, sorted.map(e => {
+    if (editId === e.id) return /*#__PURE__*/React.createElement("div", {
       key: e.id,
       style: {
-        background: "#fffbeb"
+        background: "#FFFBF0",
+        borderRadius: 16,
+        padding: 20,
+        border: "2px solid " + A.wn,
+        boxShadow: A.shadow1
       }
-    }, /*#__PURE__*/React.createElement("td", {
-      className: "td"
-    }, /*#__PURE__*/React.createElement(Inp, {
+    }, /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontSize: 12,
+        fontWeight: 700,
+        color: A.wn,
+        textTransform: "uppercase",
+        letterSpacing: ".5px",
+        marginBottom: 16
+      }
+    }, "Editing Expense"), /*#__PURE__*/React.createElement("div", {
+      className: "g2",
+      style: {
+        marginBottom: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Lbl, {
+      c: "Date"
+    }), /*#__PURE__*/React.createElement(Inp, {
       type: "date",
       value: ef.date,
       onChange: ev => setEf(p => ({
         ...p,
         date: ev.target.value
-      })),
-      style: {
-        fontSize: 16,
-        padding: "8px 10px",
-        minHeight: 40
-      }
-    })), /*#__PURE__*/React.createElement("td", {
-      className: "td"
-    }, /*#__PURE__*/React.createElement(Sel, {
-      value: ef.cat,
-      onChange: ev => setEf(p => ({
-        ...p,
-        cat: ev.target.value
-      })),
-      style: {
-        fontSize: 16,
-        padding: "8px 10px",
-        minHeight: 40
-      }
-    }, /*#__PURE__*/React.createElement("option", {
-      value: ""
-    }, "Select..."), EXP_CATS.map(c => /*#__PURE__*/React.createElement("option", {
-      key: c
-    }, c))), ef.cat === "Other" && /*#__PURE__*/React.createElement(Inp, {
-      value: ef.custCat,
-      onChange: ev => setEf(p => ({
-        ...p,
-        custCat: ev.target.value
-      })),
-      placeholder: "Custom",
-      style: {
-        marginTop: 4,
-        fontSize: 16,
-        padding: "8px 10px",
-        minHeight: 40
-      }
-    })), /*#__PURE__*/React.createElement("td", {
-      className: "td"
-    }, /*#__PURE__*/React.createElement(Inp, {
+      }))
+    })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Lbl, {
+      c: "Amount"
+    }), /*#__PURE__*/React.createElement(Inp, {
       type: "number",
       value: ef.amt,
       onChange: ev => setEf(p => ({
         ...p,
         amt: ev.target.value
       })),
+      placeholder: "0"
+    }))), /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 16,
-        padding: "8px 10px",
-        minHeight: 40
+        marginBottom: 12
       }
-    })), /*#__PURE__*/React.createElement("td", {
-      className: "td"
-    }, /*#__PURE__*/React.createElement("span", {
+    }, /*#__PURE__*/React.createElement(Lbl, {
+      c: "Category"
+    }), /*#__PURE__*/React.createElement(Sel, {
+      value: ef.cat,
+      onChange: ev => setEf(p => ({
+        ...p,
+        cat: ev.target.value
+      }))
+    }, /*#__PURE__*/React.createElement("option", {
+      value: ""
+    }, "Select..."), EXP_CATS.map(c => /*#__PURE__*/React.createElement("option", {
+      key: c
+    }, c)))), ef.cat === "Other" && /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 12,
-        color: A.g4
+        marginBottom: 12
       }
-    }, "\u2014")), /*#__PURE__*/React.createElement("td", {
-      className: "td"
-    }, /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement(Lbl, {
+      c: "Custom Category"
+    }), /*#__PURE__*/React.createElement(Inp, {
+      value: ef.custCat,
+      onChange: ev => setEf(p => ({
+        ...p,
+        custCat: ev.target.value
+      })),
+      placeholder: "e.g., Marketing"
+    })), /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
-        gap: 6
+        gap: 8
       }
     }, /*#__PURE__*/React.createElement(Btn, {
-      sm: true,
-      onClick: () => saveEdit(e)
-    }, "Save"), /*#__PURE__*/React.createElement(Btn, {
-      sm: true,
+      v: "warm",
+      onClick: () => saveEdit(e),
+      style: {
+        flex: 1
+      }
+    }, "Save Changes"), /*#__PURE__*/React.createElement(Btn, {
       v: "can",
-      onClick: () => setEditId(null)
-    }, "Cancel"))));
-    return /*#__PURE__*/React.createElement("tr", {
+      onClick: () => setEditId(null),
+      style: {
+        flex: 1
+      }
+    }, "Cancel")));
+    return /*#__PURE__*/React.createElement("div", {
       key: e.id,
       style: {
-        background: i % 2 === 0 ? "#fff" : "#fafafa"
+        background: "#fff",
+        borderRadius: 16,
+        padding: "18px 20px",
+        border: "1px solid " + A.g2,
+        boxShadow: A.shadow1,
+        display: "flex",
+        alignItems: "center",
+        gap: 16,
+        transition: "all .2s ease"
       }
-    }, /*#__PURE__*/React.createElement("td", {
-      className: "td"
-    }, fmtD(e.date)), /*#__PURE__*/React.createElement("td", {
-      className: "td"
-    }, /*#__PURE__*/React.createElement(Bdg, {
-      color: "orange"
-    }, e.category)), /*#__PURE__*/React.createElement("td", {
-      className: "td",
+    }, /*#__PURE__*/React.createElement("div", {
       style: {
-        color: A.er,
-        fontWeight: 600
+        flex: 1,
+        minWidth: 0
       }
-    }, fmt(e.amount)), /*#__PURE__*/React.createElement("td", {
-      className: "td",
-      style: {
-        fontSize: 12,
-        color: A.g4,
-        maxWidth: 160
-      }
-    }, e.notes || /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: A.g2
-      }
-    }, "\u2014")), /*#__PURE__*/React.createElement("td", {
-      className: "td"
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
-        gap: 6
+        alignItems: "center",
+        gap: 10,
+        marginBottom: 6
+      }
+    }, /*#__PURE__*/React.createElement(Bdg, {
+      color: "orange"
+    }, e.category), e.cashbox && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        fontWeight: 700,
+        color: A.wn,
+        background: A.wnLight,
+        padding: "3px 8px",
+        borderRadius: 12,
+        textTransform: "uppercase",
+        letterSpacing: ".3px"
+      }
+    }, "Cashbox")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "baseline",
+        gap: 12,
+        flexWrap: "wrap"
+      }
+    }, /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontSize: 20,
+        fontWeight: 700,
+        color: A.er,
+        letterSpacing: "-.02em"
+      }
+    }, fmt(e.amount)), /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontSize: 13,
+        color: A.g4,
+        fontWeight: 500
+      }
+    }, fmtD(e.date))), e.notes && /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontSize: 13,
+        color: A.g5,
+        marginTop: 6,
+        lineHeight: 1.4
+      }
+    }, e.notes)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 8,
+        flexShrink: 0
       }
     }, /*#__PURE__*/React.createElement(Btn, {
       sm: true,
@@ -1306,8 +1716,8 @@ function ExpTable({
         ...prev,
         [e.date]: (prev[e.date] || []).filter(x => x.id !== e.id)
       })), "Expense deleted")
-    }, "Del"))));
-  }))));
+    }, "Del")));
+  }));
 }
 function PetModal({
   pet,
@@ -1577,7 +1987,7 @@ function OwnPwEdit({
   }, /*#__PURE__*/React.createElement(Btn, {
     onClick: () => {
       if (form.c !== ownerPass) return setMsg("Incorrect.");
-      if (form.n.length < 4) return setMsg("Min 4 chars.");
+      if (form.n.length < MIN_PASSWORD_LENGTH) return setMsg("Min 4 chars.");
       if (form.n !== form.cf) return setMsg("No match.");
       setOwnerPass(form.n);
       setMsg("OK Updated");
@@ -1724,7 +2134,7 @@ function StfPwRow({
     sm: true,
     onClick: () => {
       if (!form.name.trim()) return setMsg("Name required.");
-      if (form.password.length < 4) return setMsg("Min 4 chars.");
+      if (form.password.length < MIN_PASSWORD_LENGTH) return setMsg("Min 4 chars.");
       onSave({
         ...staff,
         ...form,
@@ -1901,8 +2311,7 @@ function ApptForm({
     style: {marginBottom: 10}
   }, /*#__PURE__*/React.createElement(Lbl, {c: "Client"}),
   /*#__PURE__*/React.createElement("div", {style: {marginTop: 4}},
-    /*#__PURE__*/React.createElement("input", {
-      type: "text",
+    /*#__PURE__*/React.createElement(SearchInp, {
       value: clientSearch,
       onChange: e => {
         setClientSearch(e.target.value);
@@ -1911,8 +2320,7 @@ function ApptForm({
       },
       onFocus: () => setShowClientList(true),
       placeholder: "Search by client or dog name...",
-      autoComplete: "off",
-      style: {background:A.g1, borderRadius:10, border:"none", fontSize:16, padding:"12px 14px", color:A.bl, width:"100%", fontFamily:"inherit", minHeight:44, outline:"none"}
+      autoComplete: "off"
     }),
     showClientList && filteredClients.length > 0 && /*#__PURE__*/React.createElement("div", {
       style: {background:"#fff", borderRadius:10, boxShadow:"0 2px 12px rgba(0,0,0,.1)", maxHeight:200, overflowY:"auto", marginTop:4, border:"1px solid "+A.g2}
@@ -2127,6 +2535,7 @@ function EodModal({
   expenses,
   cashboxBal,
   staffMembers,
+  staffByDate,
   onClose
 }) {
   const done = todAppts.filter(a => a.status === "completed");
@@ -2152,14 +2561,16 @@ function EodModal({
       comm: 0,
       pets: 0
     };
-    groomerComm[name].comm += Number(a.cost || 0) * 0.1;
+    groomerComm[name].comm += Number(a.cost || 0) * COMMISSION_RATE;
     groomerComm[name].pets++;
   });
   const totalComm = Object.values(groomerComm).reduce((s, g) => s + g.comm, 0);
-  const netProfit = revenue - totalExp - totalComm;
+  const staffList = staffByDate[date] || [];
+  const totalSalaries = staffList.reduce((s, m) => s + Number(m.daySalary || DEFAULT_DAILY_SALARY), 0);
+  const netProfit = revenue - totalExp - totalComm - totalSalaries;
   const [copied, setCopied] = useState(false);
   const copyReport = () => {
-    const lines = ["END OF DAY — " + fmtD(date), "", "APPOINTMENTS", "Completed: " + done.length + (cancelled.length > 0 ? "  Cancelled: " + cancelled.length : "") + (pending.length > 0 ? "  Pending: " + pending.length : ""), "", "REVENUE", "Total: " + fmt(revenue), cashRev > 0 ? "Cash: " + fmt(cashRev) : "", gcashRev > 0 ? "GCash: " + fmt(gcashRev) : "", unpaidRev > 0 ? "⚠️ Unpaid: " + fmt(unpaidRev) : "All collected ✓", "", "💰 CASHBOX", "Opening: " + fmt(openBal), "+ Cash Received: " + fmt(cashRev), "- Cash Expenses: " + fmt(cashboxExp), "= Closing: " + fmt(closingBal), expenses.length > 0 ? "\nEXPENSES\n" + Object.entries(expByCat).map(([cat, amt]) => cat + ": " + fmt(amt)).join("\n") + "\nTotal: " + fmt(totalExp) : "", Object.keys(groomerComm).length > 0 ? "\nCOMMISSION\n" + Object.entries(groomerComm).map(([name, g]) => name + ": " + fmt(g.comm) + " (" + g.pets + " dog" + (g.pets !== 1 ? "s" : "") + ")").join("\n") : "", "", "NET PROFIT: " + fmt(netProfit)].filter(l => l !== "").join("\n");
+    const lines = ["END OF DAY — " + fmtD(date), "", "APPOINTMENTS", "Completed: " + done.length + (cancelled.length > 0 ? "  Cancelled: " + cancelled.length : "") + (pending.length > 0 ? "  Pending: " + pending.length : ""), "", "REVENUE", "Total: " + fmt(revenue), cashRev > 0 ? "Cash: " + fmt(cashRev) : "", gcashRev > 0 ? "GCash: " + fmt(gcashRev) : "", unpaidRev > 0 ? "⚠️ Unpaid: " + fmt(unpaidRev) : "All collected ✓", "", "💰 CASHBOX", "Opening: " + fmt(openBal), "+ Cash Received: " + fmt(cashRev), "- Cash Expenses: " + fmt(cashboxExp), "= Closing: " + fmt(closingBal), expenses.length > 0 ? "\nEXPENSES\n" + Object.entries(expByCat).map(([cat, amt]) => cat + ": " + fmt(amt)).join("\n") + "\nTotal: " + fmt(totalExp) : "", Object.keys(groomerComm).length > 0 ? "\nCOMMISSION\n" + Object.entries(groomerComm).map(([name, g]) => name + ": " + fmt(g.comm) + " (" + g.pets + " dog" + (g.pets !== 1 ? "s" : "") + ")").join("\n") + "\nTotal: " + fmt(totalComm) : "", staffList.length > 0 ? "\nSALARIES\n" + staffList.map(m => m.name + ": " + fmt(m.daySalary || DEFAULT_DAILY_SALARY)).join("\n") + "\nTotal: " + fmt(totalSalaries) : "", "", "NET PROFIT: " + fmt(netProfit)].filter(l => l !== "").join("\n");
     navigator.clipboard.writeText(lines).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
@@ -2387,7 +2798,7 @@ function EodModal({
       letterSpacing: .4,
       marginBottom: 10
     }
-  }, "\uD83D\uDCB0 Cashbox"), [["Opening Balance", fmt(openBal), "rgba(255,255,255,.55)"], ["+ Cash Received", fmt(cashRev), "#34c759"], ["− Cash Expenses", fmt(cashboxExp), "#ff375f"]].map(([l, v, c]) => /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",gap:6}}, /*#__PURE__*/React.createElement(IconCash, {size:14,color:"rgba(255,255,255,.55)"}), /*#__PURE__*/React.createElement("span", null, "Cashbox"))), [["Opening Balance", fmt(openBal), "rgba(255,255,255,.55)"], ["+ Cash Received", fmt(cashRev), "#34c759"], ["− Cash Expenses", fmt(cashboxExp), "#ff375f"]].map(([l, v, c]) => /*#__PURE__*/React.createElement("div", {
     key: l,
     style: {
       display: "flex",
@@ -2540,7 +2951,62 @@ function EodModal({
       fontWeight: 700,
       color: A.wn
     }
-  }, fmt(totalComm)))), /*#__PURE__*/React.createElement("div", {
+  }, fmt(totalComm)))), staffList.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: A.g1,
+      borderRadius: 12,
+      padding: "12px 14px",
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: A.g4,
+      textTransform: "uppercase",
+      letterSpacing: .4,
+      marginBottom: 10
+    }
+  }, "Salaries"), staffList.map((m, i, arr) => /*#__PURE__*/React.createElement("div", {
+    key: m.id,
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingBottom: 7,
+      marginBottom: 7,
+      borderBottom: i < arr.length - 1 ? "0.5px solid " + A.g2 : "none"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600
+    }
+  }, m.name), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14,
+      fontWeight: 700,
+      color: A.g4
+    }
+  }, fmt(m.daySalary || DEFAULT_DAILY_SALARY)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      paddingTop: 7,
+      borderTop: "0.5px solid " + A.g2
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700
+    }
+  }, "Total Salaries"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14,
+      fontWeight: 700,
+      color: A.g4
+    }
+  }, fmt(totalSalaries)))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: netProfit >= 0 ? A.sbg : A.dbg,
       borderRadius: 12,
@@ -2694,10 +3160,27 @@ function MainApp({
   loggedInStaff
 }) {
   const isOwner = role === "owner";
-  const TABS = isOwner ? [["today", "Today"], ["schedule", "Schedule"], ["weekly", "Weekly"], ["clients", "Clients"], ["services", "Services"], ["staff", "Staff"], ["dashboard", "Dashboard"], ["permissions", "Permissions"]] : [["today", "Today"], ["schedule", "Schedule"]];
+  // Main bottom tabs (Strava-style navigation)
+  const MAIN_TABS = isOwner ? [
+    ["home", "Home"],
+    ["dashboard", "Dashboard"],
+    ["clients", "Clients"],
+    ["services", "Services"]
+  ] : [["home", "Home"]];
+
+  // Sub-tabs configuration
+  const SUB_TABS = {
+    home: [["today","Today"], ["schedule","Schedule"], ["weekly","Weekly"]],
+    dashboard: [["staff","Staff"], ["overview","Overview"], ["finances","Finances"]]
+  };
+
   const now = new Date();
-  const [tab, setTab] = useState("today");
+  const [mainTab, setMainTab] = useState("home");
+  const [subTab, setSubTab] = useState({ home: "today", dashboard: "overview" });
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Computed current tab for backward compatibility
+  const tab = SUB_TABS[mainTab] ? subTab[mainTab] : mainTab;
   const [calView, setCalView] = useState("day");
   const [clients, setClients] = useState([]);
   const [schedules, setSchedules] = useState({});
@@ -2741,7 +3224,7 @@ function MainApp({
     address: "",
     mobile: "",
     emergencyContact: "",
-    dailySalary: 700,
+    dailySalary: DEFAULT_DAILY_SALARY,
     photo: "",
     idPhoto: ""
   });
@@ -2752,10 +3235,22 @@ function MainApp({
   const [showEod, setShowEod] = useState(false);
   const [showSchedEod, setShowSchedEod] = useState(false);
   const [schedSearch, setSchedSearch] = useState("");
+  const [showSchedFilters, setShowSchedFilters] = useState(false);
   const [petModal, setPetModal] = useState(null);
   const [staffDetailId, setStaffDetailId] = useState(null);
   const [commDetailId, setCommDetailId] = useState(null);
   const [cashbox, setCashbox] = useState({});
+  const [balances, setBalances] = useState(DEF_BAL);
+  const [ownerFinances, setOwnerFinances] = useState(DEF_OWN);
+  const [depositModal, setDepositModal] = useState(null);
+  const [depositAmt, setDepositAmt] = useState("");
+  const [depositNotes, setDepositNotes] = useState("");
+  const [showCapForm, setShowCapForm] = useState(false);
+  const [capForm, setCapForm] = useState({id:null,name:"",amount:"",date:tod(),category:"Equipment",notes:""});
+  const [showOwnerSalEdit, setShowOwnerSalEdit] = useState(false);
+  const [ownerSalForm, setOwnerSalForm] = useState({amount:"",cycle:"monthly"});
+  const [editBalKey, setEditBalKey] = useState(null);
+  const [editBalVal, setEditBalVal] = useState("");
   const [showQExp, setShowQExp] = useState(false);
   const [qExpForm, setQExpForm] = useState({
     cat: "",
@@ -2765,6 +3260,11 @@ function MainApp({
   });
   const [confirmModal, setConfirmModal] = useState(null);
   const [toasts, setToasts] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
+  useEffect(() => {
+    const bootEl = document.getElementById("boot");
+    if (bootEl) bootEl.style.display = "none";
+  }, []);
   const showToast = (message, type = "success", undoToken = null) => {
     const id = Date.now();
     setToasts(p => [...p, {
@@ -2809,23 +3309,43 @@ function MainApp({
   const calRef = useRef(null);
   const schedDateRef = useRef(null);
   useEffect(() => {
-    if (!db) { setSync("Offline"); return; }
+    if (!db || !getDoc) { setSync("Offline"); return; }
     // Migrate from legacy single document if needed
     if (DOCS._legacy) {
-      DOCS._legacy.get().then(snap => {
-        if (snap.exists && !snap.data()._migrated) {
+      getDoc(DOCS._legacy).then(snap => {
+        if (snap.exists() && !snap.data()._migrated) {
           const d = snap.data();
-          const batch = db.batch();
+          const batch = writeBatch(db);
           ["clients","schedules","expenses","services","staffByDate","staffMembers","paymentStatus","cashbox"].forEach(n => {
             if (d[n] !== undefined) batch.set(DOCS[n], {data: d[n]});
           });
-          batch.commit().then(() => DOCS._legacy.set({_migrated: true}, {merge: true})).catch(() => {});
+          batch.commit().then(() => setDoc(DOCS._legacy, {_migrated: true}, {merge: true})).catch(() => {});
         }
       }).catch(() => {});
     }
+    // Migrate schedules from single doc to monthly sharded docs
+    getDoc(DOCS.schedules).then(snap => {
+      if (snap.exists() && !snap.data()._migrated_to_monthly) {
+        const old = snap.data().data;
+        if (old && Object.keys(old).length > 0) {
+          const byMonth = {};
+          Object.entries(old).forEach(([date, appts]) => {
+            const m = date.substring(0, 7);
+            if (!byMonth[m]) byMonth[m] = {};
+            byMonth[m][date] = appts;
+          });
+          const batch = writeBatch(db);
+          Object.entries(byMonth).forEach(([m, data]) => batch.set(doc(SCHED_COL, m), {data}));
+          batch.commit()
+            .then(() => setDoc(DOCS.schedules, {_migrated_to_monthly: true}, {merge: true}))
+            .catch(() => {});
+        } else {
+          setDoc(DOCS.schedules, {_migrated_to_monthly: true}, {merge: true}).catch(() => {});
+        }
+      }
+    }).catch(() => {});
     const setters = {
       clients: v => { lastR.current.clients = v; setClients(v || []); },
-      schedules: v => { lastR.current.schedules = v; if (v) setSchedules(v); },
       expenses: v => { lastR.current.expenses = v; if (v) setExpenses(v); },
       services: v => { lastR.current.services = v; setServices(v || DEF_SVC); },
       staffByDate: v => { lastR.current.staffByDate = v; if (v) setStaffByDate(v); },
@@ -2833,52 +3353,95 @@ function MainApp({
       paymentStatus: v => { lastR.current.paymentStatus = v; setPaymentStatus(v || {}); },
       cashbox: v => { lastR.current.cashbox = v; setCashbox(v || {}); },
       cashAdvances: v => { lastR.current.cashAdvances = v; setCashAdvances(v || []); },
+      balances: v => { lastR.current.balances = v; setBalances(v || DEF_BAL); },
+      ownerFinances: v => { lastR.current.ownerFinances = v; setOwnerFinances(v || DEF_OWN); },
     };
     const unsubs = Object.entries(setters).map(([name, setter]) =>
-      DOCS[name].onSnapshot(snap => { setter(snap.exists ? snap.data().data : null); setSync("Synced"); }, () => setSync("Offline"))
+      onSnapshot(DOCS[name], snap => { setter(snap.exists() ? snap.data().data : null); setSync("Synced"); }, () => setSync("Offline"))
     );
-    return () => unsubs.forEach(u => u());
+    // Monthly schedule collection listener — merges all month docs into schedules state
+    const schedUnsub = onSnapshot(SCHED_COL, snap => {
+      const merged = {};
+      const byMonth = {};
+      snap.docs.forEach(doc => {
+        const data = doc.data().data || {};
+        Object.assign(merged, data);
+        byMonth[doc.id] = data;
+      });
+      lastR.current.schedules = merged;
+      lastR.current.schedulesByMonth = byMonth;
+      setSchedules(merged);
+      setSync("Synced");
+    }, () => setSync("Offline"));
+    return () => { unsubs.forEach(u => u()); schedUnsub(); };
   }, []);
   const sf = (name, v, r) => {
     if (!DOCS[name] || JSON.stringify(v) === JSON.stringify(r)) return;
-    DOCS[name].set({data: v}).then(() => setSync("Synced")).catch(() => setSync("Error"));
+    setDoc(DOCS[name], {data: v}).then(() => setSync("Synced")).catch(() => setSync("Error"));
   };
   useEffect(() => {
-    const t = setTimeout(() => sf("clients", clients, lastR.current.clients), 800);
+    const t = setTimeout(() => sf("clients", clients, lastR.current.clients), SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [clients]);
   useEffect(() => {
-    const t = setTimeout(() => sf("schedules", schedules, lastR.current.schedules), 800);
+    const t = setTimeout(() => {
+      if (!db || !SCHED_COL) return;
+      const byMonth = {};
+      Object.entries(schedules).forEach(([date, appts]) => {
+        const m = date.substring(0, 7);
+        if (!byMonth[m]) byMonth[m] = {};
+        byMonth[m][date] = appts;
+      });
+      const prev = lastR.current.schedulesByMonth || {};
+      Object.entries(byMonth).forEach(([m, data]) => {
+        if (JSON.stringify(data) !== JSON.stringify(prev[m])) {
+          setDoc(doc(SCHED_COL, m), {data}).then(() => setSync("Synced")).catch(() => setSync("Error"));
+        }
+      });
+      // Delete month docs whose appointments were all removed
+      Object.keys(prev).forEach(m => {
+        if (!byMonth[m]) deleteDoc(doc(SCHED_COL, m)).catch(() => {});
+      });
+      lastR.current.schedulesByMonth = byMonth;
+    }, SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [schedules]);
   useEffect(() => {
-    const t = setTimeout(() => sf("expenses", expenses, lastR.current.expenses), 800);
+    const t = setTimeout(() => sf("expenses", expenses, lastR.current.expenses), SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [expenses]);
   useEffect(() => {
-    const t = setTimeout(() => sf("services", services, lastR.current.services), 800);
+    const t = setTimeout(() => sf("services", services, lastR.current.services), SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [services]);
   useEffect(() => {
-    const t = setTimeout(() => sf("staffByDate", staffByDate, lastR.current.staffByDate), 800);
+    const t = setTimeout(() => sf("staffByDate", staffByDate, lastR.current.staffByDate), SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [staffByDate]);
   useEffect(() => {
-    const t = setTimeout(() => sf("staffMembers", staffMembers, lastR.current.staffMembers), 800);
+    const t = setTimeout(() => sf("staffMembers", staffMembers, lastR.current.staffMembers), SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [staffMembers]);
   useEffect(() => {
-    const t = setTimeout(() => sf("paymentStatus", paymentStatus, lastR.current.paymentStatus), 800);
+    const t = setTimeout(() => sf("paymentStatus", paymentStatus, lastR.current.paymentStatus), SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [paymentStatus]);
   useEffect(() => {
-    const t = setTimeout(() => sf("cashbox", cashbox, lastR.current.cashbox), 800);
+    const t = setTimeout(() => sf("cashbox", cashbox, lastR.current.cashbox), SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [cashbox]);
   useEffect(() => {
-    const t = setTimeout(() => sf("cashAdvances", cashAdvances, lastR.current.cashAdvances), 800);
+    const t = setTimeout(() => sf("cashAdvances", cashAdvances, lastR.current.cashAdvances), SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [cashAdvances]);
+  useEffect(() => {
+    const t = setTimeout(() => sf("balances", balances, lastR.current.balances), SYNC_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [balances]);
+  useEffect(() => {
+    const t = setTimeout(() => sf("ownerFinances", ownerFinances, lastR.current.ownerFinances), SYNC_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [ownerFinances]);
   useEffect(() => {
     if (!isOwner) setSelDate(tod());
   }, [isOwner]);
@@ -2902,34 +3465,38 @@ function MainApp({
     const onDuty = gSt(d);
     return onDuty.reduce((s, sm) => {
       const member = staffMembers.find(m => m.id === sm.staffId);
-      const rate = member && member.dailySalary ? Number(member.dailySalary) : 700;
+      const rate = member && member.dailySalary ? Number(member.dailySalary) : DEFAULT_DAILY_SALARY;
       return s + rate;
     }, 0);
   };
   const gRev = d => gA(d).filter(a => a.status === "completed").reduce((s, a) => s + Number(a.cost || 0), 0);
   const gExpR = d => gE(d).reduce((s, e) => s + Number(e.amount || 0), 0);
-  const gComm = d => gA(d).filter(a => a.groomerId && a.status === "completed").reduce((s, a) => s + Number(a.cost || 0) * 0.1, 0);
+  const gComm = d => gA(d).filter(a => a.groomerId && a.status === "completed").reduce((s, a) => s + Number(a.cost || 0) * COMMISSION_RATE, 0);
   const gExp = d => gExpR(d) + gSal(d);
   const gP = d => gRev(d) - gExp(d) - gComm(d);
-  const allD = [...new Set([...Object.keys(schedules), ...Object.keys(expenses), ...Object.keys(staffByDate).filter(d => (staffByDate[d] || []).length > 0)])];
+  const allD = useMemo(() => [...new Set([
+    ...Object.keys(schedules),
+    ...Object.keys(expenses),
+    ...Object.keys(staffByDate).filter(d => (staffByDate[d] || []).length > 0)
+  ])], [schedules, expenses, staffByDate]);
   const totP = ds => ds.reduce((s, d) => s + gP(d), 0);
   const thiswk = getWeek(0);
   const thismo = allD.filter(d => d.startsWith(now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0")));
   const thisyr = allD.filter(d => d.startsWith("" + now.getFullYear()));
-  const allAppts = Object.values(schedules).flat();
+  const allAppts = useMemo(() => Object.values(schedules).flat(), [schedules]);
   const availYears = [...new Set([...allD.map(d => parseInt(d.split("-")[0])), now.getFullYear()])].sort((a, b) => b - a);
-  const lastVisitData = {};
-  clients.forEach(cl => {
-    const hist = [];
-    Object.entries(schedules).forEach(([date, appts]) => {
-      appts.filter(a => a.clientId === cl.id).forEach(a => hist.push({
-        ...a,
-        date
-      }));
+  const lastVisitData = useMemo(() => {
+    const result = {};
+    clients.forEach(cl => {
+      const hist = [];
+      Object.entries(schedules).forEach(([date, appts]) => {
+        appts.filter(a => a.clientId === cl.id).forEach(a => hist.push({...a, date}));
+      });
+      hist.sort((a, b) => b.date.localeCompare(a.date));
+      if (hist.length > 0) result[cl.id] = hist[0];
     });
-    hist.sort((a, b) => b.date.localeCompare(a.date));
-    if (hist.length > 0) lastVisitData[cl.id] = hist[0];
-  });
+    return result;
+  }, [clients, schedules]);
   const getPay = key => getPayE(paymentStatus[key]);
   const isPaid = key => getPay(key).status === "paid";
   const togglePay = (key, amount) => setPaymentStatus(p => ({
@@ -2986,7 +3553,7 @@ function MainApp({
     if (!smForm.name.trim()) return;
     const data = {
       ...smForm,
-      dailySalary: Number(smForm.dailySalary) || 700
+      dailySalary: Number(smForm.dailySalary) || DEFAULT_DAILY_SALARY
     };
     if (smForm.id) setStaffMembers(p => p.map(s => s.id === smForm.id ? data : s));else setStaffMembers(p => [...p, {
       ...data,
@@ -3000,7 +3567,7 @@ function MainApp({
       address: "",
       mobile: "",
       emergencyContact: "",
-      dailySalary: 700,
+      dailySalary: DEFAULT_DAILY_SALARY,
       photo: "",
       idPhoto: ""
     });
@@ -3087,18 +3654,7 @@ function MainApp({
       if (String(adv.staffId) !== String(staffId) || adv.status !== "active") return adv;
       const deduct = getAdvanceDeductionForPeriod(adv, periodEnd);
       if (deduct <= 0) return adv;
-      const issued = new Date(adv.dateIssued + "T12:00:00");
-      const end = new Date(periodEnd + "T12:00:00");
-      let totalDue = 0;
-      for (let i = 1; ; i++) {
-        const d2 = new Date(issued);
-        if (adv.frequency === "monthly") d2.setMonth(d2.getMonth() + i);
-        else if (adv.frequency === "biweekly") d2.setDate(d2.getDate() + 14 * i);
-        else d2.setDate(d2.getDate() + 7 * i);
-        if (d2 > end) break;
-        totalDue++;
-      }
-      const pending = Math.max(0, totalDue - (adv.deductionsMade || 0));
+      const pending = Math.round(deduct / adv.deductionAmount);
       const newRemaining = Math.max(0, adv.remainingDebt - deduct);
       return {...adv, remainingDebt: newRemaining, deductionsMade: (adv.deductionsMade || 0) + pending, status: newRemaining <= 0 ? "paid" : "active"};
     }));
@@ -3114,6 +3670,116 @@ function MainApp({
   };
   const markAdvancePaid = (id) => { setCashAdvances(prev => prev.map(a => a.id === id ? {...a, remainingDebt:0, status:"paid"} : a)); showToast("Marked as fully paid ✓"); };
   const deleteAdvance = (id) => askConfirm("Delete this cash advance record?", () => { setCashAdvances(prev => prev.filter(a => a.id !== id)); showToast("Advance deleted"); });
+  const deleteDeposit = (depositId) => {
+    setBalances(prev => ({
+      ...prev,
+      deposits: (prev.deposits || []).filter(d => d.id !== depositId)
+    }));
+    showToast("Deposit removed");
+  };
+  const recordDeposit = () => {
+    const amt = Number(depositAmt);
+    if (!amt || !depositModal) return;
+    setBalances(prev => {
+      const entry = {id:Date.now(), type:depositModal, amount:amt, date:tod(), notes:depositNotes.trim()};
+      const deps = [...(prev.deposits||[]), entry];
+      if (depositModal==="cash") return {...prev, cashOnHand:Math.max(0,(prev.cashOnHand||0)-amt), bankBalance:(prev.bankBalance||0)+amt, deposits:deps};
+      if (depositModal==="gcash") return {...prev, gcashBalance:Math.max(0,(prev.gcashBalance||0)-amt), bankBalance:(prev.bankBalance||0)+amt, deposits:deps};
+      if (depositModal==="bank-credit") return {...prev, bankBalance:(prev.bankBalance||0)+amt, deposits:deps};
+      if (depositModal==="bank-debit") return {...prev, bankBalance:Math.max(0,(prev.bankBalance||0)-amt), deposits:deps};
+      return prev;
+    });
+    setDepositModal(null); setDepositAmt(""); setDepositNotes("");
+    showToast("Balance updated ✓");
+  };
+  const saveCapItem = () => {
+    if (!capForm.name.trim() || !capForm.amount) return;
+    const item = {...capForm, amount:Number(capForm.amount), id:capForm.id||Date.now()};
+    setOwnerFinances(prev => ({...prev, capitalItems:capForm.id?(prev.capitalItems||[]).map(c=>c.id===capForm.id?item:c):[...(prev.capitalItems||[]),item]}));
+    setCapForm({id:null,name:"",amount:"",date:tod(),category:"Equipment",notes:""});
+    setShowCapForm(false);
+    showToast("Capital item saved ✓");
+  };
+  const saveOwnerSal = () => {
+    const amt = Number(ownerSalForm.amount);
+    if (!amt || isSaving) return;
+    setIsSaving(true);
+    setOwnerFinances(prev => ({...prev, salaryAmount:amt, salaryCycle:ownerSalForm.cycle||"monthly", businessStartDate:ownerSalForm.startDate||""}));
+    setTimeout(() => {
+      setIsSaving(false);
+      setShowOwnerSalEdit(false);
+      showToast("Owner salary updated ✓");
+    }, 300);
+  };
+  const markOwnerSalPaid = (period) => {
+    const amt = ownerFinances.salaryAmount||0;
+    setOwnerFinances(prev => ({...prev, salaryPayments:[...(prev.salaryPayments||[]).filter(p=>p.period!==period),{id:Date.now(),period,amount:amt,paidOn:tod()}]}));
+    showToast("Salary marked paid ✓");
+  };
+  const unmarkOwnerSalPaid = (period) => {
+    setOwnerFinances(prev => ({...prev, salaryPayments:(prev.salaryPayments||[]).filter(p=>p.period!==period)}));
+    showToast("Salary payment removed");
+  };
+  const getOwnerSalPeriods = () => {
+    const cycle = ownerFinances.salaryCycle || "monthly";
+    const periods = [];
+
+    // Use businessStartDate if set, otherwise use first appointment/expense date
+    const configuredStart = ownerFinances.businessStartDate || "";
+    const allDates = [...allD];
+    const earliestDate = configuredStart || (allDates.length > 0 ? allDates.sort()[0] : tod());
+    const [eYear, eMonth, eDay] = earliestDate.split("-").map(Number);
+    const startDate = new Date(eYear, eMonth - 1, eDay || 1);
+
+    if (cycle === "monthly") {
+      // Show months from business start to current month
+      const currentDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      let d = new Date(startDate);
+      while (d <= currentDate) {
+        const key = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+        const label = MN[d.getMonth()] + " " + d.getFullYear();
+        const payment = (ownerFinances.salaryPayments||[]).find(p=>p.period===key);
+        periods.push({key, label, payment});
+        d.setMonth(d.getMonth() + 1);
+      }
+    } else if (cycle === "biweekly") {
+      // Show biweekly periods (every 2 weeks from start)
+      const current = new Date(now);
+      let periodStart = new Date(startDate);
+      while (periodStart <= current) {
+        const periodEnd = new Date(periodStart);
+        periodEnd.setDate(periodEnd.getDate() + 13);
+        const key = periodStart.getFullYear() + "-" + String(periodStart.getMonth() + 1).padStart(2, "0") + "-" + String(periodStart.getDate()).padStart(2, "0");
+        const label = fmtD(periodStart.toISOString().split("T")[0]) + " - " + fmtD(periodEnd.toISOString().split("T")[0]);
+        const payment = (ownerFinances.salaryPayments||[]).find(p=>p.period===key);
+        periods.push({key, label, payment});
+        periodStart.setDate(periodStart.getDate() + 14);
+      }
+    } else if (cycle === "weekly") {
+      // Show weekly periods (every 7 days from start)
+      const current = new Date(now);
+      let periodStart = new Date(startDate);
+      while (periodStart <= current) {
+        const periodEnd = new Date(periodStart);
+        periodEnd.setDate(periodEnd.getDate() + 6);
+        const key = periodStart.getFullYear() + "-" + String(periodStart.getMonth() + 1).padStart(2, "0") + "-" + String(periodStart.getDate()).padStart(2, "0");
+        const label = fmtD(periodStart.toISOString().split("T")[0]) + " - " + fmtD(periodEnd.toISOString().split("T")[0]);
+        const payment = (ownerFinances.salaryPayments||[]).find(p=>p.period===key);
+        periods.push({key, label, payment});
+        periodStart.setDate(periodStart.getDate() + 7);
+      }
+    }
+
+    // Limit to last 12 periods to avoid overwhelming UI
+    return periods.slice(-12);
+  };
+  const saveBalEdit = () => {
+    const val = Number(editBalVal);
+    if (isNaN(val)||!editBalKey) return;
+    setBalances(prev=>({...prev,[editBalKey]:Math.max(0,val)}));
+    setEditBalKey(null); setEditBalVal("");
+    showToast("Balance updated ✓");
+  };
   const exportData = () => {
     try {
       const payload = {
@@ -3127,7 +3793,9 @@ function MainApp({
         staffByDate,
         cashAdvances,
         paymentStatus,
-        cashbox
+        cashbox,
+        balances,
+        ownerFinances
       };
       const json = JSON.stringify(payload, null, 2);
       const blob = new Blob([json], {type: "application/json"});
@@ -3148,7 +3816,6 @@ function MainApp({
   const freqLabel = f => f === "monthly" ? "Monthly" : f === "biweekly" ? "Every 2 weeks" : "Weekly";
   // ─────────────────────────────────────────────────────────────
   const delA = (d, id) => setSchedules(prev => ({
-    ...prev,
     ...prev,
     [d]: (prev[d] || []).filter(a => a.id !== id)
   }));
@@ -3202,7 +3869,8 @@ function MainApp({
     showToast("Expense logged ✓");
   };
   const saveSv = () => {
-    if (!svForm.name.trim()) return;
+    if (!svForm.name.trim() || isSaving) return;
+    setIsSaving(true);
     if (editSvId) setServices(prev => prev.map(sv => sv.id === editSvId ? {
       ...sv,
       name: svForm.name,
@@ -3214,14 +3882,17 @@ function MainApp({
       price: Number(svForm.price),
       category: svForm.category || ""
     }]);
-    setSvForm({
-      name: "",
-      price: "",
-      category: ""
-    });
-    setEditSvId(null);
-    setShowSvForm(false);
-    showToast("Service saved ✓");
+    setTimeout(() => {
+      setIsSaving(false);
+      setSvForm({
+        name: "",
+        price: "",
+        category: ""
+      });
+      setEditSvId(null);
+      setShowSvForm(false);
+      showToast("Service saved ✓");
+    }, 300);
   };
   const fCl = clients.filter(c => c.name.toLowerCase().includes(nFilter.toLowerCase()) || c.pets.some(p => p.name.toLowerCase().includes(nFilter.toLowerCase())));
   const appts = gA(selDate);
@@ -3232,8 +3903,39 @@ function MainApp({
   const dSal = gSal(selDate);
   const dComm = gComm(selDate);
   const syncDot = sync === "Synced" ? "#34c759" : sync === "Offline" ? "#ff9f0a" : "rgba(255,255,255,.4)";
+  // Navigation functions
+  const goMainTab = (k) => {
+    setMainTab(k);
+    setMenuOpen(false);
+  };
+
+  const goSubTab = (k) => {
+    setSubTab(prev => ({ ...prev, [mainTab]: k }));
+  };
+
+  // Legacy goTab for backward compatibility with existing code
   const goTab = k => {
-    setTab(k);
+    // Map old flat tabs to new hierarchical structure
+    const tabMap = {
+      today: { main: "home", sub: "today" },
+      schedule: { main: "home", sub: "schedule" },
+      weekly: { main: "home", sub: "weekly" },
+      staff: { main: "dashboard", sub: "staff" },
+      dashboard: { main: "dashboard", sub: "overview" },
+      overview: { main: "dashboard", sub: "overview" },
+      finances: { main: "dashboard", sub: "finances" },
+      clients: { main: "clients", sub: null },
+      services: { main: "services", sub: null },
+      permissions: { main: "permissions", sub: null }
+    };
+
+    const mapped = tabMap[k];
+    if (mapped) {
+      setMainTab(mapped.main);
+      if (mapped.sub) {
+        setSubTab(prev => ({ ...prev, [mapped.main]: mapped.sub }));
+      }
+    }
     setMenuOpen(false);
   };
   const prevDay = () => {
@@ -3263,7 +3965,7 @@ function MainApp({
         dates: []
       };
       const member = staffMembers.find(m => m.id === s.staffId);
-      const rate = member && member.dailySalary ? Number(member.dailySalary) : 700;
+      const rate = member && member.dailySalary ? Number(member.dailySalary) : DEFAULT_DAILY_SALARY;
       salByStaff[salId].days++;
       salByStaff[salId].total += rate;
       salByStaff[salId].dates.push({
@@ -3286,7 +3988,7 @@ function MainApp({
         pets: 0,
         breakdown: []
       };
-      const comm = Number(a.cost || 0) * 0.1;
+      const comm = Number(a.cost || 0) * COMMISSION_RATE;
       commByGroomer[a.groomerId].total += comm;
       commByGroomer[a.groomerId].pets++;
       commByGroomer[a.groomerId].breakdown.push({
@@ -3418,18 +4120,7 @@ function MainApp({
       const todCancelled = todAppts.filter(a => a.status === "cancelled").length;
       const total = todAppts.filter(a => a.status !== "cancelled").length;
       const pct = total > 0 ? Math.round(done.length / total * 100) : 0;
-      const groomerCommToday = {};
-      todAppts.filter(a => a.groomerId && a.status === "completed").forEach(a => {
-        const member = staffMembers.find(m => m.id === a.groomerId);
-        const name = member ? member.name : "Unknown";
-        if (!groomerCommToday[a.groomerId]) groomerCommToday[a.groomerId] = {
-          name,
-          comm: 0,
-          pets: 0
-        };
-        groomerCommToday[a.groomerId].comm += Number(a.cost || 0) * 0.1;
-        groomerCommToday[a.groomerId].pets++;
-      });
+      const groomerCommToday = buildGroomerCommMap(todAppts, staffMembers);
       const myStaffMember = loggedInStaff ? loggedInStaff.staffMemberId ? staffMembers.find(m => String(m.id) === String(loggedInStaff.staffMemberId)) : staffMembers.find(m => m.name.toLowerCase() === loggedInStaff.name.toLowerCase()) : null;
       const myTodayComm = myStaffMember ? groomerCommToday[myStaffMember.id] || null : null;
       function TodayApptCard({
@@ -3587,6 +4278,7 @@ function MainApp({
         expenses: gE(todStr),
         cashboxBal: cashbox[todStr] || 0,
         staffMembers: staffMembers,
+        staffByDate: staffByDate,
         onClose: () => setShowEod(false)
       }), /*#__PURE__*/React.createElement("div", {
         style: {
@@ -4041,7 +4733,7 @@ function MainApp({
       }), /*#__PURE__*/React.createElement("button", {
         onClick: () => {
           const d = new Date(todStr + "T12:00:00");
-          d.setDate(d.getDate() + 28);
+          d.setDate(d.getDate() + REBOOK_DAYS);
           const nd = d.toISOString().split("T")[0];
           if (isOwner) setSelDate(nd);
           setActA(null);
@@ -4105,7 +4797,13 @@ function MainApp({
           setAForm(bA(selDate));
           setShowAForm(true);
         }
-      }, "+ Add Appointment")));
+      }, "+ Add Appointment")), /*#__PURE__*/React.createElement(FAB, {
+        onClick: () => {
+          setActA(null);
+          setAForm(bA(todStr));
+          setShowAForm(true);
+        }
+      }));
     }
     if (tab === "schedule") {
       const selDayName = DNAMES[new Date(selDate + "T12:00:00").getDay()];
@@ -4152,9 +4850,10 @@ function MainApp({
         style: {
           display: "flex",
           flexDirection: "column",
-          height: "calc(100dvh - calc(54px + env(safe-area-inset-top)))",
-          minHeight: 0,
-          background: "#111"
+          minHeight: "100dvh",
+          background: "#111",
+          marginTop: "calc(-60px - env(safe-area-inset-top))",
+          paddingTop: "env(safe-area-inset-top)"
         }
       }, apptFormModal, showSchedEod && /*#__PURE__*/React.createElement(EodModal, {
         date: selDate,
@@ -4162,189 +4861,184 @@ function MainApp({
         expenses: gE(selDate),
         cashboxBal: cashbox[selDate] || 0,
         staffMembers: staffMembers,
+        staffByDate: staffByDate,
         onClose: () => setShowSchedEod(false)
       }), /*#__PURE__*/React.createElement("div", {
         style: {
-          background: "#111",
+          position: "sticky",
+          top: 0,
+          zIndex: 50,
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          background: "rgba(17,17,17,0.85)",
+          borderBottom: "1px solid rgba(255,255,255,0.1)",
           flexShrink: 0
         }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
           alignItems: "center",
-          padding: "10px 14px 6px",
-          gap: 8
+          padding: "10px 14px",
+          gap: 12
         }
-      }, isOwner ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+      }, isOwner && /*#__PURE__*/React.createElement("button", {
         onClick: prevDay,
         style: {
-          padding: "0 14px",
-          height: 36,
-          borderRadius: 9,
-          background: "rgba(255,255,255,.1)",
+          background: "none",
           border: "none",
           color: "#fff",
-          fontSize: 13,
-          fontWeight: 600,
+          fontSize: 18,
           cursor: "pointer",
+          padding: "4px 8px",
+          minHeight: "auto",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
-          minHeight: "auto",
-          fontFamily: "inherit"
+          WebkitTapHighlightColor: "transparent"
         }
-      }, "Previous"), /*#__PURE__*/React.createElement("div", {
+      }, "←"), /*#__PURE__*/React.createElement("div", {
         style: {
           flex: 1,
           textAlign: "center",
-          cursor: "pointer"
-        },
-        onClick: () => {
-          if (schedDateRef.current) {
-            try {
-              schedDateRef.current.showPicker();
-            } catch (e) {
-              schedDateRef.current.click();
-            }
-          }
+          padding: "6px 12px",
+          borderRadius: 10,
+          background: "rgba(255,255,255,0.08)",
+          transition: "background 0.2s",
+          WebkitTapHighlightColor: "transparent",
+          position: "relative"
         }
-      }, /*#__PURE__*/React.createElement("p", {
+      }, /*#__PURE__*/React.createElement("div", {
         style: {
-          color: "#fff",
+          fontSize: 14,
           fontWeight: 700,
-          fontSize: 16
+          color: "#fff",
+          pointerEvents: "none"
         }
-      }, selDayName), /*#__PURE__*/React.createElement("p", {
-        style: {
-          color: "rgba(255,255,255,.45)",
-          fontSize: 12,
-          marginTop: 1
-        }
-      }, fmtD(selDate), " \u25BE"), /*#__PURE__*/React.createElement("input", {
+      }, selDayName, ", ", fmtD(selDate), " ▾"), /*#__PURE__*/React.createElement("input", {
         ref: schedDateRef,
         type: "date",
         value: selDate,
         onChange: e => e.target.value && setSelDate(e.target.value),
         style: {
-          position: "fixed",
+          position: "absolute",
           top: 0,
           left: 0,
-          width: 1,
-          height: 1,
+          width: "100%",
+          height: "100%",
           opacity: 0,
-          pointerEvents: "none",
-          border: "none"
+          cursor: "pointer",
+          border: "none",
+          background: "transparent"
         }
-      })), /*#__PURE__*/React.createElement("button", {
+      })), isOwner && /*#__PURE__*/React.createElement("button", {
         onClick: nextDay,
         style: {
-          padding: "0 14px",
-          height: 36,
-          borderRadius: 9,
-          background: "rgba(255,255,255,.1)",
+          background: "none",
           border: "none",
           color: "#fff",
-          fontSize: 13,
-          fontWeight: 600,
+          fontSize: 18,
           cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          padding: "4px 8px",
           minHeight: "auto",
-          fontFamily: "inherit"
+          display: "flex",
+          alignItems: "center",
+          WebkitTapHighlightColor: "transparent"
         }
-      }, "Next")) : /*#__PURE__*/React.createElement("div", {
+      }, "→"), /*#__PURE__*/React.createElement("button", {
+        onClick: () => setShowSchedFilters(!showSchedFilters),
         style: {
-          flex: 1,
-          textAlign: "center"
-        }
-      }, /*#__PURE__*/React.createElement("p", {
-        style: {
+          background: showSchedFilters ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.08)",
+          border: "none",
           color: "#fff",
-          fontWeight: 700,
-          fontSize: 16
+          fontSize: 16,
+          cursor: "pointer",
+          padding: "8px 10px",
+          minHeight: "auto",
+          borderRadius: 8,
+          display: "flex",
+          alignItems: "center",
+          transition: "background 0.2s",
+          WebkitTapHighlightColor: "transparent"
         }
-      }, selDayName), /*#__PURE__*/React.createElement("p", {
-        style: {
-          color: "rgba(255,255,255,.45)",
-          fontSize: 12,
-          marginTop: 1
-        }
-      }, fmtD(selDate)))), /*#__PURE__*/React.createElement("div", {
+      }, /*#__PURE__*/React.createElement("svg", {width: 18, height: 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round"}, /*#__PURE__*/React.createElement("circle", {cx: 11, cy: 11, r: 8}), /*#__PURE__*/React.createElement("path", {d: "m21 21-4.35-4.35"})))), /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
           alignItems: "center",
-          padding: "0 14px 10px",
-          gap: 8
+          padding: "0 14px 8px",
+          gap: 8,
+          overflowX: "auto"
         }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
-          background: "rgba(255,255,255,.1)",
-          borderRadius: 7,
-          padding: 2
+          background: "rgba(255,255,255,.08)",
+          borderRadius: 8,
+          padding: 2,
+          gap: 4
         }
       }, [["day", "Day"], ["agenda", "Agenda"]].map(([v, l]) => /*#__PURE__*/React.createElement("button", {
         key: v,
         onClick: () => setCalView(v),
         style: {
-          padding: "5px 13px",
-          borderRadius: 5,
-          background: calView === v ? "#fff" : "transparent",
-          color: calView === v ? "#1c1c1e" : "rgba(255,255,255,.55)",
-          fontSize: 12,
-          fontWeight: 700,
+          padding: "6px 14px",
+          borderRadius: 6,
+          background: calView === v ? "rgba(255,255,255,0.15)" : "transparent",
+          color: calView === v ? "#fff" : "rgba(255,255,255,.5)",
+          fontSize: 13,
+          fontWeight: 600,
           cursor: "pointer",
           border: "none",
           fontFamily: "inherit",
-          minHeight: "auto"
+          minHeight: "auto",
+          transition: "all 0.2s",
+          WebkitTapHighlightColor: "transparent"
         }
       }, l))), isOwner && /*#__PURE__*/React.createElement("button", {
         onClick: () => setSelDate(todStr),
         style: {
-          padding: "5px 12px",
-          borderRadius: 7,
-          background: selDate === todStr ? "rgba(255,255,255,.2)" : "rgba(255,255,255,.07)",
+          padding: "6px 12px",
+          borderRadius: 6,
+          background: selDate === todStr ? "rgba(255,255,255,.15)" : "rgba(255,255,255,.06)",
           border: "none",
           color: selDate === todStr ? "#fff" : "rgba(255,255,255,.5)",
-          fontSize: 12,
+          fontSize: 13,
           fontWeight: 600,
           cursor: "pointer",
           fontFamily: "inherit",
           minHeight: "auto",
-          flexShrink: 0
+          flexShrink: 0,
+          WebkitTapHighlightColor: "transparent"
         }
       }, "Today"), /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
           alignItems: "center",
           gap: 5,
-          background: "rgba(255,255,255,.07)",
-          borderRadius: 7,
-          padding: "4px 9px",
+          background: "rgba(255,255,255,.06)",
+          borderRadius: 6,
+          padding: "5px 10px",
           flexShrink: 0
         }
       }, /*#__PURE__*/React.createElement("span", {
         style: {
           fontSize: 11,
-          color: "rgba(255,255,255,.5)"
+          color: "rgba(255,255,255,.45)"
         }
       }, "Pets"), /*#__PURE__*/React.createElement("span", {
         style: {
-          fontSize: 12,
+          fontSize: 13,
           fontWeight: 700,
           color: "#fff"
         }
       }, totalPets)), dRev > 0 && /*#__PURE__*/React.createElement("div", {
         style: {
-          background: "rgba(52,199,89,.15)",
-          borderRadius: 7,
-          padding: "4px 9px",
+          background: "rgba(52,199,89,.12)",
+          borderRadius: 6,
+          padding: "5px 10px",
           flexShrink: 0
         }
       }, /*#__PURE__*/React.createElement("span", {
         style: {
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: 700,
           color: "#34c759"
         }
@@ -4355,18 +5049,18 @@ function MainApp({
       }), /*#__PURE__*/React.createElement("button", {
         onClick: () => setShowSchedEod(true),
         style: {
-          padding: "0 12px",
-          height: 36,
-          borderRadius: 20,
-          background: "rgba(255,255,255,.08)",
-          border: "1px solid rgba(255,255,255,.15)",
-          color: "rgba(255,255,255,.6)",
+          padding: "6px 12px",
+          borderRadius: 6,
+          background: "rgba(255,255,255,.06)",
+          border: "none",
+          color: "rgba(255,255,255,.5)",
           fontSize: 12,
           fontWeight: 600,
           cursor: "pointer",
           fontFamily: "inherit",
           minHeight: "auto",
-          flexShrink: 0
+          flexShrink: 0,
+          WebkitTapHighlightColor: "transparent"
         }
       }, "EOD"), /*#__PURE__*/React.createElement("button", {
         onClick: () => {
@@ -4381,36 +5075,82 @@ function MainApp({
           background: "#0071e3",
           border: "none",
           color: "#fff",
-          fontSize: 22,
+          fontSize: 20,
+          fontWeight: 500,
           cursor: "pointer",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           minHeight: "auto",
+          flexShrink: 0,
+          WebkitTapHighlightColor: "transparent"
+        }
+      }, "+"))), showSchedFilters && /*#__PURE__*/React.createElement("div", {
+        style: {
+          background: "rgba(255,255,255,0.05)",
+          borderTop: "1px solid rgba(255,255,255,0.08)",
+          padding: "12px 14px",
           flexShrink: 0
         }
-      }, "+"))), /*#__PURE__*/React.createElement("div", {
+      }, /*#__PURE__*/React.createElement("div", {
         style: {
-          background: "#1c1c1e",
-          padding: "8px 14px",
+          marginBottom: 12
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
           display: "flex",
           alignItems: "center",
-          gap: 7,
-          overflowX: "auto",
-          flexShrink: 0,
-          borderBottom: "1px solid rgba(255,255,255,.06)"
+          gap: 8,
+          background: "rgba(255,255,255,.08)",
+          borderRadius: 8,
+          padding: "8px 12px"
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {fontSize: 14, color: "rgba(255,255,255,.4)"}
+      }, /*#__PURE__*/React.createElement("svg", {width: 18, height: 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round"}, /*#__PURE__*/React.createElement("circle", {cx: 11, cy: 11, r: 8}), /*#__PURE__*/React.createElement("path", {d: "m21 21-4.35-4.35"}))), /*#__PURE__*/React.createElement("input", {
+        type: "text",
+        value: schedSearch,
+        onChange: e => setSchedSearch(e.target.value),
+        placeholder: "Search pet or client...",
+        style: {
+          flex: 1,
+          background: "transparent",
+          border: "none",
+          color: "#fff",
+          fontSize: 14,
+          fontFamily: "inherit",
+          outline: "none",
+          minHeight: "auto"
+        }
+      }), schedSearch && /*#__PURE__*/React.createElement("button", {
+        onClick: () => setSchedSearch(""),
+        style: {background: "none", border: "none", color: "rgba(255,255,255,.4)", fontSize: 18, cursor: "pointer", minHeight: "auto", padding: 0}
+      }, "×"))), /*#__PURE__*/React.createElement("div", {
+        style: {
+          marginBottom: 12
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 8
         }
       }, /*#__PURE__*/React.createElement("span", {
         style: {
-          fontSize: 10,
+          fontSize: 11,
           fontWeight: 700,
-          color: "rgba(255,255,255,.3)",
+          color: "rgba(255,255,255,.35)",
           textTransform: "uppercase",
-          letterSpacing: .5,
-          whiteSpace: "nowrap",
-          flexShrink: 0
+          letterSpacing: .5
         }
-      }, "On Duty"), staffMembers.length === 0 ? /*#__PURE__*/React.createElement("span", {
+      }, "On Duty")), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          gap: 6,
+          flexWrap: "wrap"
+        }
+      }, staffMembers.length === 0 ? /*#__PURE__*/React.createElement("span", {
         style: {
           fontSize: 12,
           color: "rgba(255,255,255,.25)"
@@ -4424,72 +5164,44 @@ function MainApp({
           style: {
             display: "inline-flex",
             alignItems: "center",
-            gap: 5,
-            padding: "6px 13px",
-            borderRadius: 20,
-            border: "1.5px solid " + (on ? dc : "rgba(255,255,255,.15)"),
-            background: on ? dc + "22" : "transparent",
-            color: on ? dc : "rgba(255,255,255,.4)",
+            gap: 4,
+            padding: "6px 12px",
+            borderRadius: 16,
+            border: "1.5px solid " + (on ? dc : "rgba(255,255,255,.12)"),
+            background: on ? dc + "18" : "transparent",
+            color: on ? dc : "rgba(255,255,255,.35)",
             fontFamily: "inherit",
             fontSize: 12,
-            fontWeight: 700,
+            fontWeight: 600,
             cursor: "pointer",
             minHeight: "auto",
-            flexShrink: 0
+            flexShrink: 0,
+            WebkitTapHighlightColor: "transparent"
           }
-        }, sm.name.split(" ")[0], on ? " ON" : "");
-      })), /*#__PURE__*/React.createElement("div", {
+        }, sm.name.split(" ")[0], on ? " ✓" : "");
+      }))), filteredAppts.filter(a => a.status !== "cancelled").length > 0 && /*#__PURE__*/React.createElement("div", {
         style: {
-          background: "#1a1a1a",
-          padding: "8px 14px",
-          flexShrink: 0,
-          borderBottom: "1px solid rgba(255,255,255,.06)",
+          marginBottom: 12
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
           display: "flex",
           alignItems: "center",
-          gap: 8
+          gap: 8,
+          marginBottom: 8
         }
       }, /*#__PURE__*/React.createElement("span", {
-        style: {fontSize: 12, color: "rgba(255,255,255,.35)"}
-      }, "🔍"), /*#__PURE__*/React.createElement("input", {
-        type: "text",
-        value: schedSearch,
-        onChange: e => setSchedSearch(e.target.value),
-        placeholder: "Search pet or client...",
         style: {
-          flex: 1,
-          background: "rgba(255,255,255,.08)",
-          border: "1px solid rgba(255,255,255,.12)",
-          borderRadius: 8,
-          padding: "6px 10px",
-          color: "#fff",
-          fontSize: 13,
-          fontFamily: "inherit",
-          outline: "none",
-          minHeight: "auto"
-        }
-      }), schedSearch && /*#__PURE__*/React.createElement("button", {
-        onClick: () => setSchedSearch(""),
-        style: {background: "none", border: "none", color: "rgba(255,255,255,.4)", fontSize: 16, cursor: "pointer", minHeight: "auto", padding: 0}
-      }, "×")), /*#__PURE__*/React.createElement("div", {
-        style: {
-          background: "#222",
-          padding: "8px 14px",
-          flexShrink: 0,
-          borderBottom: "1px solid rgba(255,255,255,.06)"
-        }
-      }, /*#__PURE__*/React.createElement("p", {
-        style: {
-          fontSize: 10,
+          fontSize: 11,
           fontWeight: 700,
-          color: "rgba(255,255,255,.4)",
+          color: "rgba(255,255,255,.35)",
           textTransform: "uppercase",
-          letterSpacing: .5,
-          marginBottom: 6
+          letterSpacing: .5
         }
-      }, "Quick Assign Pet to Groomer"), /*#__PURE__*/React.createElement("div", {
+      }, "Quick Assign")), /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
-          gap: 8,
+          gap: 6,
           flexWrap: "wrap"
         }
       }, filteredAppts.filter(a => a.status !== "cancelled").map(a => {
@@ -4500,29 +5212,29 @@ function MainApp({
             display: "flex",
             alignItems: "center",
             gap: 6,
-            background: "rgba(255,255,255,.07)",
+            background: "rgba(255,255,255,.06)",
             borderRadius: 8,
             padding: "6px 10px",
-            border: "1px solid " + c.bd
+            border: "1px solid rgba(255,255,255,.08)"
           }
         }, /*#__PURE__*/React.createElement("span", {
           style: {
-            fontSize: 12,
-            fontWeight: 700,
+            fontSize: 11,
+            fontWeight: 600,
             color: c.tx,
             background: c.bg,
-            padding: "2px 8px",
-            borderRadius: 6
+            padding: "2px 7px",
+            borderRadius: 5
           }
-        }, a.petName, " (", a.breed || "?", ")"), /*#__PURE__*/React.createElement("select", {
+        }, a.petName), /*#__PURE__*/React.createElement("select", {
           onChange: e => quickAssign(selDate, a.id, e.target.value || null),
           value: a.groomerId || "",
           style: {
-            fontSize: 12,
-            padding: "4px 8px",
-            borderRadius: 6,
+            fontSize: 11,
+            padding: "3px 6px",
+            borderRadius: 5,
             border: "none",
-            background: "rgba(255,255,255,.15)",
+            background: "rgba(255,255,255,.12)",
             color: "#fff",
             fontFamily: "inherit",
             minHeight: "auto",
@@ -4540,40 +5252,30 @@ function MainApp({
             color: "#000"
           }
         }, g.name))));
-      }), appts.filter(a => a.status !== "cancelled").length === 0 && /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 12,
-          color: "rgba(255,255,255,.3)"
-        }
-      }, "No pets scheduled today"))), /*#__PURE__*/React.createElement("div", {
-        style: {
-          background: "#111827",
-          padding: "8px 14px",
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          flexShrink: 0,
-          borderBottom: "1px solid rgba(255,255,255,.06)",
-          flexWrap: "wrap"
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 10,
-          fontWeight: 700,
-          color: "rgba(255,255,255,.4)",
-          textTransform: "uppercase",
-          letterSpacing: .5,
-          flexShrink: 0
-        }
-      }, "\uD83D\uDCB0 Cashbox"), /*#__PURE__*/React.createElement("div", {
+      }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
           alignItems: "center",
-          gap: 6
+          gap: 8,
+          marginBottom: 8
         }
       }, /*#__PURE__*/React.createElement("span", {
         style: {
           fontSize: 11,
+          fontWeight: 700,
+          color: "rgba(255,255,255,.35)",
+          textTransform: "uppercase",
+          letterSpacing: .5
+        }
+      }, "💰 Cashbox")), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 8
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 12,
           color: "rgba(255,255,255,.35)"
         }
       }, "Opening"), /*#__PURE__*/React.createElement("input", {
@@ -4586,11 +5288,11 @@ function MainApp({
         })),
         placeholder: "0",
         style: {
-          width: 72,
-          background: "rgba(255,255,255,.12)",
-          border: "1px solid rgba(255,255,255,.18)",
-          borderRadius: 7,
-          padding: "5px 8px",
+          width: 80,
+          background: "rgba(255,255,255,.08)",
+          border: "1px solid rgba(255,255,255,.12)",
+          borderRadius: 6,
+          padding: "6px 10px",
           color: "#fff",
           fontSize: 13,
           fontFamily: "inherit",
@@ -4600,146 +5302,188 @@ function MainApp({
         }
       }), /*#__PURE__*/React.createElement("span", {
         style: {
-          fontSize: 11,
-          color: "rgba(255,255,255,.3)"
+          fontSize: 12,
+          color: "rgba(255,255,255,.35)"
         }
-      }, "PHP")), /*#__PURE__*/React.createElement("div", {
-        style: {
-          flex: 1
-        }
-      }), /*#__PURE__*/React.createElement("button", {
+      }, "PHP"), /*#__PURE__*/React.createElement("button", {
         onClick: () => setShowQExp(true),
         style: {
-          padding: "5px 14px",
-          borderRadius: 20,
-          background: "rgba(255,159,10,.15)",
-          border: "1px solid rgba(255,159,10,.35)",
-          color: "#ff9f0a",
+          padding: "6px 12px",
+          borderRadius: 6,
+          background: "rgba(249,115,22,0.15)",
+          border: "none",
+          color: "#f97316",
           fontSize: 12,
-          fontWeight: 700,
+          fontWeight: 600,
           cursor: "pointer",
           fontFamily: "inherit",
           minHeight: "auto",
-          flexShrink: 0
+          WebkitTapHighlightColor: "transparent"
         }
-      }, "+ Expense")), showQExp && /*#__PURE__*/React.createElement("div", {
-        className: "mdbg",
-        onClick: () => setShowQExp(false)
-      }, /*#__PURE__*/React.createElement("div", {
-        className: "md",
-        onClick: e => e.stopPropagation()
-      }, /*#__PURE__*/React.createElement("div", {
-        className: "mdh"
-      }), /*#__PURE__*/React.createElement("div", {
+      }, "+ Expense")))), showQExp && /*#__PURE__*/React.createElement("div", {
         style: {
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 6
-        }
-      }, /*#__PURE__*/React.createElement("p", {
-        style: {
-          fontSize: 17,
-          fontWeight: 700
-        }
-      }, "Log Expense"), /*#__PURE__*/React.createElement("button", {
-        onClick: () => setShowQExp(false),
-        style: {
-          background: A.g1,
-          borderRadius: "50%",
-          width: 32,
-          height: 32,
-          border: "none",
-          fontSize: 16,
-          color: A.g4,
-          cursor: "pointer",
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0,0,0,.7)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          zIndex: 1000,
+          padding: 20
+        },
+        onClick: () => setShowQExp(false)
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          background: A.dbg,
+          borderRadius: 16,
+          padding: "20px",
+          maxWidth: 400,
+          width: "100%"
+        },
+        onClick: e => e.stopPropagation()
+      }, /*#__PURE__*/React.createElement("h3", {
+        style: {
+          color: A.tx,
+          marginBottom: 16,
+          fontSize: 18
+        }
+      }, "Log Expense"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          marginBottom: 12
+        }
+      }, /*#__PURE__*/React.createElement("label", {
+        style: {
+          display: "block",
+          color: A.g4,
+          fontSize: 12,
+          marginBottom: 6
+        }
+      }, "Category"), /*#__PURE__*/React.createElement("select", {
+        value: qExpForm.cat,
+        onChange: e => {
+          setQExpForm(p => ({
+            ...p,
+            cat: e.target.value,
+            custCat: ""
+          }));
+        },
+        style: {
+          width: "100%",
+          padding: 10,
+          borderRadius: 8,
+          border: "1px solid " + A.bdr,
+          background: A.g1,
+          color: A.tx,
+          fontSize: 14,
+          fontFamily: "inherit",
           minHeight: "auto"
         }
-      }, "X")), /*#__PURE__*/React.createElement("p", {
-        style: {
-          fontSize: 12,
-          color: A.g4,
-          marginBottom: 14
-        }
-      }, fmtD(selDate)), /*#__PURE__*/React.createElement("div", {
-        style: {
-          marginBottom: 10
-        }
-      }, /*#__PURE__*/React.createElement(Lbl, {
-        c: "Category"
-      }), /*#__PURE__*/React.createElement(Sel, {
-        value: qExpForm.cat,
-        onChange: e => setQExpForm(p => ({
-          ...p,
-          cat: e.target.value
-        }))
       }, /*#__PURE__*/React.createElement("option", {
         value: ""
-      }, "Select..."), ROUTE_CATS.map(c => /*#__PURE__*/React.createElement("option", {
-        key: c
-      }, c)))), qExpForm.cat === "Miscellaneous" && /*#__PURE__*/React.createElement("div", {
-        style: {
-          marginBottom: 10
-        }
-      }, /*#__PURE__*/React.createElement(Lbl, {
-        c: "Describe it"
-      }), /*#__PURE__*/React.createElement(Inp, {
+      }, "Select category"), ["Utilities", "Supplies", "Rent", "Salaries", "Marketing", "Other"].map(c => /*#__PURE__*/React.createElement("option", {
+        key: c,
+        value: c
+      }, c))), qExpForm.cat === "Other" && /*#__PURE__*/React.createElement("input", {
+        type: "text",
         value: qExpForm.custCat,
         onChange: e => setQExpForm(p => ({
           ...p,
           custCat: e.target.value
         })),
-        placeholder: "e.g. Village entrance fee"
+        placeholder: "Custom category",
+        style: {
+          width: "100%",
+          padding: 10,
+          borderRadius: 8,
+          border: "1px solid " + A.bdr,
+          background: A.g1,
+          color: A.tx,
+          fontSize: 14,
+          fontFamily: "inherit",
+          minHeight: "auto",
+          marginTop: 8
+        }
       })), /*#__PURE__*/React.createElement("div", {
         style: {
-          marginBottom: 10
+          marginBottom: 12
         }
-      }, /*#__PURE__*/React.createElement(Lbl, {
-        c: "Amount (PHP)"
-      }), /*#__PURE__*/React.createElement(Inp, {
+      }, /*#__PURE__*/React.createElement("label", {
+        style: {
+          display: "block",
+          color: A.g4,
+          fontSize: 12,
+          marginBottom: 6
+        }
+      }, "Amount"), /*#__PURE__*/React.createElement("input", {
         type: "number",
+        inputMode: "decimal",
         value: qExpForm.amt,
         onChange: e => setQExpForm(p => ({
           ...p,
           amt: e.target.value
         })),
-        placeholder: "0"
+        placeholder: "0",
+        style: {
+          width: "100%",
+          padding: 10,
+          borderRadius: 8,
+          border: "1px solid " + A.bdr,
+          background: A.g1,
+          color: A.tx,
+          fontSize: 14,
+          fontFamily: "inherit",
+          minHeight: "auto",
+          textAlign: "right"
+        }
       })), /*#__PURE__*/React.createElement("div", {
         style: {
           marginBottom: 16
         }
-      }, /*#__PURE__*/React.createElement(Lbl, {
-        c: "Notes (optional)"
-      }), /*#__PURE__*/React.createElement(Inp, {
+      }, /*#__PURE__*/React.createElement("label", {
+        style: {
+          display: "block",
+          color: A.g4,
+          fontSize: 12,
+          marginBottom: 6
+        }
+      }, "Notes (optional)"), /*#__PURE__*/React.createElement("input", {
+        type: "text",
         value: qExpForm.notes,
         onChange: e => setQExpForm(p => ({
           ...p,
           notes: e.target.value
         })),
-        placeholder: "e.g. BF Homes gate 1"
+        placeholder: "e.g. Electric bill",
+        style: {
+          width: "100%",
+          padding: 10,
+          borderRadius: 8,
+          border: "1px solid " + A.bdr,
+          background: A.g1,
+          color: A.tx,
+          fontSize: 14,
+          fontFamily: "inherit",
+          minHeight: "auto"
+        }
       })), /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
-          gap: 8
+          gap: 10
         }
       }, /*#__PURE__*/React.createElement(Btn, {
         onClick: () => {
-          if (!qExpForm.amt) return;
-          const cat = qExpForm.cat === "Miscellaneous" && qExpForm.custCat ? qExpForm.custCat : qExpForm.cat;
-          if (!cat) return;
-          setExpenses(prev => ({
-            ...prev,
-            [selDate]: [...(prev[selDate] || []), {
-              id: Date.now(),
-              category: cat,
-              amount: Number(qExpForm.amt),
-              notes: qExpForm.notes || "",
-              cashbox: true
-            }]
-          }));
+          const cat = qExpForm.cat === "Other" ? qExpForm.custCat : qExpForm.cat;
+          if (!cat || !qExpForm.amt) return;
+          const newExp = {
+            id: Date.now(),
+            category: cat,
+            amount: Number(qExpForm.amt),
+            notes: qExpForm.notes
+          };
+          setE(selDate, [...gE(selDate), newExp]);
           setQExpForm({
             cat: "",
             custCat: "",
@@ -4752,9 +5496,13 @@ function MainApp({
       }, "Save"), /*#__PURE__*/React.createElement(Btn, {
         v: "can",
         onClick: () => setShowQExp(false)
-      }, "Cancel")))), calView === "day" && /*#__PURE__*/React.createElement("div", {
+      }, "Cancel")))),
+ calView === "day" && /*#__PURE__*/React.createElement("div", {
         ref: calRef,
-        className: "cal-wrap"
+        className: "cal-wrap",
+        style: {
+          paddingTop: 8
+        }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
           minWidth: 52 + Math.max(columns.length, 1) * 150,
@@ -5142,20 +5890,7 @@ function MainApp({
           }
         }, fmt(gcashRev)))));
       })(), (() => {
-        const gc = {};
-        appts.filter(a => a.groomerId && a.status === "completed").forEach(a => {
-          const member = staffMembers.find(m => m.id === a.groomerId);
-          const name = member ? member.name : (dSt.find(s => String(s.staffId) === String(a.groomerId)) || {
-            name: "Unknown"
-          }).name;
-          if (!gc[a.groomerId]) gc[a.groomerId] = {
-            name,
-            comm: 0,
-            pets: 0
-          };
-          gc[a.groomerId].comm += Number(a.cost || 0) * 0.1;
-          gc[a.groomerId].pets++;
-        });
+        const gc = buildGroomerCommMap(appts, staffMembers);
         const entries = Object.values(gc);
         if (!entries.length) return null;
         return /*#__PURE__*/React.createElement("div", {
@@ -5220,7 +5955,7 @@ function MainApp({
             letterSpacing: .4,
             marginBottom: 12
           }
-        }, "\uD83D\uDCB0 Cashbox Balance"), /*#__PURE__*/React.createElement("div", {
+        }, /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",gap:6}}, /*#__PURE__*/React.createElement(IconCash, {size:14,color:"rgba(255,255,255,.55)"}), /*#__PURE__*/React.createElement("span", null, "Cashbox Balance"))), /*#__PURE__*/React.createElement("div", {
           style: {
             display: "flex",
             flexDirection: "column",
@@ -5497,6 +6232,7 @@ function MainApp({
           color: c
         }
       }, val))))))));
+      // TODO: Re-add FAB component properly
     }
     if (tab === "weekly") {
       return /*#__PURE__*/React.createElement("div", {
@@ -5609,7 +6345,7 @@ function MainApp({
         style: {
           marginBottom: 14
         }
-      }, /*#__PURE__*/React.createElement(Inp, {
+      }, /*#__PURE__*/React.createElement(SearchInp, {
         value: nFilter,
         onChange: e => setNFilter(e.target.value),
         placeholder: "Search clients or pets...",
@@ -5961,7 +6697,7 @@ function MainApp({
           )
         )
       ), /*#__PURE__*/React.createElement("div", {style: {display: "flex", gap: 8, alignItems: "flex-end"}},
-        /*#__PURE__*/React.createElement(Btn, {onClick: saveSv}, "Save"),
+        /*#__PURE__*/React.createElement(Btn, {v: "warm", onClick: saveSv, disabled: isSaving}, isSaving ? "Saving..." : "Save"),
         /*#__PURE__*/React.createElement(Btn, {v: "can", onClick: () => {setShowSvForm(false); setSvForm({name: "", price: "", category: ""});}}, "Cancel")
       ))),
       (()=>{
@@ -6020,7 +6756,7 @@ function MainApp({
             address: "",
             mobile: "",
             emergencyContact: "",
-            dailySalary: 700,
+            dailySalary: DEFAULT_DAILY_SALARY,
             photo: "",
             idPhoto: ""
           });
@@ -6367,7 +7103,7 @@ function MainApp({
           onClick: () => {
             setSmForm({
               ...sm,
-              dailySalary: sm.dailySalary || 700
+              dailySalary: sm.dailySalary || DEFAULT_DAILY_SALARY
             });
             setShowSmForm(true);
           }
@@ -6385,7 +7121,7 @@ function MainApp({
           style: {
             color: A.ok
           }
-        }, "P", (sm.dailySalary || 700).toLocaleString())), sm.mobile && /*#__PURE__*/React.createElement("p", {
+        }, "P", (sm.dailySalary || DEFAULT_DAILY_SALARY).toLocaleString())), sm.mobile && /*#__PURE__*/React.createElement("p", {
           style: {
             fontSize: 13,
             color: A.g4
@@ -6659,7 +7395,7 @@ function MainApp({
       }, h)))), /*#__PURE__*/React.createElement("tbody", null, trkDates.flatMap(d => gSt(d).map((s, i) => {
         const paid = isPaid(salKey(s.staffId || s.name));
         const member = staffMembers.find(m => m.id === s.staffId);
-        const rate = member && member.dailySalary ? Number(member.dailySalary) : 700;
+        const rate = member && member.dailySalary ? Number(member.dailySalary) : DEFAULT_DAILY_SALARY;
         return /*#__PURE__*/React.createElement("tr", {
           key: d + s.name + i,
           style: {
@@ -6875,18 +7611,7 @@ function MainApp({
         key: h,
         className: "th"
       }, h)))), /*#__PURE__*/React.createElement("tbody", null, trkDates.flatMap(d => {
-        const dayComm = {};
-        gA(d).filter(a => a.groomerId && a.status === "completed").forEach(a => {
-          if (!dayComm[a.groomerId]) dayComm[a.groomerId] = {
-            name: (staffMembers.find(m => m.id === a.groomerId) || {
-              name: "Unknown"
-            }).name,
-            pets: 0,
-            comm: 0
-          };
-          dayComm[a.groomerId].pets++;
-          dayComm[a.groomerId].comm += Number(a.cost || 0) * 0.1;
-        });
+        const dayComm = buildGroomerCommMap(gA(d), staffMembers);
         return Object.entries(dayComm).map(([sid, dc], i) => {
           const paid = isPaid(comKey(sid));
           return /*#__PURE__*/React.createElement("tr", {
@@ -6985,7 +7710,7 @@ function MainApp({
                 )
               ),
               /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:8}},
-                /*#__PURE__*/React.createElement(Btn,{onClick:()=>saveCashAdvance(sm.id)},"Save Advance"),
+                /*#__PURE__*/React.createElement(Btn,{v:"warm",onClick:()=>saveCashAdvance(sm.id)},"Save Advance"),
                 /*#__PURE__*/React.createElement(Btn,{v:"can",onClick:()=>setShowCaForm(null)},"Cancel")
               )
             ),
@@ -7032,12 +7757,16 @@ function MainApp({
       )
     );
     }
-    if (tab === "dashboard") {
+    if (tab === "dashboard" || tab === "overview") {
       const yrDates = allD.filter(d => d.startsWith("" + annualYear));
       const yrRev = yrDates.reduce((s, d) => s + gRev(d), 0);
       const yrExp = yrDates.reduce((s, d) => s + gExp(d), 0);
       const yrComm = yrDates.reduce((s, d) => s + gComm(d), 0);
       const yrP = yrDates.reduce((s, d) => s + gP(d), 0);
+      const yrOwnerDraw = (ownerFinances.salaryPayments||[]).filter(p=>p.period.startsWith(""+annualYear)).reduce((s,p)=>s+Number(p.amount||0),0);
+      const yrTakeHome = yrP - yrOwnerDraw;
+      const annualRows = [["Revenue",fmt(yrRev),A.bu],["Expenses",fmt(yrExp),A.er],["Commission",fmt(yrComm),A.wn],["Net Profit",fmt(yrP),yrP>=0?A.ok:A.er]];
+      if (yrOwnerDraw>0) { annualRows.push(["Owner Draw","-"+fmt(yrOwnerDraw),"#5e5ce6"]); annualRows.push(["Take-Home",fmt(yrTakeHome),yrTakeHome>=0?A.ok:A.er]); }
       const monthlyData = Array.from({
         length: 12
       }, (_, mi) => {
@@ -7175,7 +7904,7 @@ function MainApp({
         }
       }, annualYear, " Summary"), /*#__PURE__*/React.createElement("div", {
         className: "g4"
-      }, [["Revenue", fmt(yrRev), A.bu], ["Expenses", fmt(yrExp), A.er], ["Commission", fmt(yrComm), A.wn], ["Net Profit", fmt(yrP), yrP >= 0 ? A.ok : A.er]].map(([l, val, c]) => /*#__PURE__*/React.createElement("div", {
+      }, annualRows.map(([l, val, c]) => /*#__PURE__*/React.createElement("div", {
         key: l,
         style: {
           background: A.g1,
@@ -7407,7 +8136,7 @@ function MainApp({
           padding: 16,
           marginBottom: 12
         }
-      }, /*#__PURE__*/React.createElement(LineChart, {
+      }, /*#__PURE__*/React.createElement(BarChart, {
         data: profitLine,
         color: A.ok,
         title: annualYear + " Monthly Profit"
@@ -7555,8 +8284,17 @@ function MainApp({
         style: {
           width: 18,
           height: 18,
+          minHeight: 18,
+          padding: 0,
+          margin: 0,
           cursor: "pointer",
-          flexShrink: 0
+          flexShrink: 0,
+          WebkitAppearance: "checkbox",
+          appearance: "checkbox",
+          accentColor: A.bu,
+          background: "transparent",
+          borderRadius: 3,
+          border: "1.5px solid " + A.g3
         }
       }), /*#__PURE__*/React.createElement("label", {
         htmlFor: "eform-cashbox",
@@ -7571,8 +8309,272 @@ function MainApp({
           date
         }))),
         expenses: expenses,
-        setExpenses: setExpenses
+        setExpenses: setExpenses,
+        askConfirm: askConfirm
       })));
+    }
+    if (tab === "finances") {
+      const capItems = ownerFinances.capitalItems||[];
+      const salPayments = ownerFinances.salaryPayments||[];
+      const totalCapital = capItems.reduce((s,c)=>s+Number(c.amount||0),0);
+      const allTimeProfit = allD.reduce((s,d)=>s+gP(d),0);
+      const ownerSalPaidTotal = salPayments.reduce((s,p)=>s+Number(p.amount||0),0);
+      const recovered = Math.max(0, allTimeProfit-ownerSalPaidTotal);
+      const remaining = Math.max(0, totalCapital-recovered);
+      const roiPct = totalCapital>0?Math.min(100,Math.round(recovered/totalCapital*100)):0;
+      const last3Mo = Array.from({length:3},(_,i)=>{const d=new Date(now.getFullYear(),now.getMonth()-1-i,1);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");});
+      const avg3MoProfit = last3Mo.reduce((s,m)=>s+allD.filter(d=>d.startsWith(m)).reduce((ss,d)=>ss+gP(d),0),0)/3;
+      const estMonths = remaining>0&&avg3MoProfit>0?Math.ceil(remaining/avg3MoProfit):null;
+      const salPeriods = getOwnerSalPeriods();
+      const recentDeps = [...(balances.deposits||[])].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
+      const totalLiquid = (balances.cashOnHand||0)+(balances.gcashBalance||0)+(balances.bankBalance||0);
+      function BalCard({bKey,label,color,actionLabel,onAction,icon}) {
+        const isEditing = editBalKey===bKey;
+        const val = balances[bKey]||0;
+        return /*#__PURE__*/React.createElement("div", {style:{background:"#fff",borderRadius:16,padding:20,flex:1,minWidth:160,boxShadow:A.shadow1,border:"1px solid "+A.g2}},
+          /*#__PURE__*/React.createElement("div", {style:{marginBottom:12}}, icon),
+          /*#__PURE__*/React.createElement("p", {style:{fontSize:11,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.5,marginBottom:10}}, label),
+          isEditing
+            ? /*#__PURE__*/React.createElement("div", {style:{marginBottom:8}},
+                /*#__PURE__*/React.createElement(Inp, {type:"number",value:editBalVal,onChange:e=>setEditBalVal(e.target.value),autoFocus:true,style:{marginBottom:6}}),
+                /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:6}},
+                  /*#__PURE__*/React.createElement(Btn, {sm:true,v:"warm",onClick:saveBalEdit}, "Save"),
+                  /*#__PURE__*/React.createElement(Btn, {sm:true,v:"can",onClick:()=>{setEditBalKey(null);setEditBalVal("");}}, "Cancel")
+                )
+              )
+            : /*#__PURE__*/React.createElement("p", {onClick:()=>{setEditBalKey(bKey);setEditBalVal(String(val));},title:"Tap to edit",style:{fontSize:22,fontWeight:700,color,marginBottom:10,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}, fmt(val)),
+          !isEditing&&/*#__PURE__*/React.createElement(Btn, {sm:true,v:"sec",onClick:onAction,style:{width:"100%",justifyContent:"center"}}, actionLabel)
+        );
+      }
+      return /*#__PURE__*/React.createElement("div", {className:"sec"},
+        depositModal&&/*#__PURE__*/React.createElement("div", {className:"mdbg",onClick:()=>{setDepositModal(null);setDepositAmt("");setDepositNotes("");}},
+          /*#__PURE__*/React.createElement("div", {className:"md",onClick:e=>e.stopPropagation()},
+            /*#__PURE__*/React.createElement("div", {className:"mdh"}),
+            /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}},
+              /*#__PURE__*/React.createElement("p", {style:{fontSize:17,fontWeight:700}},
+                depositModal==="cash"?"Deposit Cash to Bank":depositModal==="gcash"?"Transfer GCash to Bank":depositModal==="bank-credit"?"Bank Deposit / Credit":"Bank Withdrawal"
+              ),
+              /*#__PURE__*/React.createElement("button", {onClick:()=>{setDepositModal(null);setDepositAmt("");setDepositNotes("");},style:{background:A.g1,borderRadius:"50%",width:32,height:32,border:"none",fontSize:18,color:A.g4,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto"}}, "×")
+            ),
+            /*#__PURE__*/React.createElement("div", {style:{marginBottom:12}},
+              /*#__PURE__*/React.createElement(Lbl, {c:"Amount (₱)"}),
+              /*#__PURE__*/React.createElement(Inp, {type:"number",value:depositAmt,onChange:e=>setDepositAmt(e.target.value),placeholder:"0",autoFocus:true})
+            ),
+            /*#__PURE__*/React.createElement("div", {style:{marginBottom:20}},
+              /*#__PURE__*/React.createElement(Lbl, {c:"Notes (optional)"}),
+              /*#__PURE__*/React.createElement(Inp, {value:depositNotes,onChange:e=>setDepositNotes(e.target.value),placeholder:"e.g. BDO branch deposit"})
+            ),
+            /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:10}},
+              /*#__PURE__*/React.createElement(Btn, {v:"sec",style:{flex:1},onClick:()=>{setDepositModal(null);setDepositAmt("");setDepositNotes("");}}, "Cancel"),
+              /*#__PURE__*/React.createElement(Btn, {style:{flex:1},onClick:recordDeposit}, "Confirm")
+            )
+          )
+        ),
+        showCapForm&&/*#__PURE__*/React.createElement("div", {className:"mdbg",onClick:()=>setShowCapForm(false)},
+          /*#__PURE__*/React.createElement("div", {className:"md",onClick:e=>e.stopPropagation()},
+            /*#__PURE__*/React.createElement("div", {className:"mdh"}),
+            /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}},
+              /*#__PURE__*/React.createElement("p", {style:{fontSize:17,fontWeight:700}}, capForm.id?"Edit Capital Item":"Add Capital Item"),
+              /*#__PURE__*/React.createElement("button", {onClick:()=>setShowCapForm(false),style:{background:A.g1,borderRadius:"50%",width:32,height:32,border:"none",fontSize:18,color:A.g4,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto"}}, "×")
+            ),
+            /*#__PURE__*/React.createElement("div", {style:{marginBottom:10}},
+              /*#__PURE__*/React.createElement(Lbl, {c:"Item Name"}),
+              /*#__PURE__*/React.createElement(Inp, {value:capForm.name,onChange:e=>setCapForm(p=>({...p,name:e.target.value})),placeholder:"e.g. Grooming Van"})
+            ),
+            /*#__PURE__*/React.createElement("div", {className:"g2",style:{marginBottom:10}},
+              /*#__PURE__*/React.createElement("div", null,
+                /*#__PURE__*/React.createElement(Lbl, {c:"Amount (₱)"}),
+                /*#__PURE__*/React.createElement(Inp, {type:"number",value:capForm.amount,onChange:e=>setCapForm(p=>({...p,amount:e.target.value})),placeholder:"0"})
+              ),
+              /*#__PURE__*/React.createElement("div", null,
+                /*#__PURE__*/React.createElement(Lbl, {c:"Date"}),
+                /*#__PURE__*/React.createElement(Inp, {type:"date",value:capForm.date,onChange:e=>setCapForm(p=>({...p,date:e.target.value}))})
+              )
+            ),
+            /*#__PURE__*/React.createElement("div", {style:{marginBottom:10}},
+              /*#__PURE__*/React.createElement(Lbl, {c:"Category"}),
+              /*#__PURE__*/React.createElement(Sel, {value:capForm.category,onChange:e=>setCapForm(p=>({...p,category:e.target.value}))},
+                CAP_CATS.map(c=>/*#__PURE__*/React.createElement("option", {key:c}, c))
+              )
+            ),
+            /*#__PURE__*/React.createElement("div", {style:{marginBottom:20}},
+              /*#__PURE__*/React.createElement(Lbl, {c:"Notes (optional)"}),
+              /*#__PURE__*/React.createElement(Inp, {value:capForm.notes,onChange:e=>setCapForm(p=>({...p,notes:e.target.value})),placeholder:"e.g. Purchased 2nd hand"})
+            ),
+            /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:10}},
+              /*#__PURE__*/React.createElement(Btn, {v:"sec",style:{flex:1},onClick:()=>setShowCapForm(false)}, "Cancel"),
+              /*#__PURE__*/React.createElement(Btn, {v:"warm",style:{flex:1},onClick:saveCapItem}, "Save")
+            )
+          )
+        ),
+        /*#__PURE__*/React.createElement("div", {className:"phdr"},
+          /*#__PURE__*/React.createElement("div", null,
+            /*#__PURE__*/React.createElement("h1", null, "Finances"),
+            /*#__PURE__*/React.createElement("p", null, "Balances · Investment · Owner pay")
+          )
+        ),
+        /*#__PURE__*/React.createElement(Shdr, {c:"Balances",style:{marginBottom:12}}),
+        /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap"}},
+          /*#__PURE__*/React.createElement(BalCard, {bKey:"cashOnHand",label:"Cash on Hand",color:A.ok,actionLabel:"Deposit to Bank →",onAction:()=>{setDepositAmt(String(balances.cashOnHand||0));setDepositModal("cash");},icon:/*#__PURE__*/React.createElement(IconCash, {size:32,color:A.ok})}),
+          /*#__PURE__*/React.createElement(BalCard, {bKey:"gcashBalance",label:"GCash Wallet",color:A.bu,actionLabel:"Transfer to Bank →",onAction:()=>{setDepositAmt(String(balances.gcashBalance||0));setDepositModal("gcash");},icon:/*#__PURE__*/React.createElement(IconPhone, {size:32,color:A.bu})}),
+          /*#__PURE__*/React.createElement("div", {style:{background:"#fff",borderRadius:16,padding:20,flex:1,minWidth:160,boxShadow:A.shadow1,border:"1px solid "+A.g2}},
+            /*#__PURE__*/React.createElement("div", {style:{marginBottom:12}}, /*#__PURE__*/React.createElement(IconBank, {size:32,color:"#5E5CE6"})),
+            /*#__PURE__*/React.createElement("p", {style:{fontSize:11,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.5,marginBottom:10}}, "Bank Account"),
+            editBalKey==="bankBalance"
+              ? /*#__PURE__*/React.createElement("div", {style:{marginBottom:8}},
+                  /*#__PURE__*/React.createElement(Inp, {type:"number",value:editBalVal,onChange:e=>setEditBalVal(e.target.value),autoFocus:true,style:{marginBottom:6}}),
+                  /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:6}},
+                    /*#__PURE__*/React.createElement(Btn, {sm:true,v:"warm",onClick:saveBalEdit}, "Save"),
+                    /*#__PURE__*/React.createElement(Btn, {sm:true,v:"can",onClick:()=>{setEditBalKey(null);setEditBalVal("");}}, "Cancel")
+                  )
+                )
+              : /*#__PURE__*/React.createElement("p", {onClick:()=>{setEditBalKey("bankBalance");setEditBalVal(String(balances.bankBalance||0));},title:"Tap to edit",style:{fontSize:22,fontWeight:700,color:"#5e5ce6",marginBottom:10,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}, fmt(balances.bankBalance||0)),
+            !editBalKey&&/*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:6}},
+              /*#__PURE__*/React.createElement(Btn, {sm:true,v:"ok",style:{flex:1,justifyContent:"center"},onClick:()=>{setDepositAmt("");setDepositModal("bank-credit");}}, "+ In"),
+              /*#__PURE__*/React.createElement(Btn, {sm:true,v:"can",style:{flex:1,justifyContent:"center"},onClick:()=>{setDepositAmt("");setDepositModal("bank-debit");}}, "- Out")
+            )
+          )
+        ),
+        /*#__PURE__*/React.createElement("div", {style:{background:"#111",borderRadius:12,padding:"12px 16px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}},
+          /*#__PURE__*/React.createElement("p", {style:{fontSize:13,color:"rgba(255,255,255,.5)",fontWeight:600}}, "Total Liquid Assets"),
+          /*#__PURE__*/React.createElement("p", {style:{fontSize:18,fontWeight:700,color:"#fff"}}, fmt(totalLiquid))
+        ),
+        recentDeps.length>0&&/*#__PURE__*/React.createElement("div", {className:"card",style:{marginBottom:20}},
+          /*#__PURE__*/React.createElement("div", {style:{padding:"12px 16px",borderBottom:".5px solid "+A.g2,display:"flex",justifyContent:"space-between",alignItems:"center"}},
+            /*#__PURE__*/React.createElement("p", {style:{fontSize:13,fontWeight:700}}, "Recent Movements"),
+            /*#__PURE__*/React.createElement("p", {style:{fontSize:12,color:A.g4}}, recentDeps.length+" entries")
+          ),
+          recentDeps.map((dep,i)=>/*#__PURE__*/React.createElement("div", {key:dep.id,style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 16px",borderBottom:i<recentDeps.length-1?".5px solid "+A.g2:"none"}},
+            /*#__PURE__*/React.createElement("div", {style:{flex:1}},
+              /*#__PURE__*/React.createElement("p", {style:{fontSize:14,fontWeight:600,color:A.bl}},
+                dep.type==="cash"?"Cash → Bank":dep.type==="gcash"?"GCash → Bank":dep.type==="bank-credit"?"Bank Deposit":"Bank Withdrawal"
+              ),
+              /*#__PURE__*/React.createElement("p", {style:{fontSize:12,color:A.g4,marginTop:1}}, fmtD(dep.date)+(dep.notes?" · "+dep.notes:""))
+            ),
+            /*#__PURE__*/React.createElement("p", {style:{fontSize:15,fontWeight:700,color:dep.type==="bank-debit"?A.er:A.ok,marginRight:12}},
+              (dep.type==="bank-debit"?"-":"+")+fmt(dep.amount)
+            ),
+            /*#__PURE__*/React.createElement("button", {onClick:()=>askConfirm("Delete this deposit entry?",()=>deleteDeposit(dep.id),"Deposit removed"),style:{background:A.g1,border:"none",borderRadius:"50%",width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:A.g4,fontSize:16,minHeight:"auto",transition:"all .2s ease"}}, "×")
+          ))
+        ),
+        /*#__PURE__*/React.createElement(Shdr, {c:"Startup Investment",style:{marginBottom:12}}),
+        /*#__PURE__*/React.createElement("div", {className:"card",style:{padding:16,marginBottom:14}},
+          totalCapital===0
+            ? /*#__PURE__*/React.createElement("div", {style:{textAlign:"center",padding:"32px 24px"}},
+                /*#__PURE__*/React.createElement("div", {style:{display:"inline-flex",alignItems:"center",justifyContent:"center",width:64,height:64,borderRadius:20,background:"linear-gradient(135deg, rgba(10,132,255,.1), rgba(94,92,230,.1))",marginBottom:16}},
+                  /*#__PURE__*/React.createElement(IconChart, {size:32,color:A.bu})
+                ),
+                /*#__PURE__*/React.createElement("p", {style:{fontWeight:700,fontSize:18,color:A.bl,marginBottom:8,letterSpacing:"-.02em"}}, "Track your startup investment"),
+                /*#__PURE__*/React.createElement("p", {style:{fontSize:13,color:A.g4,maxWidth:260,margin:"0 auto 16px",lineHeight:1.6}}, "Add the money you invested to get the business started"),
+                /*#__PURE__*/React.createElement(Btn, {sm:true,onClick:()=>{setCapForm({id:null,name:"",amount:"",date:tod(),category:"Equipment",notes:""});setShowCapForm(true);}}, "+ Add Capital Item")
+              )
+            : /*#__PURE__*/React.createElement("div", null,
+                /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}},
+                  /*#__PURE__*/React.createElement("div", null,
+                    /*#__PURE__*/React.createElement("p", {style:{fontSize:12,color:A.g4,marginBottom:4,textTransform:"uppercase",fontWeight:600,letterSpacing:.3}}, "Investment Recovery"),
+                    roiPct>=100
+                      ? /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",gap:8}},
+                          /*#__PURE__*/React.createElement(IconCelebrate, {size:28,color:A.ok}),
+                          /*#__PURE__*/React.createElement("p", {style:{fontSize:30,fontWeight:700,color:A.ok,lineHeight:1.1}}, "ROI Achieved!")
+                        )
+                      : /*#__PURE__*/React.createElement("p", {style:{fontSize:30,fontWeight:700,color:A.bl,lineHeight:1.1}}, roiPct+"%")
+                  ),
+                  /*#__PURE__*/React.createElement(Btn, {sm:true,v:"sec",onClick:()=>{setCapForm({id:null,name:"",amount:"",date:tod(),category:"Equipment",notes:""});setShowCapForm(true);}}, "+ Item")
+                ),
+                /*#__PURE__*/React.createElement("div", {style:{background:A.g2,borderRadius:99,height:10,marginBottom:16,overflow:"hidden"}},
+                  /*#__PURE__*/React.createElement("div", {style:{height:"100%",borderRadius:99,background:roiPct>=100?A.ok:"linear-gradient(90deg,#0071e3,#34c759)",width:roiPct+"%",transition:"width .4s"}})
+                ),
+                /*#__PURE__*/React.createElement("div", {className:"g3",style:{marginBottom:roiPct<100&&estMonths?10:16}},
+                  [["Invested",fmt(totalCapital),A.er],["Recovered",fmt(recovered),A.ok],["Remaining",fmt(remaining),remaining>0?A.wn:A.g3]].map(([l,v,c])=>/*#__PURE__*/React.createElement("div", {key:l,style:{background:A.g1,borderRadius:10,padding:"10px",textAlign:"center"}},
+                    /*#__PURE__*/React.createElement("p", {style:{fontSize:10,color:A.g4,textTransform:"uppercase",fontWeight:600,marginBottom:3}}, l),
+                    /*#__PURE__*/React.createElement("p", {style:{fontSize:14,fontWeight:700,color:c}}, v)
+                  ))
+                ),
+                roiPct<100&&estMonths&&/*#__PURE__*/React.createElement("p", {style:{fontSize:12,color:A.g4,textAlign:"center",marginBottom:16}},
+                  "At current pace (~"+fmt(Math.round(avg3MoProfit))+"/mo) · ~"+estMonths+" month"+(estMonths!==1?"s":"")+" to full ROI"
+                ),
+                /*#__PURE__*/React.createElement("div", {style:{borderTop:".5px solid "+A.g2,paddingTop:12}},
+                  /*#__PURE__*/React.createElement("p", {style:{fontSize:12,fontWeight:700,color:A.g4,textTransform:"uppercase",letterSpacing:.3,marginBottom:8}}, "Capital Items"),
+                  capItems.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(item=>/*#__PURE__*/React.createElement("div", {key:item.id,style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",paddingBottom:10,marginBottom:10,borderBottom:".5px solid "+A.g2}},
+                    /*#__PURE__*/React.createElement("div", null,
+                      /*#__PURE__*/React.createElement("p", {style:{fontSize:14,fontWeight:600}}, item.name),
+                      /*#__PURE__*/React.createElement("p", {style:{fontSize:12,color:A.g4,marginTop:2}}, fmtD(item.date)+" · "+item.category+(item.notes?" · "+item.notes:""))
+                    ),
+                    /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",gap:8,flexShrink:0}},
+                      /*#__PURE__*/React.createElement("p", {style:{fontSize:15,fontWeight:700,color:A.er}}, fmt(item.amount)),
+                      /*#__PURE__*/React.createElement(Btn, {sm:true,v:"sec",onClick:()=>{setCapForm({...item,amount:String(item.amount)});setShowCapForm(true);}}, "Edit"),
+                      /*#__PURE__*/React.createElement(Btn, {sm:true,v:"gho",onClick:()=>askConfirm("Delete this capital item?",()=>setOwnerFinances(prev=>({...prev,capitalItems:(prev.capitalItems||[]).filter(c=>c.id!==item.id)})),"Item deleted")}, "Del")
+                    )
+                  ))
+                )
+              )
+        ),
+        /*#__PURE__*/React.createElement(Shdr, {c:"Owner Salary",style:{marginBottom:12}}),
+        /*#__PURE__*/React.createElement("div", {className:"card",style:{marginBottom:12}},
+          showOwnerSalEdit
+            ? /*#__PURE__*/React.createElement("div", {style:{padding:16}},
+                /*#__PURE__*/React.createElement("p", {style:{fontSize:15,fontWeight:700,marginBottom:14}}, "Owner Salary Settings"),
+                /*#__PURE__*/React.createElement("div", {style:{marginBottom:14}},
+                  /*#__PURE__*/React.createElement(Lbl, {c:"Business Start Date"}),
+                  /*#__PURE__*/React.createElement(Inp, {type:"date",value:ownerSalForm.startDate||"",onChange:e=>setOwnerSalForm(p=>({...p,startDate:e.target.value})),placeholder:"Select date"}),
+                  /*#__PURE__*/React.createElement("p", {style:{fontSize:12,color:A.g4,marginTop:6}}, "Salary periods begin from this date")
+                ),
+                /*#__PURE__*/React.createElement("div", {className:"g2",style:{marginBottom:14}},
+                  /*#__PURE__*/React.createElement("div", null,
+                    /*#__PURE__*/React.createElement(Lbl, {c:"Monthly Draw (₱)"}),
+                    /*#__PURE__*/React.createElement(Inp, {type:"number",value:ownerSalForm.amount,onChange:e=>setOwnerSalForm(p=>({...p,amount:e.target.value})),placeholder:"0"})
+                  ),
+                  /*#__PURE__*/React.createElement("div", null,
+                    /*#__PURE__*/React.createElement(Lbl, {c:"Frequency"}),
+                    /*#__PURE__*/React.createElement(Sel, {value:ownerSalForm.cycle,onChange:e=>setOwnerSalForm(p=>({...p,cycle:e.target.value}))},
+                      /*#__PURE__*/React.createElement("option", {value:"weekly"}, "Weekly"),
+                      /*#__PURE__*/React.createElement("option", {value:"biweekly"}, "Every 2 Weeks"),
+                      /*#__PURE__*/React.createElement("option", {value:"monthly"}, "Monthly")
+                    )
+                  )
+                ),
+                /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:8}},
+                  /*#__PURE__*/React.createElement(Btn, {v:"warm",onClick:saveOwnerSal,disabled:isSaving}, isSaving?"Saving...":"Save"),
+                  /*#__PURE__*/React.createElement(Btn, {v:"can",onClick:()=>setShowOwnerSalEdit(false)}, "Cancel")
+                )
+              )
+            : /*#__PURE__*/React.createElement("div", {className:"crow"},
+                /*#__PURE__*/React.createElement("div", null,
+                  /*#__PURE__*/React.createElement("p", {style:{fontWeight:600}}, ownerFinances.salaryAmount>0?"Owner Draw · "+freqLabel(ownerFinances.salaryCycle):"No salary configured"),
+                  ownerFinances.salaryAmount>0&&/*#__PURE__*/React.createElement("p", {style:{fontSize:13,color:A.g4}}, fmt(ownerFinances.salaryAmount)+" per period · "+fmt(ownerSalPaidTotal)+" paid to date")
+                ),
+                /*#__PURE__*/React.createElement(Btn, {sm:true,v:"sec",onClick:()=>{setOwnerSalForm({amount:String(ownerFinances.salaryAmount||""),cycle:ownerFinances.salaryCycle||"monthly",startDate:ownerFinances.businessStartDate||""});setShowOwnerSalEdit(true);}},
+                  ownerFinances.salaryAmount>0?"Edit":"Set Up"
+                )
+              )
+        ),
+        ownerFinances.salaryAmount>0&&/*#__PURE__*/React.createElement("div", {className:"card",style:{marginBottom:24}},
+          /*#__PURE__*/React.createElement("div", {style:{padding:"12px 16px",borderBottom:".5px solid "+A.g2}},
+            /*#__PURE__*/React.createElement("p", {style:{fontSize:13,fontWeight:700}}, "Salary Periods")
+          ),
+          salPeriods.length===0
+            ? /*#__PURE__*/React.createElement("div", {style:{padding:"32px 20px",textAlign:"center"}},
+                /*#__PURE__*/React.createElement("p", {style:{fontSize:14,color:A.g4}}, "No salary periods yet."),
+                /*#__PURE__*/React.createElement("p", {style:{fontSize:13,color:A.g4,marginTop:6}},
+                  ownerFinances.businessStartDate
+                    ? "Business starts on " + fmtD(ownerFinances.businessStartDate) + " — periods will appear from that date."
+                    : "Set a business start date to track salary periods."
+                )
+              )
+            : salPeriods.map((sp,i)=>/*#__PURE__*/React.createElement("div", {key:sp.key,style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",borderBottom:i<salPeriods.length-1?".5px solid "+A.g2:"none"}},
+            /*#__PURE__*/React.createElement("div", null,
+              /*#__PURE__*/React.createElement("p", {style:{fontSize:14,fontWeight:600,color:sp.payment?A.g3:A.bl}}, sp.label),
+              sp.payment&&/*#__PURE__*/React.createElement("p", {style:{fontSize:12,color:A.ok,marginTop:2}}, "Paid · "+fmtD(sp.payment.paidOn))
+            ),
+            /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",gap:10}},
+              /*#__PURE__*/React.createElement("p", {style:{fontSize:15,fontWeight:700,color:sp.payment?A.g3:A.wn}}, fmt(ownerFinances.salaryAmount)),
+              sp.payment
+                ? /*#__PURE__*/React.createElement(Btn, {sm:true,v:"ok",onClick:()=>askConfirm("Remove this salary payment?",()=>unmarkOwnerSalPaid(sp.key),"Payment removed")}, "✓ Paid")
+                : /*#__PURE__*/React.createElement(Btn, {sm:true,v:"warm",onClick:()=>markOwnerSalPaid(sp.key)}, "Mark Paid")
+            )
+          ))
+        )
+      );
     }
     if (tab === "permissions") {
       return /*#__PURE__*/React.createElement("div", {
@@ -7711,11 +8713,30 @@ function MainApp({
       overflowY: "auto",
       paddingTop: 4
     }
-  }, TABS.map(([k, label]) => /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {padding: "8px 20px 4px", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.35)", textTransform: "uppercase", letterSpacing: .5}
+  }, "HOME"), SUB_TABS.home.map(([k, label]) => /*#__PURE__*/React.createElement("button", {
     key: k,
-    className: "snav" + (tab === k ? " on" : ""),
-    onClick: () => goTab(k)
-  }, label))), /*#__PURE__*/React.createElement("div", {
+    className: "snav" + (mainTab === "home" && subTab.home === k ? " on" : ""),
+    onClick: () => goTab(k),
+    style: {paddingLeft: "32px"}
+  }, label)), isOwner && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {padding: "12px 20px 4px", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.35)", textTransform: "uppercase", letterSpacing: .5}
+  }, "DASHBOARD"), SUB_TABS.dashboard.map(([k, label]) => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    className: "snav" + (mainTab === "dashboard" && subTab.dashboard === k ? " on" : ""),
+    onClick: () => goTab(k),
+    style: {paddingLeft: "32px"}
+  }, label)), /*#__PURE__*/React.createElement("button", {
+    className: "snav" + (mainTab === "clients" ? " on" : ""),
+    onClick: () => goMainTab("clients")
+  }, "Clients"), /*#__PURE__*/React.createElement("button", {
+    className: "snav" + (mainTab === "services" ? " on" : ""),
+    onClick: () => goMainTab("services")
+  }, "Services"), /*#__PURE__*/React.createElement("button", {
+    className: "snav" + (tab === "permissions" ? " on" : ""),
+    onClick: () => goTab("permissions")
+  }, "Permissions"))), /*#__PURE__*/React.createElement("div", {
     className: "sidebar-footer"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -7841,11 +8862,10 @@ function MainApp({
     }
   }, "\xD7")), /*#__PURE__*/React.createElement("div", {
     className: "drw-nav"
-  }, TABS.map(([k, label]) => /*#__PURE__*/React.createElement("button", {
-    key: k,
-    className: "drw-item" + (tab === k ? " on" : ""),
-    onClick: () => goTab(k)
-  }, label))), /*#__PURE__*/React.createElement("div", {
+  }, isOwner && /*#__PURE__*/React.createElement("button", {
+    className: "drw-item" + (tab === "permissions" ? " on" : ""),
+    onClick: () => goTab("permissions")
+  }, "Permissions")), /*#__PURE__*/React.createElement("div", {
     className: "drw-foot"
   }, /*#__PURE__*/React.createElement(Btn, {
     v: "sec",
@@ -7855,7 +8875,17 @@ function MainApp({
     onClick: onLogout
   }, "Sign Out")))), /*#__PURE__*/React.createElement("div", {
     className: "main"
-  }, (sync === "Offline" || sync === "Error") && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "page-indicator"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "page-indicator-text"
+  }, tab.charAt(0).toUpperCase() + tab.slice(1))), SUB_TABS[mainTab] && /*#__PURE__*/React.createElement("div", {
+    className: "sub-tabs-bar"
+  }, SUB_TABS[mainTab].map(([k, label]) => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    className: "sub-tab-btn" + (subTab[mainTab] === k ? " active" : ""),
+    onClick: () => goSubTab(k)
+  }, label))), (sync === "Offline" || sync === "Error") && /*#__PURE__*/React.createElement("div", {
     style: {
       position: "sticky",
       top: 0,
@@ -7871,14 +8901,44 @@ function MainApp({
       justifyContent: "center",
       gap: 6
     }
-  }, /*#__PURE__*/React.createElement("span", null, "\u26A0\uFE0F"), /*#__PURE__*/React.createElement("span", null, sync === "Offline" ? "You're offline — changes may not be saving" : "Sync error — check your connection")), renderContent()), confirmModal && /*#__PURE__*/React.createElement(ConfirmModal, {
+  }, /*#__PURE__*/React.createElement("span", null, "\u26A0\uFE0F"), /*#__PURE__*/React.createElement("span", null, sync === "Offline" ? "You're offline — changes may not be saving" : "Sync error — check your connection")), /*#__PURE__*/React.createElement(TabErrB, {key: tab}, renderContent())), confirmModal && /*#__PURE__*/React.createElement(ConfirmModal, {
     message: confirmModal.message,
     onConfirm: confirmModal.onConfirm,
     onCancel: closeConfirm
   }), /*#__PURE__*/React.createElement(Toast, {
     toasts: toasts,
     onUndo: undoDelA
-  }));
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "top-bar"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "top-bar-status"
+  }, sync === "Offline" || sync === "Error" ? "⚠️ " + sync : sync), /*#__PURE__*/React.createElement("button", {
+    className: "top-bar-menu",
+    onClick: () => setMenuOpen(true)
+  }, "⋮")), /*#__PURE__*/React.createElement("div", {
+    className: "btm-nav"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "btm-nav-items"
+  }, MAIN_TABS.map(([k, label]) => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    className: "btm-nav-item" + (mainTab === k ? " active" : ""),
+    onClick: () => goMainTab(k)
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "btm-nav-icon"
+  }, k === "home" ? /*#__PURE__*/React.createElement("svg", {width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round"}, /*#__PURE__*/React.createElement("path", {d: "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"}), /*#__PURE__*/React.createElement("polyline", {points: "9 22 9 12 15 12 15 22"})) : k === "dashboard" ? /*#__PURE__*/React.createElement("svg", {width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round"}, /*#__PURE__*/React.createElement("rect", {x: 3, y: 3, width: 7, height: 7}), /*#__PURE__*/React.createElement("rect", {x: 14, y: 3, width: 7, height: 7}), /*#__PURE__*/React.createElement("rect", {x: 14, y: 14, width: 7, height: 7}), /*#__PURE__*/React.createElement("rect", {x: 3, y: 14, width: 7, height: 7})) : k === "clients" ? /*#__PURE__*/React.createElement("svg", {width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round"}, /*#__PURE__*/React.createElement("path", {d: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"}), /*#__PURE__*/React.createElement("circle", {cx: 9, cy: 7, r: 4}), /*#__PURE__*/React.createElement("path", {d: "M23 21v-2a4 4 0 0 0-3-3.87"}), /*#__PURE__*/React.createElement("path", {d: "M16 3.13a4 4 0 0 1 0 7.75"})) : /*#__PURE__*/React.createElement("svg", {width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round"}, /*#__PURE__*/React.createElement("circle", {cx: 11, cy: 4, r: 2}), /*#__PURE__*/React.createElement("path", {d: "M18 17L13 12 18 7"}), /*#__PURE__*/React.createElement("path", {d: "M6 17L11 12 6 7"}))), /*#__PURE__*/React.createElement("div", {
+    className: "btm-nav-label"
+  }, label))), /*#__PURE__*/React.createElement("button", {
+    className: "btm-nav-item center",
+    onClick: () => {
+      setActA(null);
+      setAForm(bA(selDate));
+      setShowAForm(true);
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "btm-nav-icon"
+  }, "+"), /*#__PURE__*/React.createElement("div", {
+    className: "btm-nav-label"
+  }, "Add")))));
 }
 function App() {
   const [role, setRole] = useState(null);
@@ -7911,10 +8971,38 @@ function App() {
     setStaffAccounts: setStaffAccounts
   }));
 }
-const container = document.getElementById("root");
-const root = ReactDOM.createRoot(container);
-root.render(/*#__PURE__*/React.createElement(App, null));
-document.getElementById("boot").style.display = "none";
+
+console.log('[MODULE] Script started');
+
+// Expose render function to window so setTimeout can access it (module scope issue)
+window.renderApp = function renderApp() {
+  console.log('[RENDER] renderApp called');
+
+  // ALWAYS hide boot screen first
+  const bootEl = document.getElementById("boot");
+  if (bootEl) {
+    bootEl.style.display = "none";
+    console.log('[RENDER] Boot screen hidden');
+  }
+
+  try {
+    const container = document.getElementById("root");
+    if (!container) {
+      throw new Error("#root element not found");
+    }
+    const root = ReactDOM.createRoot(container);
+    root.render(/*#__PURE__*/React.createElement(App, null));
+    console.log("[SUCCESS] React rendered");
+  } catch (error) {
+    // Only on ACTUAL render failure, show error
+    console.error("[ERROR] Render failed:", error);
+    document.body.innerHTML = '<div style="padding:40px;color:red;font-family:monospace;"><h2>Error rendering app:</h2><pre>' + error.message + '\n' + error.stack + '</pre></div>';
+  }
+}
+
+// Render immediately - Firebase is already initialized above
+console.log('[APP] Calling renderApp');
+window.renderApp();
 </script>
 </body>
 </html>
