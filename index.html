@@ -4783,9 +4783,10 @@ function MainApp({
         style: {
           display: "flex",
           flexDirection: "column",
-          height: "calc(100dvh - calc(54px + env(safe-area-inset-top)))",
+          height: "100dvh",
           minHeight: 0,
-          background: "#111"
+          background: "#111",
+          marginTop: "calc(-60px - env(safe-area-inset-top))"
         }
       }, apptFormModal, showSchedEod && /*#__PURE__*/React.createElement(EodModal, {
         date: selDate,
