@@ -4795,40 +4795,49 @@ function MainApp({
         staffByDate: staffByDate,
         onClose: () => setShowSchedEod(false)
       }), /*#__PURE__*/React.createElement("div", {
+      }), 
+/*#__PURE__*/React.createElement("div", {
         style: {
-          background: "#111",
+          position: "sticky",
+          top: 0,
+          zIndex: 50,
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          background: "rgba(17,17,17,0.85)",
+          borderBottom: "1px solid rgba(255,255,255,0.1)",
           flexShrink: 0
         }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
           alignItems: "center",
-          padding: "10px 14px 6px",
-          gap: 8
+          padding: "10px 14px",
+          gap: 12
         }
-      }, isOwner ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+      }, isOwner && /*#__PURE__*/React.createElement("button", {
         onClick: prevDay,
         style: {
-          padding: "0 14px",
-          height: 36,
-          borderRadius: 9,
-          background: "rgba(255,255,255,.1)",
+          background: "none",
           border: "none",
           color: "#fff",
-          fontSize: 13,
-          fontWeight: 600,
+          fontSize: 18,
           cursor: "pointer",
+          padding: "4px 8px",
+          minHeight: "auto",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
-          minHeight: "auto",
-          fontFamily: "inherit"
+          WebkitTapHighlightColor: "transparent"
         }
-      }, "Previous"), /*#__PURE__*/React.createElement("div", {
+      }, "←"), /*#__PURE__*/React.createElement("div", {
         style: {
           flex: 1,
           textAlign: "center",
-          cursor: "pointer"
+          cursor: "pointer",
+          padding: "6px 12px",
+          borderRadius: 10,
+          background: "rgba(255,255,255,0.08)",
+          transition: "background 0.2s",
+          WebkitTapHighlightColor: "transparent"
         },
         onClick: () => {
           if (schedDateRef.current) {
@@ -4838,144 +4847,145 @@ function MainApp({
               schedDateRef.current.click();
             }
           }
+        },
+        onTouchEnd: (e) => {
+          e.preventDefault();
+          if (schedDateRef.current) {
+            try {
+              schedDateRef.current.showPicker();
+            } catch (e) {
+              schedDateRef.current.click();
+            }
+          }
         }
-      }, /*#__PURE__*/React.createElement("p", {
+      }, /*#__PURE__*/React.createElement("div", {
         style: {
-          color: "#fff",
+          fontSize: 14,
           fontWeight: 700,
-          fontSize: 16
+          color: "#fff"
         }
-      }, selDayName), /*#__PURE__*/React.createElement("p", {
-        style: {
-          color: "rgba(255,255,255,.45)",
-          fontSize: 12,
-          marginTop: 1
-        }
-      }, fmtD(selDate), " \u25BE"), /*#__PURE__*/React.createElement("input", {
+      }, selDayName, ", ", fmtD(selDate), " ▾"), /*#__PURE__*/React.createElement("input", {
         ref: schedDateRef,
         type: "date",
         value: selDate,
         onChange: e => e.target.value && setSelDate(e.target.value),
         style: {
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: 1,
-          height: 1,
-          opacity: 0,
-          pointerEvents: "none",
-          border: "none"
+          position: "absolute",
+          top: -9999,
+          left: -9999,
+          opacity: 0.01,
+          pointerEvents: "none"
         }
-      })), /*#__PURE__*/React.createElement("button", {
+      })), isOwner && /*#__PURE__*/React.createElement("button", {
         onClick: nextDay,
         style: {
-          padding: "0 14px",
-          height: 36,
-          borderRadius: 9,
-          background: "rgba(255,255,255,.1)",
+          background: "none",
           border: "none",
           color: "#fff",
-          fontSize: 13,
-          fontWeight: 600,
+          fontSize: 18,
           cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          padding: "4px 8px",
           minHeight: "auto",
-          fontFamily: "inherit"
+          display: "flex",
+          alignItems: "center",
+          WebkitTapHighlightColor: "transparent"
         }
-      }, "Next")) : /*#__PURE__*/React.createElement("div", {
+      }, "→"), /*#__PURE__*/React.createElement("button", {
+        onClick: () => setShowSchedFilters(!showSchedFilters),
         style: {
-          flex: 1,
-          textAlign: "center"
-        }
-      }, /*#__PURE__*/React.createElement("p", {
-        style: {
+          background: showSchedFilters ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.08)",
+          border: "none",
           color: "#fff",
-          fontWeight: 700,
-          fontSize: 16
+          fontSize: 16,
+          cursor: "pointer",
+          padding: "8px 10px",
+          minHeight: "auto",
+          borderRadius: 8,
+          display: "flex",
+          alignItems: "center",
+          transition: "background 0.2s",
+          WebkitTapHighlightColor: "transparent"
         }
-      }, selDayName), /*#__PURE__*/React.createElement("p", {
-        style: {
-          color: "rgba(255,255,255,.45)",
-          fontSize: 12,
-          marginTop: 1
-        }
-      }, fmtD(selDate)))), /*#__PURE__*/React.createElement("div", {
+      }, /*#__PURE__*/React.createElement("svg", {width: 18, height: 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round"}, /*#__PURE__*/React.createElement("circle", {cx: 11, cy: 11, r: 8}), /*#__PURE__*/React.createElement("path", {d: "m21 21-4.35-4.35"})))), /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
           alignItems: "center",
-          padding: "0 14px 10px",
-          gap: 8
+          padding: "0 14px 8px",
+          gap: 8,
+          overflowX: "auto"
         }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
-          background: "rgba(255,255,255,.1)",
-          borderRadius: 7,
-          padding: 2
+          background: "rgba(255,255,255,.08)",
+          borderRadius: 8,
+          padding: 2,
+          gap: 4
         }
       }, [["day", "Day"], ["agenda", "Agenda"]].map(([v, l]) => /*#__PURE__*/React.createElement("button", {
         key: v,
         onClick: () => setCalView(v),
         style: {
-          padding: "5px 13px",
-          borderRadius: 5,
-          background: calView === v ? "#fff" : "transparent",
-          color: calView === v ? "#1c1c1e" : "rgba(255,255,255,.55)",
-          fontSize: 12,
-          fontWeight: 700,
+          padding: "6px 14px",
+          borderRadius: 6,
+          background: calView === v ? "rgba(255,255,255,0.15)" : "transparent",
+          color: calView === v ? "#fff" : "rgba(255,255,255,.5)",
+          fontSize: 13,
+          fontWeight: 600,
           cursor: "pointer",
           border: "none",
           fontFamily: "inherit",
-          minHeight: "auto"
+          minHeight: "auto",
+          transition: "all 0.2s",
+          WebkitTapHighlightColor: "transparent"
         }
       }, l))), isOwner && /*#__PURE__*/React.createElement("button", {
         onClick: () => setSelDate(todStr),
         style: {
-          padding: "5px 12px",
-          borderRadius: 7,
-          background: selDate === todStr ? "rgba(255,255,255,.2)" : "rgba(255,255,255,.07)",
+          padding: "6px 12px",
+          borderRadius: 6,
+          background: selDate === todStr ? "rgba(255,255,255,.15)" : "rgba(255,255,255,.06)",
           border: "none",
           color: selDate === todStr ? "#fff" : "rgba(255,255,255,.5)",
-          fontSize: 12,
+          fontSize: 13,
           fontWeight: 600,
           cursor: "pointer",
           fontFamily: "inherit",
           minHeight: "auto",
-          flexShrink: 0
+          flexShrink: 0,
+          WebkitTapHighlightColor: "transparent"
         }
       }, "Today"), /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
           alignItems: "center",
           gap: 5,
-          background: "rgba(255,255,255,.07)",
-          borderRadius: 7,
-          padding: "4px 9px",
+          background: "rgba(255,255,255,.06)",
+          borderRadius: 6,
+          padding: "5px 10px",
           flexShrink: 0
         }
       }, /*#__PURE__*/React.createElement("span", {
         style: {
           fontSize: 11,
-          color: "rgba(255,255,255,.5)"
+          color: "rgba(255,255,255,.45)"
         }
       }, "Pets"), /*#__PURE__*/React.createElement("span", {
         style: {
-          fontSize: 12,
+          fontSize: 13,
           fontWeight: 700,
           color: "#fff"
         }
       }, totalPets)), dRev > 0 && /*#__PURE__*/React.createElement("div", {
         style: {
-          background: "rgba(52,199,89,.15)",
-          borderRadius: 7,
-          padding: "4px 9px",
+          background: "rgba(52,199,89,.12)",
+          borderRadius: 6,
+          padding: "5px 10px",
           flexShrink: 0
         }
       }, /*#__PURE__*/React.createElement("span", {
         style: {
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: 700,
           color: "#34c759"
         }
@@ -4986,18 +4996,18 @@ function MainApp({
       }), /*#__PURE__*/React.createElement("button", {
         onClick: () => setShowSchedEod(true),
         style: {
-          padding: "0 12px",
-          height: 36,
-          borderRadius: 20,
-          background: "rgba(255,255,255,.08)",
-          border: "1px solid rgba(255,255,255,.15)",
-          color: "rgba(255,255,255,.6)",
+          padding: "6px 12px",
+          borderRadius: 6,
+          background: "rgba(255,255,255,.06)",
+          border: "none",
+          color: "rgba(255,255,255,.5)",
           fontSize: 12,
           fontWeight: 600,
           cursor: "pointer",
           fontFamily: "inherit",
           minHeight: "auto",
-          flexShrink: 0
+          flexShrink: 0,
+          WebkitTapHighlightColor: "transparent"
         }
       }, "EOD"), /*#__PURE__*/React.createElement("button", {
         onClick: () => {
@@ -5012,36 +5022,82 @@ function MainApp({
           background: "#0071e3",
           border: "none",
           color: "#fff",
-          fontSize: 22,
+          fontSize: 20,
+          fontWeight: 500,
           cursor: "pointer",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           minHeight: "auto",
+          flexShrink: 0,
+          WebkitTapHighlightColor: "transparent"
+        }
+      }, "+"))), showSchedFilters && /*#__PURE__*/React.createElement("div", {
+        style: {
+          background: "rgba(255,255,255,0.05)",
+          borderTop: "1px solid rgba(255,255,255,0.08)",
+          padding: "12px 14px",
           flexShrink: 0
         }
-      }, "+"))), /*#__PURE__*/React.createElement("div", {
+      }, /*#__PURE__*/React.createElement("div", {
         style: {
-          background: "#1c1c1e",
-          padding: "8px 14px",
+          marginBottom: 12
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
           display: "flex",
           alignItems: "center",
-          gap: 7,
-          overflowX: "auto",
-          flexShrink: 0,
-          borderBottom: "1px solid rgba(255,255,255,.06)"
+          gap: 8,
+          background: "rgba(255,255,255,.08)",
+          borderRadius: 8,
+          padding: "8px 12px"
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {fontSize: 14, color: "rgba(255,255,255,.4)"}
+      }, /*#__PURE__*/React.createElement("svg", {width: 18, height: 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round"}, /*#__PURE__*/React.createElement("circle", {cx: 11, cy: 11, r: 8}), /*#__PURE__*/React.createElement("path", {d: "m21 21-4.35-4.35"}))), /*#__PURE__*/React.createElement("input", {
+        type: "text",
+        value: schedSearch,
+        onChange: e => setSchedSearch(e.target.value),
+        placeholder: "Search pet or client...",
+        style: {
+          flex: 1,
+          background: "transparent",
+          border: "none",
+          color: "#fff",
+          fontSize: 14,
+          fontFamily: "inherit",
+          outline: "none",
+          minHeight: "auto"
+        }
+      }), schedSearch && /*#__PURE__*/React.createElement("button", {
+        onClick: () => setSchedSearch(""),
+        style: {background: "none", border: "none", color: "rgba(255,255,255,.4)", fontSize: 18, cursor: "pointer", minHeight: "auto", padding: 0}
+      }, "×"))), /*#__PURE__*/React.createElement("div", {
+        style: {
+          marginBottom: 12
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 8
         }
       }, /*#__PURE__*/React.createElement("span", {
         style: {
-          fontSize: 10,
+          fontSize: 11,
           fontWeight: 700,
-          color: "rgba(255,255,255,.3)",
+          color: "rgba(255,255,255,.35)",
           textTransform: "uppercase",
-          letterSpacing: .5,
-          whiteSpace: "nowrap",
-          flexShrink: 0
+          letterSpacing: .5
         }
-      }, "On Duty"), staffMembers.length === 0 ? /*#__PURE__*/React.createElement("span", {
+      }, "On Duty")), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          gap: 6,
+          flexWrap: "wrap"
+        }
+      }, staffMembers.length === 0 ? /*#__PURE__*/React.createElement("span", {
         style: {
           fontSize: 12,
           color: "rgba(255,255,255,.25)"
@@ -5055,72 +5111,44 @@ function MainApp({
           style: {
             display: "inline-flex",
             alignItems: "center",
-            gap: 5,
-            padding: "6px 13px",
-            borderRadius: 20,
-            border: "1.5px solid " + (on ? dc : "rgba(255,255,255,.15)"),
-            background: on ? dc + "22" : "transparent",
-            color: on ? dc : "rgba(255,255,255,.4)",
+            gap: 4,
+            padding: "6px 12px",
+            borderRadius: 16,
+            border: "1.5px solid " + (on ? dc : "rgba(255,255,255,.12)"),
+            background: on ? dc + "18" : "transparent",
+            color: on ? dc : "rgba(255,255,255,.35)",
             fontFamily: "inherit",
             fontSize: 12,
-            fontWeight: 700,
+            fontWeight: 600,
             cursor: "pointer",
             minHeight: "auto",
-            flexShrink: 0
+            flexShrink: 0,
+            WebkitTapHighlightColor: "transparent"
           }
-        }, sm.name.split(" ")[0], on ? " ON" : "");
-      })), /*#__PURE__*/React.createElement("div", {
+        }, sm.name.split(" ")[0], on ? " ✓" : "");
+      }))), filteredAppts.filter(a => a.status !== "cancelled").length > 0 && /*#__PURE__*/React.createElement("div", {
         style: {
-          background: "#1a1a1a",
-          padding: "8px 14px",
-          flexShrink: 0,
-          borderBottom: "1px solid rgba(255,255,255,.06)",
+          marginBottom: 12
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
           display: "flex",
           alignItems: "center",
-          gap: 8
+          gap: 8,
+          marginBottom: 8
         }
       }, /*#__PURE__*/React.createElement("span", {
-        style: {fontSize: 12, color: "rgba(255,255,255,.35)"}
-      }, "🔍"), /*#__PURE__*/React.createElement("input", {
-        type: "text",
-        value: schedSearch,
-        onChange: e => setSchedSearch(e.target.value),
-        placeholder: "Search pet or client...",
         style: {
-          flex: 1,
-          background: "rgba(255,255,255,.08)",
-          border: "1px solid rgba(255,255,255,.12)",
-          borderRadius: 8,
-          padding: "6px 10px",
-          color: "#fff",
-          fontSize: 13,
-          fontFamily: "inherit",
-          outline: "none",
-          minHeight: "auto"
-        }
-      }), schedSearch && /*#__PURE__*/React.createElement("button", {
-        onClick: () => setSchedSearch(""),
-        style: {background: "none", border: "none", color: "rgba(255,255,255,.4)", fontSize: 16, cursor: "pointer", minHeight: "auto", padding: 0}
-      }, "×")), /*#__PURE__*/React.createElement("div", {
-        style: {
-          background: "#222",
-          padding: "8px 14px",
-          flexShrink: 0,
-          borderBottom: "1px solid rgba(255,255,255,.06)"
-        }
-      }, /*#__PURE__*/React.createElement("p", {
-        style: {
-          fontSize: 10,
+          fontSize: 11,
           fontWeight: 700,
-          color: "rgba(255,255,255,.4)",
+          color: "rgba(255,255,255,.35)",
           textTransform: "uppercase",
-          letterSpacing: .5,
-          marginBottom: 6
+          letterSpacing: .5
         }
-      }, "Quick Assign Pet to Groomer"), /*#__PURE__*/React.createElement("div", {
+      }, "Quick Assign")), /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
-          gap: 8,
+          gap: 6,
           flexWrap: "wrap"
         }
       }, filteredAppts.filter(a => a.status !== "cancelled").map(a => {
@@ -5131,29 +5159,29 @@ function MainApp({
             display: "flex",
             alignItems: "center",
             gap: 6,
-            background: "rgba(255,255,255,.07)",
+            background: "rgba(255,255,255,.06)",
             borderRadius: 8,
             padding: "6px 10px",
-            border: "1px solid " + c.bd
+            border: "1px solid rgba(255,255,255,.08)"
           }
         }, /*#__PURE__*/React.createElement("span", {
           style: {
-            fontSize: 12,
-            fontWeight: 700,
+            fontSize: 11,
+            fontWeight: 600,
             color: c.tx,
             background: c.bg,
-            padding: "2px 8px",
-            borderRadius: 6
+            padding: "2px 7px",
+            borderRadius: 5
           }
-        }, a.petName, " (", a.breed || "?", ")"), /*#__PURE__*/React.createElement("select", {
+        }, a.petName), /*#__PURE__*/React.createElement("select", {
           onChange: e => quickAssign(selDate, a.id, e.target.value || null),
           value: a.groomerId || "",
           style: {
-            fontSize: 12,
-            padding: "4px 8px",
-            borderRadius: 6,
+            fontSize: 11,
+            padding: "3px 6px",
+            borderRadius: 5,
             border: "none",
-            background: "rgba(255,255,255,.15)",
+            background: "rgba(255,255,255,.12)",
             color: "#fff",
             fontFamily: "inherit",
             minHeight: "auto",
@@ -5171,43 +5199,30 @@ function MainApp({
             color: "#000"
           }
         }, g.name))));
-      }), appts.filter(a => a.status !== "cancelled").length === 0 && /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 12,
-          color: "rgba(255,255,255,.3)"
-        }
-      }, "No pets scheduled today"))), /*#__PURE__*/React.createElement("div", {
-        style: {
-          background: "#111827",
-          padding: "8px 14px",
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          flexShrink: 0,
-          borderBottom: "1px solid rgba(255,255,255,.06)",
-          flexWrap: "wrap"
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 10,
-          fontWeight: 700,
-          color: "rgba(255,255,255,.4)",
-          textTransform: "uppercase",
-          letterSpacing: .5,
-          flexShrink: 0,
-          display: "flex",
-          alignItems: "center",
-          gap: 6
-        }
-      }, /*#__PURE__*/React.createElement(IconCash, {size:14,color:"rgba(255,255,255,.55)"}), /*#__PURE__*/React.createElement("span", null, "Cashbox")), /*#__PURE__*/React.createElement("div", {
+      }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
           alignItems: "center",
-          gap: 6
+          gap: 8,
+          marginBottom: 8
         }
       }, /*#__PURE__*/React.createElement("span", {
         style: {
           fontSize: 11,
+          fontWeight: 700,
+          color: "rgba(255,255,255,.35)",
+          textTransform: "uppercase",
+          letterSpacing: .5
+        }
+      }, "💰 Cashbox")), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 8
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 12,
           color: "rgba(255,255,255,.35)"
         }
       }, "Opening"), /*#__PURE__*/React.createElement("input", {
@@ -5220,11 +5235,11 @@ function MainApp({
         })),
         placeholder: "0",
         style: {
-          width: 72,
-          background: "rgba(255,255,255,.12)",
-          border: "1px solid rgba(255,255,255,.18)",
-          borderRadius: 7,
-          padding: "5px 8px",
+          width: 80,
+          background: "rgba(255,255,255,.08)",
+          border: "1px solid rgba(255,255,255,.12)",
+          borderRadius: 6,
+          padding: "6px 10px",
           color: "#fff",
           fontSize: 13,
           fontFamily: "inherit",
@@ -5234,146 +5249,188 @@ function MainApp({
         }
       }), /*#__PURE__*/React.createElement("span", {
         style: {
-          fontSize: 11,
-          color: "rgba(255,255,255,.3)"
+          fontSize: 12,
+          color: "rgba(255,255,255,.35)"
         }
-      }, "PHP")), /*#__PURE__*/React.createElement("div", {
-        style: {
-          flex: 1
-        }
-      }), /*#__PURE__*/React.createElement("button", {
+      }, "PHP"), /*#__PURE__*/React.createElement("button", {
         onClick: () => setShowQExp(true),
         style: {
-          padding: "5px 14px",
-          borderRadius: 20,
-          background: "rgba(255,159,10,.15)",
-          border: "1px solid rgba(255,159,10,.35)",
-          color: "#ff9f0a",
+          padding: "6px 12px",
+          borderRadius: 6,
+          background: "rgba(249,115,22,0.15)",
+          border: "none",
+          color: "#f97316",
           fontSize: 12,
-          fontWeight: 700,
+          fontWeight: 600,
           cursor: "pointer",
           fontFamily: "inherit",
           minHeight: "auto",
-          flexShrink: 0
+          WebkitTapHighlightColor: "transparent"
         }
-      }, "+ Expense")), showQExp && /*#__PURE__*/React.createElement("div", {
-        className: "mdbg",
-        onClick: () => setShowQExp(false)
-      }, /*#__PURE__*/React.createElement("div", {
-        className: "md",
-        onClick: e => e.stopPropagation()
-      }, /*#__PURE__*/React.createElement("div", {
-        className: "mdh"
-      }), /*#__PURE__*/React.createElement("div", {
+      }, "+ Expense")))), showQExp && /*#__PURE__*/React.createElement("div", {
         style: {
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 6
-        }
-      }, /*#__PURE__*/React.createElement("p", {
-        style: {
-          fontSize: 17,
-          fontWeight: 700
-        }
-      }, "Log Expense"), /*#__PURE__*/React.createElement("button", {
-        onClick: () => setShowQExp(false),
-        style: {
-          background: A.g1,
-          borderRadius: "50%",
-          width: 32,
-          height: 32,
-          border: "none",
-          fontSize: 16,
-          color: A.g4,
-          cursor: "pointer",
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0,0,0,.7)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          zIndex: 1000,
+          padding: 20
+        },
+        onClick: () => setShowQExp(false)
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          background: A.dbg,
+          borderRadius: 16,
+          padding: "20px",
+          maxWidth: 400,
+          width: "100%"
+        },
+        onClick: e => e.stopPropagation()
+      }, /*#__PURE__*/React.createElement("h3", {
+        style: {
+          color: A.tx,
+          marginBottom: 16,
+          fontSize: 18
+        }
+      }, "Log Expense"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          marginBottom: 12
+        }
+      }, /*#__PURE__*/React.createElement("label", {
+        style: {
+          display: "block",
+          color: A.g4,
+          fontSize: 12,
+          marginBottom: 6
+        }
+      }, "Category"), /*#__PURE__*/React.createElement("select", {
+        value: qExpForm.cat,
+        onChange: e => {
+          setQExpForm(p => ({
+            ...p,
+            cat: e.target.value,
+            custCat: ""
+          }));
+        },
+        style: {
+          width: "100%",
+          padding: 10,
+          borderRadius: 8,
+          border: "1px solid " + A.bdr,
+          background: A.g1,
+          color: A.tx,
+          fontSize: 14,
+          fontFamily: "inherit",
           minHeight: "auto"
         }
-      }, "X")), /*#__PURE__*/React.createElement("p", {
-        style: {
-          fontSize: 12,
-          color: A.g4,
-          marginBottom: 14
-        }
-      }, fmtD(selDate)), /*#__PURE__*/React.createElement("div", {
-        style: {
-          marginBottom: 10
-        }
-      }, /*#__PURE__*/React.createElement(Lbl, {
-        c: "Category"
-      }), /*#__PURE__*/React.createElement(Sel, {
-        value: qExpForm.cat,
-        onChange: e => setQExpForm(p => ({
-          ...p,
-          cat: e.target.value
-        }))
       }, /*#__PURE__*/React.createElement("option", {
         value: ""
-      }, "Select..."), ROUTE_CATS.map(c => /*#__PURE__*/React.createElement("option", {
-        key: c
-      }, c)))), qExpForm.cat === "Miscellaneous" && /*#__PURE__*/React.createElement("div", {
-        style: {
-          marginBottom: 10
-        }
-      }, /*#__PURE__*/React.createElement(Lbl, {
-        c: "Describe it"
-      }), /*#__PURE__*/React.createElement(Inp, {
+      }, "Select category"), ["Utilities", "Supplies", "Rent", "Salaries", "Marketing", "Other"].map(c => /*#__PURE__*/React.createElement("option", {
+        key: c,
+        value: c
+      }, c))), qExpForm.cat === "Other" && /*#__PURE__*/React.createElement("input", {
+        type: "text",
         value: qExpForm.custCat,
         onChange: e => setQExpForm(p => ({
           ...p,
           custCat: e.target.value
         })),
-        placeholder: "e.g. Village entrance fee"
+        placeholder: "Custom category",
+        style: {
+          width: "100%",
+          padding: 10,
+          borderRadius: 8,
+          border: "1px solid " + A.bdr,
+          background: A.g1,
+          color: A.tx,
+          fontSize: 14,
+          fontFamily: "inherit",
+          minHeight: "auto",
+          marginTop: 8
+        }
       })), /*#__PURE__*/React.createElement("div", {
         style: {
-          marginBottom: 10
+          marginBottom: 12
         }
-      }, /*#__PURE__*/React.createElement(Lbl, {
-        c: "Amount (PHP)"
-      }), /*#__PURE__*/React.createElement(Inp, {
+      }, /*#__PURE__*/React.createElement("label", {
+        style: {
+          display: "block",
+          color: A.g4,
+          fontSize: 12,
+          marginBottom: 6
+        }
+      }, "Amount"), /*#__PURE__*/React.createElement("input", {
         type: "number",
+        inputMode: "decimal",
         value: qExpForm.amt,
         onChange: e => setQExpForm(p => ({
           ...p,
           amt: e.target.value
         })),
-        placeholder: "0"
+        placeholder: "0",
+        style: {
+          width: "100%",
+          padding: 10,
+          borderRadius: 8,
+          border: "1px solid " + A.bdr,
+          background: A.g1,
+          color: A.tx,
+          fontSize: 14,
+          fontFamily: "inherit",
+          minHeight: "auto",
+          textAlign: "right"
+        }
       })), /*#__PURE__*/React.createElement("div", {
         style: {
           marginBottom: 16
         }
-      }, /*#__PURE__*/React.createElement(Lbl, {
-        c: "Notes (optional)"
-      }), /*#__PURE__*/React.createElement(Inp, {
+      }, /*#__PURE__*/React.createElement("label", {
+        style: {
+          display: "block",
+          color: A.g4,
+          fontSize: 12,
+          marginBottom: 6
+        }
+      }, "Notes (optional)"), /*#__PURE__*/React.createElement("input", {
+        type: "text",
         value: qExpForm.notes,
         onChange: e => setQExpForm(p => ({
           ...p,
           notes: e.target.value
         })),
-        placeholder: "e.g. BF Homes gate 1"
+        placeholder: "e.g. Electric bill",
+        style: {
+          width: "100%",
+          padding: 10,
+          borderRadius: 8,
+          border: "1px solid " + A.bdr,
+          background: A.g1,
+          color: A.tx,
+          fontSize: 14,
+          fontFamily: "inherit",
+          minHeight: "auto"
+        }
       })), /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
-          gap: 8
+          gap: 10
         }
       }, /*#__PURE__*/React.createElement(Btn, {
         onClick: () => {
-          if (!qExpForm.amt) return;
-          const cat = qExpForm.cat === "Miscellaneous" && qExpForm.custCat ? qExpForm.custCat : qExpForm.cat;
-          if (!cat) return;
-          setExpenses(prev => ({
-            ...prev,
-            [selDate]: [...(prev[selDate] || []), {
-              id: Date.now(),
-              category: cat,
-              amount: Number(qExpForm.amt),
-              notes: qExpForm.notes || "",
-              cashbox: true
-            }]
-          }));
+          const cat = qExpForm.cat === "Other" ? qExpForm.custCat : qExpForm.cat;
+          if (!cat || !qExpForm.amt) return;
+          const newExp = {
+            id: Date.now(),
+            category: cat,
+            amount: Number(qExpForm.amt),
+            notes: qExpForm.notes
+          };
+          setE(selDate, [...gE(selDate), newExp]);
           setQExpForm({
             cat: "",
             custCat: "",
@@ -5386,7 +5443,8 @@ function MainApp({
       }, "Save"), /*#__PURE__*/React.createElement(Btn, {
         v: "can",
         onClick: () => setShowQExp(false)
-      }, "Cancel")))), calView === "day" && /*#__PURE__*/React.createElement("div", {
+      }, "Cancel")))),
+ calView === "day" && /*#__PURE__*/React.createElement("div", {
         ref: calRef,
         className: "cal-wrap"
       }, /*#__PURE__*/React.createElement("div", {
