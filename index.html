@@ -7757,7 +7757,7 @@ function MainApp({
       )
     );
     }
-    if (tab === "dashboard") {
+    if (tab === "dashboard" || tab === "overview") {
       const yrDates = allD.filter(d => d.startsWith("" + annualYear));
       const yrRev = yrDates.reduce((s, d) => s + gRev(d), 0);
       const yrExp = yrDates.reduce((s, d) => s + gExp(d), 0);
@@ -8713,11 +8713,30 @@ function MainApp({
       overflowY: "auto",
       paddingTop: 4
     }
-  }, TABS.map(([k, label]) => /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {padding: "8px 20px 4px", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.35)", textTransform: "uppercase", letterSpacing: .5}
+  }, "HOME"), SUB_TABS.home.map(([k, label]) => /*#__PURE__*/React.createElement("button", {
     key: k,
-    className: "snav" + (tab === k ? " on" : ""),
-    onClick: () => goTab(k)
-  }, label))), /*#__PURE__*/React.createElement("div", {
+    className: "snav" + (mainTab === "home" && subTab.home === k ? " on" : ""),
+    onClick: () => goTab(k),
+    style: {paddingLeft: "32px"}
+  }, label)), isOwner && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {padding: "12px 20px 4px", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.35)", textTransform: "uppercase", letterSpacing: .5}
+  }, "DASHBOARD"), SUB_TABS.dashboard.map(([k, label]) => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    className: "snav" + (mainTab === "dashboard" && subTab.dashboard === k ? " on" : ""),
+    onClick: () => goTab(k),
+    style: {paddingLeft: "32px"}
+  }, label)), /*#__PURE__*/React.createElement("button", {
+    className: "snav" + (mainTab === "clients" ? " on" : ""),
+    onClick: () => goMainTab("clients")
+  }, "Clients"), /*#__PURE__*/React.createElement("button", {
+    className: "snav" + (mainTab === "services" ? " on" : ""),
+    onClick: () => goMainTab("services")
+  }, "Services"), /*#__PURE__*/React.createElement("button", {
+    className: "snav" + (tab === "permissions" ? " on" : ""),
+    onClick: () => goTab("permissions")
+  }, "Permissions"))), /*#__PURE__*/React.createElement("div", {
     className: "sidebar-footer"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -8843,11 +8862,10 @@ function MainApp({
     }
   }, "\xD7")), /*#__PURE__*/React.createElement("div", {
     className: "drw-nav"
-  }, TABS.map(([k, label]) => /*#__PURE__*/React.createElement("button", {
-    key: k,
-    className: "drw-item" + (tab === k ? " on" : ""),
-    onClick: () => goTab(k)
-  }, label))), /*#__PURE__*/React.createElement("div", {
+  }, isOwner && /*#__PURE__*/React.createElement("button", {
+    className: "drw-item" + (tab === "permissions" ? " on" : ""),
+    onClick: () => goTab("permissions")
+  }, "Permissions")), /*#__PURE__*/React.createElement("div", {
     className: "drw-foot"
   }, /*#__PURE__*/React.createElement(Btn, {
     v: "sec",
