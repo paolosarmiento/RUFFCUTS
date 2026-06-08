@@ -4842,16 +4842,7 @@ function MainApp({
         },
         onClick: () => {
           if (schedDateRef.current) {
-            try {
-              schedDateRef.current.showPicker();
-            } catch (e) {
-              schedDateRef.current.click();
-            }
-          }
-        },
-        onTouchEnd: (e) => {
-          e.preventDefault();
-          if (schedDateRef.current) {
+            schedDateRef.current.focus();
             try {
               schedDateRef.current.showPicker();
             } catch (e) {
@@ -4871,11 +4862,14 @@ function MainApp({
         value: selDate,
         onChange: e => e.target.value && setSelDate(e.target.value),
         style: {
-          position: "absolute",
-          top: -9999,
-          left: -9999,
-          opacity: 0.01,
-          pointerEvents: "none"
+          position: "fixed",
+          width: 1,
+          height: 1,
+          top: 0,
+          left: 0,
+          opacity: 0,
+          zIndex: -1,
+          border: "none"
         }
       })), isOwner && /*#__PURE__*/React.createElement("button", {
         onClick: nextDay,
