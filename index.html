@@ -3253,6 +3253,8 @@ function MainApp({
   const [capForm, setCapForm] = useState({id:null,name:"",amount:"",date:tod(),category:"Equipment",notes:""});
   const [showOwnerSalEdit, setShowOwnerSalEdit] = useState(false);
   const [ownerSalForm, setOwnerSalForm] = useState({amount:"",cycle:"monthly"});
+  const [editSalPayment, setEditSalPayment] = useState(null);
+  const [editSalPaymentForm, setEditSalPaymentForm] = useState({amount:"",date:""});
   const [editBalKey, setEditBalKey] = useState(null);
   const [editBalVal, setEditBalVal] = useState("");
   const [showQExp, setShowQExp] = useState(false);
@@ -3771,10 +3773,22 @@ function MainApp({
       showToast("Owner salary updated ✓");
     }, 300);
   };
-  const markOwnerSalPaid = (period) => {
-    const amt = ownerFinances.salaryAmount||0;
-    setOwnerFinances(prev => ({...prev, salaryPayments:[...(prev.salaryPayments||[]).filter(p=>p.period!==period),{id:Date.now(),period,amount:amt,paidOn:tod()}]}));
+  const markOwnerSalPaid = (period, customAmount = null, customDate = null) => {
+    const amt = customAmount !== null ? customAmount : (ownerFinances.salaryAmount||0);
+    const date = customDate || tod();
+    setOwnerFinances(prev => ({...prev, salaryPayments:[...(prev.salaryPayments||[]).filter(p=>p.period!==period),{id:Date.now(),period,amount:amt,paidOn:date}]}));
     showToast("Salary marked paid ✓");
+  };
+  const startEditSalPayment = (payment, period) => {
+    setEditSalPayment(period);
+    setEditSalPaymentForm({amount: String(payment.amount), date: payment.paidOn});
+  };
+  const saveEditSalPayment = () => {
+    const amt = Number(editSalPaymentForm.amount);
+    if (!amt || !editSalPaymentForm.date) return;
+    markOwnerSalPaid(editSalPayment, amt, editSalPaymentForm.date);
+    setEditSalPayment(null);
+    setEditSalPaymentForm({amount:"",date:""});
   };
   const unmarkOwnerSalPaid = (period) => {
     setOwnerFinances(prev => ({...prev, salaryPayments:(prev.salaryPayments||[]).filter(p=>p.period!==period)}));
@@ -8661,12 +8675,33 @@ function MainApp({
               sp.payment&&/*#__PURE__*/React.createElement("p", {style:{fontSize:12,color:A.ok,marginTop:2}}, "Paid · "+fmtD(sp.payment.paidOn))
             ),
             /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",gap:10}},
-              /*#__PURE__*/React.createElement("p", {style:{fontSize:15,fontWeight:700,color:sp.payment?A.g3:A.wn}}, fmt(ownerFinances.salaryAmount)),
+              /*#__PURE__*/React.createElement("p", {style:{fontSize:15,fontWeight:700,color:sp.payment?A.g3:A.wn}}, fmt(sp.payment?sp.payment.amount:ownerFinances.salaryAmount)),
               sp.payment
-                ? /*#__PURE__*/React.createElement(Btn, {sm:true,v:"ok",onClick:()=>askConfirm("Remove this salary payment?",()=>unmarkOwnerSalPaid(sp.key),"Payment removed")}, "✓ Paid")
+                ? /*#__PURE__*/React.createElement(React.Fragment, null,
+                    /*#__PURE__*/React.createElement(Btn, {sm:true,v:"sec",onClick:()=>startEditSalPayment(sp.payment,sp.key)}, "Edit"),
+                    /*#__PURE__*/React.createElement(Btn, {sm:true,v:"ok",onClick:()=>askConfirm("Remove this salary payment?",()=>unmarkOwnerSalPaid(sp.key),"Payment removed")}, "✓ Paid")
+                  )
                 : /*#__PURE__*/React.createElement(Btn, {sm:true,v:"warm",onClick:()=>markOwnerSalPaid(sp.key)}, "Mark Paid")
             )
           ))
+        ),
+        editSalPayment&&/*#__PURE__*/React.createElement("div", {className:"mdbg",onClick:()=>setEditSalPayment(null)},
+          /*#__PURE__*/React.createElement("div", {className:"md",onClick:e=>e.stopPropagation()},
+            /*#__PURE__*/React.createElement("div", {className:"mdh"}),
+            /*#__PURE__*/React.createElement("p", {style:{fontSize:17,fontWeight:700,marginBottom:16}}, "Edit Salary Payment"),
+            /*#__PURE__*/React.createElement("div", {style:{marginBottom:12}},
+              /*#__PURE__*/React.createElement(Lbl, {c:"Amount (₱)"}),
+              /*#__PURE__*/React.createElement(Inp, {type:"number",value:editSalPaymentForm.amount,onChange:e=>setEditSalPaymentForm(p=>({...p,amount:e.target.value})),placeholder:"0"})
+            ),
+            /*#__PURE__*/React.createElement("div", {style:{marginBottom:20}},
+              /*#__PURE__*/React.createElement(Lbl, {c:"Payment Date"}),
+              /*#__PURE__*/React.createElement(Inp, {type:"date",value:editSalPaymentForm.date,onChange:e=>setEditSalPaymentForm(p=>({...p,date:e.target.value}))})
+            ),
+            /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:10}},
+              /*#__PURE__*/React.createElement(Btn, {v:"sec",style:{flex:1},onClick:()=>setEditSalPayment(null)}, "Cancel"),
+              /*#__PURE__*/React.createElement(Btn, {style:{flex:1},onClick:saveEditSalPayment}, "Save")
+            )
+          )
         )
       );
     }
