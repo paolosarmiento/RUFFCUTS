@@ -3921,8 +3921,13 @@ function MainApp({
     } : p)
   }));
   const saveE = () => {
-    if (!eForm.amt) return;
     const cat = eForm.cat === "Other" ? eForm.custCat : eForm.cat;
+
+    if (!eForm.amt || !cat) {
+      showToast(!eForm.amt ? "Please enter an amount" : "Please select a category");
+      return;
+    }
+
     setExpenses(prev => ({
       ...prev,
       [eForm.date]: [...(prev[eForm.date] || []), {
