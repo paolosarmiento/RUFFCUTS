@@ -4887,7 +4887,7 @@ function MainApp({
           minHeight: "100dvh",
           background: "#111",
           marginTop: window.innerWidth <= 767 ? "0" : "calc(-60px - env(safe-area-inset-top))",
-          paddingTop: window.innerWidth <= 767 ? "calc(36px + env(safe-area-inset-top))" : "env(safe-area-inset-top)"
+          paddingTop: window.innerWidth <= 767 ? "0" : "env(safe-area-inset-top)"
         }
       }, apptFormModal, showSchedEod && /*#__PURE__*/React.createElement(EodModal, {
         date: selDate,
@@ -4906,7 +4906,8 @@ function MainApp({
           WebkitBackdropFilter: "blur(20px)",
           background: "rgba(17,17,17,0.85)",
           borderBottom: "1px solid rgba(255,255,255,0.1)",
-          flexShrink: 0
+          flexShrink: 0,
+          marginTop: window.innerWidth <= 767 ? "calc(36px + env(safe-area-inset-top) + 70px)" : 0
         }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
