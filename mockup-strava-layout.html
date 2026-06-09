@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<title>Ruff Cuts - Strava Layout Mockup</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+  background: #F8F8F8;
+  color: #1c1c1e;
+  -webkit-font-smoothing: antialiased;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-width: 480px;
+  margin: 0 auto;
+  background: white;
+}
+
+/* Status Bar */
+.status-bar {
+  height: env(safe-area-inset-top, 44px);
+  background: white;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 16px 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Main Content Area */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Page Title */
+.page-title {
+  padding: 16px 20px 12px;
+  background: white;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.page-title h1 {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin-bottom: 0;
+}
+
+/* Sub Tabs */
+.sub-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 12px 20px;
+  background: white;
+  border-bottom: 1px solid #e5e5e5;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.sub-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.sub-tab {
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: transparent;
+  border: 1.5px solid #e5e5e5;
+  color: #666;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.sub-tab.active {
+  background: #FC4C02;
+  border-color: #FC4C02;
+  color: white;
+}
+
+/* Content Area */
+.content-area {
+  padding: 20px;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid #e5e5e5;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.card-subtitle {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.card-meta {
+  font-size: 12px;
+  color: #999;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.empty-state h3 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #1c1c1e;
+}
+
+.empty-state p {
+  font-size: 14px;
+  color: #666;
+}
+
+/* Bottom Navigation */
+.bottom-nav {
+  display: flex;
+  align-items: flex-end;
+  background: white;
+  border-top: 1px solid #e5e5e5;
+  padding: 8px 0;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  position: relative;
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+  background: none;
+  border: none;
+  color: #8e8e93;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.nav-item.center {
+  margin-top: -8px;
+}
+
+.nav-item.active {
+  color: #FC4C02;
+}
+
+.nav-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.nav-item.center .nav-icon {
+  width: 56px;
+  height: 56px;
+  background: #FC4C02;
+  border-radius: 50%;
+  color: white;
+  font-size: 32px;
+  box-shadow: 0 4px 12px rgba(252, 76, 2, 0.25);
+}
+
+.nav-label {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.nav-item.center .nav-label {
+  color: #FC4C02;
+}
+
+/* Hidden class */
+.hidden {
+  display: none !important;
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span>9:41</span>
+    <span>📶 📡 🔋</span>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+    <!-- Page Title -->
+    <div class="page-title">
+      <h1 id="pageTitle">Home</h1>
+    </div>
+
+    <!-- Sub Tabs (conditionally shown) -->
+    <div class="sub-tabs" id="subTabs">
+      <!-- Dynamically populated -->
+    </div>
+
+    <!-- Content Area -->
+    <div class="content-area" id="contentArea">
+      <!-- Dynamically populated -->
+    </div>
+  </div>
+
+  <!-- Bottom Navigation -->
+  <div class="bottom-nav">
+    <button class="nav-item active" data-tab="home">
+      <div class="nav-icon">🏠</div>
+      <div class="nav-label">Home</div>
+    </button>
+    <button class="nav-item" data-tab="dashboard">
+      <div class="nav-icon">📊</div>
+      <div class="nav-label">Dashboard</div>
+    </button>
+    <button class="nav-item center" data-tab="add">
+      <div class="nav-icon">+</div>
+      <div class="nav-label">Add</div>
+    </button>
+    <button class="nav-item" data-tab="clients">
+      <div class="nav-icon">👥</div>
+      <div class="nav-label">Clients</div>
+    </button>
+    <button class="nav-item" data-tab="services">
+      <div class="nav-icon">✂️</div>
+      <div class="nav-label">Services</div>
+    </button>
+  </div>
+</div>
+
+<script>
+// App State
+let currentTab = 'home';
+let currentSubTab = {
+  home: 'today',
+  dashboard: 'overview'
+};
+
+// Tab Configuration
+const tabs = {
+  home: {
+    title: 'Home',
+    subTabs: ['today', 'schedule', 'weekly'],
+    content: {
+      today: `
+        <div class="card">
+          <div class="card-title">Fluffy - Standard Groom</div>
+          <div class="card-subtitle">John Smith • 10:00 AM</div>
+          <div class="card-meta">Golden Retriever • In Progress</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Max - Bath & Brush</div>
+          <div class="card-subtitle">Sarah Johnson • 11:30 AM</div>
+          <div class="card-meta">Poodle • Pending</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Bella - Full Groom</div>
+          <div class="card-subtitle">Mike Davis • 2:00 PM</div>
+          <div class="card-meta">Shih Tzu • Pending</div>
+        </div>
+      `,
+      schedule: `
+        <div class="card">
+          <div class="card-title">Tuesday, June 9</div>
+          <div class="card-subtitle">8 appointments scheduled</div>
+          <div class="card-meta">₱12,500 estimated revenue</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Morning Block (7 AM - 12 PM)</div>
+          <div class="card-subtitle">5 appointments</div>
+          <div class="card-meta">3 groomers on duty</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Afternoon Block (12 PM - 6 PM)</div>
+          <div class="card-subtitle">3 appointments</div>
+          <div class="card-meta">2 groomers on duty</div>
+        </div>
+      `,
+      weekly: `
+        <div class="card">
+          <div class="card-title">This Week Summary</div>
+          <div class="card-subtitle">June 8 - June 14, 2026</div>
+          <div class="card-meta">42 appointments • ₱85,000 revenue</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Monday, June 8</div>
+          <div class="card-subtitle">6 appointments</div>
+          <div class="card-meta">₱9,500</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Tuesday, June 9</div>
+          <div class="card-subtitle">8 appointments</div>
+          <div class="card-meta">₱12,500</div>
+        </div>
+      `
+    }
+  },
+  dashboard: {
+    title: 'Dashboard',
+    subTabs: ['staff', 'overview', 'finances'],
+    content: {
+      staff: `
+        <div class="card">
+          <div class="card-title">Maria Santos - Groomer</div>
+          <div class="card-subtitle">Senior Groomer</div>
+          <div class="card-meta">15 appointments this week • ₱18,500 revenue</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Juan Cruz - Groomer</div>
+          <div class="card-subtitle">Junior Groomer</div>
+          <div class="card-meta">12 appointments this week • ₱14,200 revenue</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Pedro Reyes - Driver</div>
+          <div class="card-subtitle">Driver</div>
+          <div class="card-meta">8 deliveries this week</div>
+        </div>
+      `,
+      overview: `
+        <div class="card">
+          <div class="card-title">Today's Performance</div>
+          <div class="card-subtitle">8 completed • 2 pending • 1 cancelled</div>
+          <div class="card-meta">₱12,500 revenue</div>
+        </div>
+        <div class="card">
+          <div class="card-title">This Week</div>
+          <div class="card-subtitle">42 appointments</div>
+          <div class="card-meta">₱85,000 revenue • 38 completed</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Top Services</div>
+          <div class="card-subtitle">Standard Groom (18) • Bath & Brush (12)</div>
+          <div class="card-meta">Full Groom (8) • Nail Trim (4)</div>
+        </div>
+      `,
+      finances: `
+        <div class="card">
+          <div class="card-title">Today's Revenue</div>
+          <div class="card-subtitle">₱12,500 total</div>
+          <div class="card-meta">₱8,500 paid • ₱4,000 pending</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Weekly Revenue</div>
+          <div class="card-subtitle">₱85,000 total</div>
+          <div class="card-meta">₱68,000 paid • ₱17,000 pending</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Expenses</div>
+          <div class="card-subtitle">₱12,500 this week</div>
+          <div class="card-meta">Supplies (₱8,000) • Other (₱4,500)</div>
+        </div>
+      `
+    }
+  },
+  clients: {
+    title: 'Clients',
+    subTabs: null,
+    content: `
+      <div class="card">
+        <div class="card-title">John Smith</div>
+        <div class="card-subtitle">09123456789</div>
+        <div class="card-meta">2 pets • 12 appointments</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Sarah Johnson</div>
+        <div class="card-subtitle">09198765432</div>
+        <div class="card-meta">1 pet • 8 appointments</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Mike Davis</div>
+        <div class="card-subtitle">09155554444</div>
+        <div class="card-meta">3 pets • 24 appointments</div>
+      </div>
+    `
+  },
+  services: {
+    title: 'Services',
+    subTabs: null,
+    content: `
+      <div class="card">
+        <div class="card-title">Standard Groom</div>
+        <div class="card-subtitle">₱1,500 • 90 min</div>
+        <div class="card-meta">Most popular service</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Bath & Brush</div>
+        <div class="card-subtitle">₱800 • 60 min</div>
+        <div class="card-meta">Quick grooming option</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Full Groom</div>
+        <div class="card-subtitle">₱2,200 • 120 min</div>
+        <div class="card-meta">Premium grooming package</div>
+      </div>
+    `
+  },
+  add: {
+    title: 'Add Appointment',
+    subTabs: null,
+    content: `
+      <div class="empty-state">
+        <h3>Add New Appointment</h3>
+        <p>This would open the appointment form</p>
+      </div>
+    `
+  }
+};
+
+// Render Functions
+function renderSubTabs(tabKey) {
+  const subTabsEl = document.getElementById('subTabs');
+  const tabConfig = tabs[tabKey];
+
+  if (!tabConfig.subTabs) {
+    subTabsEl.classList.add('hidden');
+    return;
+  }
+
+  subTabsEl.classList.remove('hidden');
+  subTabsEl.innerHTML = tabConfig.subTabs.map(subTab => {
+    const active = currentSubTab[tabKey] === subTab;
+    return `<button class="sub-tab ${active ? 'active' : ''}" data-subtab="${subTab}">
+      ${subTab.charAt(0).toUpperCase() + subTab.slice(1)}
+    </button>`;
+  }).join('');
+
+  // Add event listeners to sub-tabs
+  subTabsEl.querySelectorAll('.sub-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const subTab = btn.dataset.subtab;
+      currentSubTab[currentTab] = subTab;
+      renderContent();
+    });
+  });
+}
+
+function renderContent() {
+  const contentEl = document.getElementById('contentArea');
+  const titleEl = document.getElementById('pageTitle');
+  const tabConfig = tabs[currentTab];
+
+  titleEl.textContent = tabConfig.title;
+  renderSubTabs(currentTab);
+
+  if (tabConfig.subTabs) {
+    const subTab = currentSubTab[currentTab];
+    contentEl.innerHTML = tabConfig.content[subTab];
+  } else {
+    contentEl.innerHTML = tabConfig.content;
+  }
+}
+
+// Event Listeners
+document.querySelectorAll('.nav-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+
+    // Update active state
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    // Update current tab
+    currentTab = tab;
+
+    // Render content
+    renderContent();
+  });
+});
+
+// Initial render
+renderContent();
+</script>
+
+</body>
+</html>

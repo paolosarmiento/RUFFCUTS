@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<title>Test Standalone</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  min-height: 100dvh;
+  background: #000;
+  color: white;
+  font-family: system-ui;
+}
+
+.main {
+  background: #000;
+  padding-top: calc(60px + env(safe-area-inset-top));
+  min-height: 100dvh;
+}
+
+.schedule {
+  background: #111;
+  height: 100dvh;
+  margin-top: calc(-60px - env(safe-area-inset-top));
+  display: flex;
+  flex-direction: column;
+  border: 3px solid red;
+}
+
+.header {
+  background: rgba(0,100,200,0.8);
+  padding: 20px;
+  position: sticky;
+  top: 0;
+}
+
+.content {
+  flex: 1;
+  overflow: auto;
+  background: #222;
+  padding: 20px;
+}
+
+.debug {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(255,255,255,0.9);
+  color: black;
+  padding: 10px;
+  font-size: 11px;
+  font-family: monospace;
+  border-radius: 8px;
+  z-index: 9999;
+}
+</style>
+</head>
+<body>
+<div class="main">
+  <div class="schedule">
+    <div class="header">
+      Schedule Header (sticky)
+    </div>
+    <div class="content">
+      <h2>Content Area</h2>
+      <p>This should fill viewport</p>
+      <p>Red border = schedule container</p>
+      <p>Blue header = sticky element</p>
+      <div style="height: 2000px;">Scroll test...</div>
+    </div>
+  </div>
+</div>
+<div class="debug" id="debug">Loading...</div>
+<script>
+function updateDebug() {
+  const safeTop = getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-top)') || '0px';
+  const mainPaddingTop = getComputedStyle(document.querySelector('.main')).paddingTop;
+  const schedMarginTop = getComputedStyle(document.querySelector('.schedule')).marginTop;
+  const schedHeight = getComputedStyle(document.querySelector('.schedule')).height;
+
+  document.getElementById('debug').innerHTML = `
+safe-area-inset-top: ${safeTop}<br>
+.main padding-top: ${mainPaddingTop}<br>
+.schedule margin-top: ${schedMarginTop}<br>
+.schedule height: ${schedHeight}<br>
+window.innerHeight: ${window.innerHeight}px<br>
+standalone: ${window.navigator.standalone ? 'YES' : 'NO'}
+  `.trim();
+}
+updateDebug();
+window.addEventListener('resize', updateDebug);
+</script>
+</body>
+</html>
