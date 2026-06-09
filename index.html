@@ -3233,6 +3233,7 @@ function MainApp({
   const [showSmForm, setShowSmForm] = useState(false);
   const [cashAdvances, setCashAdvances] = useState([]);
   const [showCaForm, setShowCaForm] = useState(null); // staffId or null
+  const [editCaId, setEditCaId] = useState(null); // cash advance ID being edited
   const [caForm, setCaForm] = useState({amount:"",purpose:"",dateIssued:tod(),deductionAmount:"",frequency:"weekly"});
   const [showEod, setShowEod] = useState(false);
   const [showSchedEod, setShowSchedEod] = useState(false);
@@ -3665,13 +3666,37 @@ function MainApp({
     if (!caForm.amount || !caForm.purpose || !caForm.deductionAmount) return;
     const amt = Number(caForm.amount); const deduct = Number(caForm.deductionAmount);
     if (!amt || !deduct) return;
-    setCashAdvances(prev => [...prev, {id: Date.now(), staffId: Number(staffId), amount: amt, purpose: caForm.purpose.trim(), dateIssued: caForm.dateIssued || tod(), deductionAmount: deduct, frequency: caForm.frequency || "weekly", remainingDebt: amt, deductionsMade: 0, status: "active"}]);
+    if (editCaId) {
+      setCashAdvances(prev => prev.map(a => {
+        if (a.id !== editCaId) return a;
+        const oldAmt = a.amount;
+        const newAmt = amt;
+        const alreadyPaid = oldAmt - a.remainingDebt;
+        const newRemaining = Math.max(0, newAmt - alreadyPaid);
+        return {...a, amount: newAmt, purpose: caForm.purpose.trim(), dateIssued: caForm.dateIssued || tod(), deductionAmount: deduct, frequency: caForm.frequency || "weekly", remainingDebt: newRemaining, status: newRemaining <= 0 ? "paid" : "active"};
+      }));
+      showToast("Cash advance updated ✓");
+    } else {
+      setCashAdvances(prev => [...prev, {id: Date.now(), staffId: Number(staffId), amount: amt, purpose: caForm.purpose.trim(), dateIssued: caForm.dateIssued || tod(), deductionAmount: deduct, frequency: caForm.frequency || "weekly", remainingDebt: amt, deductionsMade: 0, status: "active"}]);
+      showToast("Cash advance recorded ✓");
+    }
     setCaForm({amount:"", purpose:"", dateIssued:tod(), deductionAmount:"", frequency:"weekly"});
     setShowCaForm(null);
-    showToast("Cash advance recorded ✓");
+    setEditCaId(null);
   };
   const markAdvancePaid = (id) => { setCashAdvances(prev => prev.map(a => a.id === id ? {...a, remainingDebt:0, status:"paid"} : a)); showToast("Marked as fully paid ✓"); };
   const deleteAdvance = (id) => askConfirm("Delete this cash advance record?", () => { setCashAdvances(prev => prev.filter(a => a.id !== id)); showToast("Advance deleted"); });
+  const startEditAdvance = (adv) => {
+    setEditCaId(adv.id);
+    setCaForm({
+      amount: String(adv.amount),
+      purpose: adv.purpose,
+      dateIssued: adv.dateIssued,
+      deductionAmount: String(adv.deductionAmount),
+      frequency: adv.frequency
+    });
+    setShowCaForm(adv.staffId);
+  };
   const deleteDeposit = (depositId) => {
     setBalances(prev => ({
       ...prev,
@@ -7722,7 +7747,7 @@ function MainApp({
             ),
             // Add form
             showCaForm === sm.id && /*#__PURE__*/React.createElement("div", {style:{padding:"14px 16px",background:"#f8faff",borderBottom:"0.5px solid "+A.g2}},
-              /*#__PURE__*/React.createElement("p", {style:{fontSize:13,fontWeight:700,color:A.bu,marginBottom:12}}, "New Cash Advance for "+sm.name),
+              /*#__PURE__*/React.createElement("p", {style:{fontSize:13,fontWeight:700,color:A.bu,marginBottom:12}}, (editCaId ? "Edit" : "New")+" Cash Advance for "+sm.name),
               /*#__PURE__*/React.createElement("div", {className:"g2",style:{marginBottom:10}},
                 /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Lbl,{c:"Amount (P)"}), /*#__PURE__*/React.createElement(Inp,{type:"number",value:caForm.amount,onChange:e=>setCaForm(p=>({...p,amount:e.target.value})),placeholder:"e.g. 3000"})),
                 /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Lbl,{c:"Date Issued"}), /*#__PURE__*/React.createElement(Inp,{type:"date",value:caForm.dateIssued,onChange:e=>setCaForm(p=>({...p,dateIssued:e.target.value}))}))
@@ -7774,6 +7799,7 @@ function MainApp({
                     "⚡ "+fmt(deductThisPeriod)+" deduction pending this period"
                   ),
                   /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:6,marginLeft:"auto"}},
+                    isOwner && /*#__PURE__*/React.createElement(Btn, {sm:true, v:"sec", onClick:()=>startEditAdvance(adv)}, "Edit"),
                     isOwner && /*#__PURE__*/React.createElement(Btn, {sm:true, v:"sec", onClick:()=>markAdvancePaid(adv.id)}, "Mark Paid"),
                     isOwner && /*#__PURE__*/React.createElement(Btn, {sm:true, v:"gho", onClick:()=>deleteAdvance(adv.id)}, "Del")
                   )
