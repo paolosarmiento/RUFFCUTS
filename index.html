@@ -3248,6 +3248,7 @@ function MainApp({
   const [depositModal, setDepositModal] = useState(null);
   const [depositAmt, setDepositAmt] = useState("");
   const [depositNotes, setDepositNotes] = useState("");
+  const [editDepositId, setEditDepositId] = useState(null);
   const [showCapForm, setShowCapForm] = useState(false);
   const [capForm, setCapForm] = useState({id:null,name:"",amount:"",date:tod(),category:"Equipment",notes:""});
   const [showOwnerSalEdit, setShowOwnerSalEdit] = useState(false);
@@ -3697,6 +3698,21 @@ function MainApp({
     });
     setShowCaForm(adv.staffId);
   };
+  const reverseDepositEffect = (balances, deposit) => {
+    const amt = deposit.amount;
+    if (deposit.type === "cash") return {...balances, cashOnHand: (balances.cashOnHand || 0) + amt, bankBalance: (balances.bankBalance || 0) - amt};
+    if (deposit.type === "gcash") return {...balances, gcashBalance: (balances.gcashBalance || 0) + amt, bankBalance: (balances.bankBalance || 0) - amt};
+    if (deposit.type === "bank-credit") return {...balances, bankBalance: (balances.bankBalance || 0) - amt};
+    if (deposit.type === "bank-debit") return {...balances, bankBalance: (balances.bankBalance || 0) + amt};
+    return balances;
+  };
+  const applyDepositEffect = (balances, type, amt) => {
+    if (type === "cash") return {...balances, cashOnHand: Math.max(0, (balances.cashOnHand || 0) - amt), bankBalance: (balances.bankBalance || 0) + amt};
+    if (type === "gcash") return {...balances, gcashBalance: Math.max(0, (balances.gcashBalance || 0) - amt), bankBalance: (balances.bankBalance || 0) + amt};
+    if (type === "bank-credit") return {...balances, bankBalance: (balances.bankBalance || 0) + amt};
+    if (type === "bank-debit") return {...balances, bankBalance: Math.max(0, (balances.bankBalance || 0) - amt)};
+    return balances;
+  };
   const deleteDeposit = (depositId) => {
     setBalances(prev => ({
       ...prev,
@@ -3704,20 +3720,37 @@ function MainApp({
     }));
     showToast("Deposit removed");
   };
+  const startEditDeposit = (deposit) => {
+    setEditDepositId(deposit.id);
+    setDepositModal(deposit.type);
+    setDepositAmt(String(deposit.amount));
+    setDepositNotes(deposit.notes || "");
+  };
   const recordDeposit = () => {
     const amt = Number(depositAmt);
     if (!amt || !depositModal) return;
     setBalances(prev => {
-      const entry = {id:Date.now(), type:depositModal, amount:amt, date:tod(), notes:depositNotes.trim()};
-      const deps = [...(prev.deposits||[]), entry];
-      if (depositModal==="cash") return {...prev, cashOnHand:Math.max(0,(prev.cashOnHand||0)-amt), bankBalance:(prev.bankBalance||0)+amt, deposits:deps};
-      if (depositModal==="gcash") return {...prev, gcashBalance:Math.max(0,(prev.gcashBalance||0)-amt), bankBalance:(prev.bankBalance||0)+amt, deposits:deps};
-      if (depositModal==="bank-credit") return {...prev, bankBalance:(prev.bankBalance||0)+amt, deposits:deps};
-      if (depositModal==="bank-debit") return {...prev, bankBalance:Math.max(0,(prev.bankBalance||0)-amt), deposits:deps};
-      return prev;
+      if (editDepositId) {
+        const oldDeposit = (prev.deposits || []).find(d => d.id === editDepositId);
+        if (!oldDeposit) return prev;
+        let updated = {...prev};
+        updated = reverseDepositEffect(updated, oldDeposit);
+        updated = applyDepositEffect(updated, depositModal, amt);
+        const newDeposit = {id: editDepositId, type: depositModal, amount: amt, date: tod(), notes: depositNotes.trim()};
+        updated.deposits = (prev.deposits || []).map(d => d.id === editDepositId ? newDeposit : d);
+        return updated;
+      } else {
+        const entry = {id:Date.now(), type:depositModal, amount:amt, date:tod(), notes:depositNotes.trim()};
+        const deps = [...(prev.deposits||[]), entry];
+        if (depositModal==="cash") return {...prev, cashOnHand:Math.max(0,(prev.cashOnHand||0)-amt), bankBalance:(prev.bankBalance||0)+amt, deposits:deps};
+        if (depositModal==="gcash") return {...prev, gcashBalance:Math.max(0,(prev.gcashBalance||0)-amt), bankBalance:(prev.bankBalance||0)+amt, deposits:deps};
+        if (depositModal==="bank-credit") return {...prev, bankBalance:(prev.bankBalance||0)+amt, deposits:deps};
+        if (depositModal==="bank-debit") return {...prev, bankBalance:Math.max(0,(prev.bankBalance||0)-amt), deposits:deps};
+        return prev;
+      }
     });
-    setDepositModal(null); setDepositAmt(""); setDepositNotes("");
-    showToast("Balance updated ✓");
+    setDepositModal(null); setDepositAmt(""); setDepositNotes(""); setEditDepositId(null);
+    showToast(editDepositId ? "Deposit updated ✓" : "Balance updated ✓");
   };
   const saveCapItem = () => {
     if (!capForm.name.trim() || !capForm.amount) return;
@@ -8412,9 +8445,9 @@ function MainApp({
             /*#__PURE__*/React.createElement("div", {className:"mdh"}),
             /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}},
               /*#__PURE__*/React.createElement("p", {style:{fontSize:17,fontWeight:700}},
-                depositModal==="cash"?"Deposit Cash to Bank":depositModal==="gcash"?"Transfer GCash to Bank":depositModal==="bank-credit"?"Bank Deposit / Credit":"Bank Withdrawal"
+                (editDepositId?"Edit ":"")+(depositModal==="cash"?"Deposit Cash to Bank":depositModal==="gcash"?"Transfer GCash to Bank":depositModal==="bank-credit"?"Bank Deposit / Credit":"Bank Withdrawal")
               ),
-              /*#__PURE__*/React.createElement("button", {onClick:()=>{setDepositModal(null);setDepositAmt("");setDepositNotes("");},style:{background:A.g1,borderRadius:"50%",width:32,height:32,border:"none",fontSize:18,color:A.g4,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto"}}, "×")
+              /*#__PURE__*/React.createElement("button", {onClick:()=>{setDepositModal(null);setDepositAmt("");setDepositNotes("");setEditDepositId(null);},style:{background:A.g1,borderRadius:"50%",width:32,height:32,border:"none",fontSize:18,color:A.g4,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:"auto"}}, "×")
             ),
             /*#__PURE__*/React.createElement("div", {style:{marginBottom:12}},
               /*#__PURE__*/React.createElement(Lbl, {c:"Amount (₱)"}),
@@ -8514,6 +8547,7 @@ function MainApp({
             /*#__PURE__*/React.createElement("p", {style:{fontSize:15,fontWeight:700,color:dep.type==="bank-debit"?A.er:A.ok,marginRight:12}},
               (dep.type==="bank-debit"?"-":"+")+fmt(dep.amount)
             ),
+            /*#__PURE__*/React.createElement("button", {onClick:()=>startEditDeposit(dep),style:{background:A.g1,border:"none",borderRadius:"50%",width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:A.bl,fontSize:11,fontWeight:700,minHeight:"auto",transition:"all .2s ease",marginRight:6}}, "✎"),
             /*#__PURE__*/React.createElement("button", {onClick:()=>askConfirm("Delete this deposit entry?",()=>deleteDeposit(dep.id),"Deposit removed"),style:{background:A.g1,border:"none",borderRadius:"50%",width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:A.g4,fontSize:16,minHeight:"auto",transition:"all .2s ease"}}, "×")
           ))
         ),
