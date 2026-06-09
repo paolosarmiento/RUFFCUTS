@@ -5588,14 +5588,22 @@ function MainApp({
       }, /*#__PURE__*/React.createElement(Btn, {
         onClick: () => {
           const cat = qExpForm.cat === "Other" ? qExpForm.custCat : qExpForm.cat;
-          if (!cat || !qExpForm.amt) return;
+
+          if (!cat || !qExpForm.amt) {
+            showToast(!qExpForm.amt ? "Please enter an amount" : "Please select a category");
+            return;
+          }
+
           const newExp = {
             id: Date.now(),
             category: cat,
             amount: Number(qExpForm.amt),
             notes: qExpForm.notes
           };
-          setE(selDate, [...gE(selDate), newExp]);
+          setExpenses(prev => ({
+            ...prev,
+            [selDate]: [...(prev[selDate] || []), newExp]
+          }));
           setQExpForm({
             cat: "",
             custCat: "",
