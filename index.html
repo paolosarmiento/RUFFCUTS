@@ -5123,6 +5123,11 @@ function MainApp({
         }
       }, "+"))), showSchedFilters && /*#__PURE__*/React.createElement("div", {
         style: {
+          position: window.innerWidth <= 767 ? "fixed" : "relative",
+          top: window.innerWidth <= 767 ? "calc(36px + env(safe-area-inset-top) + 150px)" : "auto",
+          left: window.innerWidth <= 767 ? 0 : "auto",
+          right: window.innerWidth <= 767 ? 0 : "auto",
+          zIndex: window.innerWidth <= 767 ? 99 : "auto",
           background: "rgba(17,17,17,0.95)",
           borderTop: "1px solid rgba(255,255,255,0.08)",
           padding: "12px 14px",
