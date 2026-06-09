@@ -3319,7 +3319,7 @@ function MainApp({
     // Migrate from legacy single document if needed
     if (DOCS._legacy) {
       getDoc(DOCS._legacy).then(snap => {
-        if (snap.exists() && !snap.data()._migrated) {
+        if (snap.exists && !snap.data()._migrated) {
           const d = snap.data();
           const batch = writeBatch(db);
           ["clients","schedules","expenses","services","staffByDate","staffMembers","paymentStatus","cashbox"].forEach(n => {
@@ -3331,7 +3331,7 @@ function MainApp({
     }
     // Migrate schedules from single doc to monthly sharded docs
     getDoc(DOCS.schedules).then(snap => {
-      if (snap.exists() && !snap.data()._migrated_to_monthly) {
+      if (snap.exists && !snap.data()._migrated_to_monthly) {
         const old = snap.data().data;
         if (old && Object.keys(old).length > 0) {
           const byMonth = {};
@@ -3363,7 +3363,7 @@ function MainApp({
       ownerFinances: v => { lastR.current.ownerFinances = v; setOwnerFinances(v || DEF_OWN); },
     };
     const unsubs = Object.entries(setters).map(([name, setter]) =>
-      onSnapshot(DOCS[name], snap => { setter(snap.exists() ? snap.data().data : null); setSync("Synced"); }, () => setSync("Offline"))
+      onSnapshot(DOCS[name], snap => { setter(snap.exists ? snap.data().data : null); setSync("Synced"); }, () => setSync("Offline"))
     );
     // Monthly schedule collection listener — merges all month docs into schedules state
     const schedUnsub = onSnapshot(SCHED_COL, snap => {
