@@ -4899,15 +4899,16 @@ function MainApp({
         onClose: () => setShowSchedEod(false)
       }), /*#__PURE__*/React.createElement("div", {
         style: {
-          position: "sticky",
+          position: window.innerWidth <= 767 ? "fixed" : "sticky",
           top: window.innerWidth <= 767 ? "calc(36px + env(safe-area-inset-top) + 70px)" : 0,
+          left: window.innerWidth <= 767 ? 0 : "auto",
+          right: window.innerWidth <= 767 ? 0 : "auto",
           zIndex: 100,
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
           background: "rgba(17,17,17,0.85)",
           borderBottom: "1px solid rgba(255,255,255,0.1)",
-          flexShrink: 0,
-          marginTop: window.innerWidth <= 767 ? "calc(36px + env(safe-area-inset-top) + 70px)" : 0
+          flexShrink: 0
         }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
@@ -5536,7 +5537,7 @@ function MainApp({
         ref: calRef,
         className: "cal-wrap",
         style: {
-          paddingTop: 8
+          paddingTop: window.innerWidth <= 767 ? "calc(36px + env(safe-area-inset-top) + 190px)" : 8
         }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
