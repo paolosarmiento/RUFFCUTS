@@ -5587,9 +5587,15 @@ function MainApp({
         }
       }, /*#__PURE__*/React.createElement(Btn, {
         onClick: () => {
+          console.log("Quick expense Save clicked");
+          console.log("qExpForm:", qExpForm);
+          console.log("selDate:", selDate);
+
           const cat = qExpForm.cat === "Other" ? qExpForm.custCat : qExpForm.cat;
+          console.log("Resolved category:", cat);
 
           if (!cat || !qExpForm.amt) {
+            console.log("Validation failed - cat:", cat, "amt:", qExpForm.amt);
             showToast(!qExpForm.amt ? "Please enter an amount" : "Please select a category");
             return;
           }
@@ -5600,10 +5606,18 @@ function MainApp({
             amount: Number(qExpForm.amt),
             notes: qExpForm.notes
           };
-          setExpenses(prev => ({
-            ...prev,
-            [selDate]: [...(prev[selDate] || []), newExp]
-          }));
+          console.log("New expense:", newExp);
+
+          setExpenses(prev => {
+            console.log("Previous expenses:", prev);
+            const updated = {
+              ...prev,
+              [selDate]: [...(prev[selDate] || []), newExp]
+            };
+            console.log("Updated expenses:", updated);
+            return updated;
+          });
+
           setQExpForm({
             cat: "",
             custCat: "",
@@ -5612,6 +5626,7 @@ function MainApp({
           });
           setShowQExp(false);
           showToast("Expense logged — " + fmt(Number(qExpForm.amt)) + " " + cat + " ✓");
+          console.log("Quick expense save complete");
         }
       }, "Save"), /*#__PURE__*/React.createElement(Btn, {
         v: "can",
