@@ -5495,7 +5495,7 @@ function MainApp({
         }
       }, /*#__PURE__*/React.createElement("option", {
         value: ""
-      }, "Select category"), ["Utilities", "Supplies", "Rent", "Salaries", "Marketing", "Other"].map(c => /*#__PURE__*/React.createElement("option", {
+      }, "Select category"), ["Gas", "Toll", "Village Entrance", "Truck Maintenance", "Other"].map(c => /*#__PURE__*/React.createElement("option", {
         key: c,
         value: c
       }, c))), qExpForm.cat === "Other" && /*#__PURE__*/React.createElement("input", {
@@ -5598,7 +5598,8 @@ function MainApp({
             id: Date.now(),
             category: cat,
             amount: Number(qExpForm.amt),
-            notes: qExpForm.notes
+            notes: qExpForm.notes,
+            cashbox: true
           };
 
           setExpenses(prev => ({
