@@ -5691,6 +5691,13 @@ function MainApp({
         }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
+          maxWidth: window.innerWidth <= 1024 ? "100vw" : "none",
+          overflowX: window.innerWidth <= 1024 ? "auto" : "visible",
+          WebkitOverflowScrolling: "touch",
+          marginBottom: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
           minWidth: 52 + Math.max(columns.length, 1) * 150,
           position: "relative"
         }
@@ -5963,12 +5970,15 @@ function MainApp({
           borderRadius: "50%",
           background: "#ff375f"
         }
-      }))), appts.length > 0 && /*#__PURE__*/React.createElement("div", {
+      })))), appts.length > 0 && /*#__PURE__*/React.createElement("div", {
         style: {
           padding: "14px",
           background: "#f2f2f7",
           borderTop: ".5px solid #e8e8ed",
-          paddingBottom: "max(20px,env(safe-area-inset-bottom))"
+          paddingBottom: "max(20px,env(safe-area-inset-bottom))",
+          width: "100%",
+          maxWidth: "100vw",
+          boxSizing: "border-box"
         }
       }, /*#__PURE__*/React.createElement("p", {
         style: {
@@ -6130,7 +6140,10 @@ function MainApp({
             marginTop: 14,
             background: "#111827",
             borderRadius: 12,
-            padding: "14px 16px"
+            padding: "14px 16px",
+            maxWidth: "100%",
+            overflow: "hidden",
+            boxSizing: "border-box"
           }
         }, /*#__PURE__*/React.createElement("p", {
           style: {
@@ -6169,7 +6182,10 @@ function MainApp({
             color: c,
             textAlign: "right",
             minWidth: 0,
-            wordBreak: "break-word"
+            maxWidth: "60%",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis"
           }
         }, fmt(v)))), /*#__PURE__*/React.createElement("div", {
           style: {
@@ -6195,7 +6211,10 @@ function MainApp({
             color: closing >= 0 ? "#34c759" : "#ff375f",
             textAlign: "right",
             minWidth: 0,
-            wordBreak: "break-word"
+            maxWidth: "60%",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis"
           }
         }, fmt(closing)))));
       })()))), calView === "agenda" && /*#__PURE__*/React.createElement("div", {
