@@ -490,7 +490,7 @@ const aColor = svc => {
 };
 function buildGroomerCommMap(appts, staffMembers) {
   const map = {};
-  appts.filter(a => a.groomerId && a.status === "completed").forEach(a => {
+  appts.filter(a => a.groomerId && a.status === "completed" && a.paymentMode).forEach(a => {
     const member = staffMembers.find(m => m.id === a.groomerId);
     const name = member ? member.name : "Unknown";
     if (!map[a.groomerId]) map[a.groomerId] = { name, comm: 0, pets: 0 };
@@ -2553,8 +2553,21 @@ function EodModal({
   expenses.forEach(e => {
     expByCat[e.category] = (expByCat[e.category] || 0) + Number(e.amount || 0);
   });
+  // Calculate expected opening from previous day
+  const getPrevDate = (dateStr) => {
+    const d = new Date(dateStr + "T12:00:00");
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().split("T")[0];
+  };
+  const prevDate = getPrevDate(date);
+  const prevAppts = gA(prevDate).filter(a => a.status === "completed");
+  const prevCashRev = prevAppts.filter(a => a.paymentMode === "Cash").reduce((s, a) => s + Number(a.cost || 0), 0);
+  const prevCashExp = gE(prevDate).filter(e => e.cashbox).reduce((s, e) => s + Number(e.amount || 0), 0);
+  const prevOpen = cashbox[prevDate] || 0;
+  const expectedOpening = prevOpen + prevCashRev - prevCashExp;
   const openBal = cashboxBal || 0;
   const closingBal = openBal + cashRev - cashboxExp;
+  const openingVariance = openBal !== 0 && expectedOpening !== 0 ? openBal - expectedOpening : 0;
   const groomerComm = {};
   done.filter(a => a.groomerId).forEach(a => {
     const member = staffMembers.find(m => m.id === a.groomerId);
@@ -2569,10 +2582,19 @@ function EodModal({
   const totalComm = Object.values(groomerComm).reduce((s, g) => s + g.comm, 0);
   const staffList = staffByDate[date] || [];
   const totalSalaries = staffList.reduce((s, m) => s + Number(m.daySalary || DEFAULT_DAILY_SALARY), 0);
-  const netProfit = revenue - totalExp - totalComm - totalSalaries;
+  // Calculate prorated owner salary for this day
+  const ownerDailySalary = ownerFinances.salaryAmount && ownerFinances.salaryCycle
+    ? (ownerFinances.salaryCycle === "weekly" ? ownerFinances.salaryAmount / 7
+      : ownerFinances.salaryCycle === "biweekly" ? ownerFinances.salaryAmount / 14
+      : ownerFinances.salaryAmount / 30) // monthly
+    : 0;
+  const collectedRevenue = revenue - unpaidRev;
+  const netCashProfit = collectedRevenue - totalExp - totalComm - totalSalaries - ownerDailySalary;
+  const netAccrualProfit = revenue - totalExp - totalComm - totalSalaries - ownerDailySalary;
+  const netProfit = netCashProfit; // Use cash profit as default
   const [copied, setCopied] = useState(false);
   const copyReport = () => {
-    const lines = ["END OF DAY — " + fmtD(date), "", "APPOINTMENTS", "Completed: " + done.length + (cancelled.length > 0 ? "  Cancelled: " + cancelled.length : "") + (pending.length > 0 ? "  Pending: " + pending.length : ""), "", "REVENUE", "Total: " + fmt(revenue), cashRev > 0 ? "Cash: " + fmt(cashRev) : "", gcashRev > 0 ? "GCash: " + fmt(gcashRev) : "", unpaidRev > 0 ? "⚠️ Unpaid: " + fmt(unpaidRev) : "All collected ✓", "", "💰 CASHBOX", "Opening: " + fmt(openBal), "+ Cash Received: " + fmt(cashRev), "- Cash Expenses: " + fmt(cashboxExp), "= Closing: " + fmt(closingBal), expenses.length > 0 ? "\nEXPENSES\n" + Object.entries(expByCat).map(([cat, amt]) => cat + ": " + fmt(amt)).join("\n") + "\nTotal: " + fmt(totalExp) : "", Object.keys(groomerComm).length > 0 ? "\nCOMMISSION\n" + Object.entries(groomerComm).map(([name, g]) => name + ": " + fmt(g.comm) + " (" + g.pets + " dog" + (g.pets !== 1 ? "s" : "") + ")").join("\n") + "\nTotal: " + fmt(totalComm) : "", staffList.length > 0 ? "\nSALARIES\n" + staffList.map(m => m.name + ": " + fmt(m.daySalary || DEFAULT_DAILY_SALARY)).join("\n") + "\nTotal: " + fmt(totalSalaries) : "", "", "NET PROFIT: " + fmt(netProfit)].filter(l => l !== "").join("\n");
+    const lines = ["END OF DAY — " + fmtD(date), "", "APPOINTMENTS", "Completed: " + done.length + (cancelled.length > 0 ? "  Cancelled: " + cancelled.length : "") + (pending.length > 0 ? "  Pending: " + pending.length : ""), "", "REVENUE", "Total: " + fmt(revenue), cashRev > 0 ? "Cash: " + fmt(cashRev) : "", gcashRev > 0 ? "GCash: " + fmt(gcashRev) : "", unpaidRev > 0 ? "⚠️ Unpaid: " + fmt(unpaidRev) : "All collected ✓", "Collected: " + fmt(collectedRevenue), "", "💰 CASHBOX", "Opening: " + fmt(openBal), "+ Cash Received: " + fmt(cashRev), "- Cash Expenses: " + fmt(cashboxExp), "= Closing: " + fmt(closingBal), expenses.length > 0 ? "\nEXPENSES\n" + Object.entries(expByCat).map(([cat, amt]) => cat + ": " + fmt(amt)).join("\n") + "\nTotal: " + fmt(totalExp) : "", Object.keys(groomerComm).length > 0 ? "\nCOMMISSION\n" + Object.entries(groomerComm).map(([name, g]) => name + ": " + fmt(g.comm) + " (" + g.pets + " dog" + (g.pets !== 1 ? "s" : "") + ")").join("\n") + "\nTotal: " + fmt(totalComm) : "", staffList.length > 0 ? "\nSALARIES\n" + staffList.map(m => m.name + ": " + fmt(m.daySalary || DEFAULT_DAILY_SALARY)).join("\n") + "\nTotal: " + fmt(totalSalaries) : "", ownerDailySalary > 0 ? "\nOWNER SALARY\nDaily: " + fmt(ownerDailySalary) : "", "", "CASH PROFIT: " + fmt(netCashProfit), unpaidRev > 0 ? "Accrual Profit: " + fmt(netAccrualProfit) + " (incl. " + fmt(unpaidRev) + " unpaid)" : ""].filter(l => l !== "").join("\n");
     navigator.clipboard.writeText(lines).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
@@ -3477,7 +3499,7 @@ function MainApp({
   };
   const gRev = d => gA(d).filter(a => a.status === "completed").reduce((s, a) => s + Number(a.cost || 0), 0);
   const gExpR = d => gE(d).reduce((s, e) => s + Number(e.amount || 0), 0);
-  const gComm = d => gA(d).filter(a => a.groomerId && a.status === "completed").reduce((s, a) => s + Number(a.cost || 0) * COMMISSION_RATE, 0);
+  const gComm = d => gA(d).filter(a => a.groomerId && a.status === "completed" && a.paymentMode).reduce((s, a) => s + Number(a.cost || 0) * COMMISSION_RATE, 0);
   const gExp = d => gExpR(d) + gSal(d);
   const gP = d => gRev(d) - gExp(d) - gComm(d);
   const allD = useMemo(() => [...new Set([
@@ -3537,6 +3559,20 @@ function MainApp({
     if (!appt) return;
     const ns = nextStatus(appt.status || "pending");
     if (ns === (appt.status || "pending")) return;
+
+    // If marking as completed and payment mode is set, update balances
+    if (ns === "completed" && appt.paymentMode && appt.cost) {
+      const amt = Number(appt.cost);
+      setBalances(prev => {
+        if (appt.paymentMode === "Cash") {
+          return {...prev, cashOnHand: (prev.cashOnHand || 0) + amt};
+        } else if (appt.paymentMode === "GCash") {
+          return {...prev, gcashBalance: (prev.gcashBalance || 0) + amt};
+        }
+        return prev;
+      });
+    }
+
     setSchedules(prev => ({
       ...prev,
       [date]: (prev[date] || []).map(a => a.id === apptId ? {
@@ -3681,6 +3717,13 @@ function MainApp({
       showToast("Cash advance updated ✓");
     } else {
       setCashAdvances(prev => [...prev, {id: Date.now(), staffId: Number(staffId), amount: amt, purpose: caForm.purpose.trim(), dateIssued: caForm.dateIssued || tod(), deductionAmount: deduct, frequency: caForm.frequency || "weekly", remainingDebt: amt, deductionsMade: 0, status: "active"}]);
+
+      // Deduct from cash balance when advance is given
+      setBalances(prev => ({
+        ...prev,
+        cashOnHand: Math.max(0, (prev.cashOnHand || 0) - amt)
+      }));
+
       showToast("Cash advance recorded ✓");
     }
     setCaForm({amount:"", purpose:"", dateIssued:tod(), deductionAmount:"", frequency:"weekly"});
@@ -5417,7 +5460,13 @@ function MainApp({
           fontSize: 12,
           color: "rgba(255,255,255,.35)"
         }
-      }, "PHP"), /*#__PURE__*/React.createElement("button", {
+      }, "PHP"), Math.abs(openingVariance) > 1 && /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 10,
+          color: openingVariance > 0 ? "#34c759" : "#ff375f",
+          marginLeft: 8
+        }
+      }, (openingVariance > 0 ? "+" : "") + fmt(openingVariance) + " vs expected"), /*#__PURE__*/React.createElement("button", {
         onClick: () => setShowQExp(true),
         style: {
           padding: "6px 12px",
@@ -5607,6 +5656,13 @@ function MainApp({
             [selDate]: [...(prev[selDate] || []), newExp]
           }));
 
+          // Update cash balance since cashbox expenses are paid from cash
+          const amt = Number(qExpForm.amt);
+          setBalances(prev => ({
+            ...prev,
+            cashOnHand: Math.max(0, (prev.cashOnHand || 0) - amt)
+          }));
+
           setQExpForm({
             cat: "",
             custCat: "",
@@ -5614,7 +5670,7 @@ function MainApp({
             notes: ""
           });
           setShowQExp(false);
-          showToast("Expense logged — " + fmt(Number(qExpForm.amt)) + " " + cat + " ✓");
+          showToast("Expense logged — " + fmt(amt) + " " + cat + " ✓");
         }
       }, "Save"), /*#__PURE__*/React.createElement(Btn, {
         v: "can",
