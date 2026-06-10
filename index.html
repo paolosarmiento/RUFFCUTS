@@ -3328,6 +3328,20 @@ function MainApp({
   const softDelA = (date, id) => {
     const appt = (schedules[date] || []).find(a => a.id === id);
     if (!appt) return;
+
+    // Reverse balance if appointment was completed and paid
+    if (appt.status === "completed" && appt.paymentMode && appt.cost) {
+      const amt = Number(appt.cost);
+      setBalances(prev => {
+        if (appt.paymentMode === "Cash") {
+          return {...prev, cashOnHand: Math.max(0, (prev.cashOnHand || 0) - amt)};
+        } else if (appt.paymentMode === "GCash") {
+          return {...prev, gcashBalance: Math.max(0, (prev.gcashBalance || 0) - amt)};
+        }
+        return prev;
+      });
+    }
+
     setSchedules(prev => ({
       ...prev,
       [date]: (prev[date] || []).filter(a => a.id !== id)
@@ -3339,6 +3353,19 @@ function MainApp({
     showToast(appt.petName + " deleted", "success", token);
   };
   const undoDelA = token => {
+    // Restore balance if appointment was completed and paid
+    if (token.appt.status === "completed" && token.appt.paymentMode && token.appt.cost) {
+      const amt = Number(token.appt.cost);
+      setBalances(prev => {
+        if (token.appt.paymentMode === "Cash") {
+          return {...prev, cashOnHand: (prev.cashOnHand || 0) + amt};
+        } else if (token.appt.paymentMode === "GCash") {
+          return {...prev, gcashBalance: (prev.gcashBalance || 0) + amt};
+        }
+        return prev;
+      });
+    }
+
     setSchedules(prev => ({
       ...prev,
       [token.date]: [...(prev[token.date] || []), token.appt].sort((a, b) => (a.time || "").localeCompare(b.time || ""))
@@ -3574,18 +3601,33 @@ function MainApp({
     const ns = nextStatus(appt.status || "pending");
     if (ns === (appt.status || "pending")) return;
 
-    // If marking as completed and payment mode is set, update balances
-    if (ns === "completed" && appt.paymentMode && appt.cost) {
-      const amt = Number(appt.cost);
-      setBalances(prev => {
+    const oldStatus = appt.status || "pending";
+    const amt = Number(appt.cost || 0);
+
+    // Handle balance changes when status changes
+    setBalances(prev => {
+      let newBalances = {...prev};
+
+      // Reverse old effect: if was completed and paid, remove the money
+      if (oldStatus === "completed" && appt.paymentMode && amt > 0) {
         if (appt.paymentMode === "Cash") {
-          return {...prev, cashOnHand: (prev.cashOnHand || 0) + amt};
+          newBalances.cashOnHand = Math.max(0, (newBalances.cashOnHand || 0) - amt);
         } else if (appt.paymentMode === "GCash") {
-          return {...prev, gcashBalance: (prev.gcashBalance || 0) + amt};
+          newBalances.gcashBalance = Math.max(0, (newBalances.gcashBalance || 0) - amt);
         }
-        return prev;
-      });
-    }
+      }
+
+      // Apply new effect: if marking as completed and paid, add the money
+      if (ns === "completed" && appt.paymentMode && amt > 0) {
+        if (appt.paymentMode === "Cash") {
+          newBalances.cashOnHand = (newBalances.cashOnHand || 0) + amt;
+        } else if (appt.paymentMode === "GCash") {
+          newBalances.gcashBalance = (newBalances.gcashBalance || 0) + amt;
+        }
+      }
+
+      return newBalances;
+    });
 
     setSchedules(prev => ({
       ...prev,
@@ -3658,6 +3700,35 @@ function MainApp({
       };
     });
     if (!newA.length) return;
+
+    // Handle balance changes when editing a completed/paid appointment
+    if (actA && actA.status === "completed" && actA.paymentMode && actA.cost) {
+      const oldAmt = Number(actA.cost);
+
+      // Reverse old appointment's balance effect
+      setBalances(prev => {
+        if (actA.paymentMode === "Cash") {
+          return {...prev, cashOnHand: Math.max(0, (prev.cashOnHand || 0) - oldAmt)};
+        } else if (actA.paymentMode === "GCash") {
+          return {...prev, gcashBalance: Math.max(0, (prev.gcashBalance || 0) - oldAmt)};
+        }
+        return prev;
+      });
+
+      // Apply new appointment's balance effect (only if still completed and paid)
+      if (aForm.status === "completed" && aForm.paymentMode && aForm.pets.length > 0) {
+        const newTotal = aForm.pets.reduce((sum, p) => sum + Number(p.cost || 0), 0);
+        setBalances(prev => {
+          if (aForm.paymentMode === "Cash") {
+            return {...prev, cashOnHand: (prev.cashOnHand || 0) + newTotal};
+          } else if (aForm.paymentMode === "GCash") {
+            return {...prev, gcashBalance: (prev.gcashBalance || 0) + newTotal};
+          }
+          return prev;
+        });
+      }
+    }
+
     setSchedules(prev => {
       const withoutOld = actA ? {...prev, [selDate]: (prev[selDate] || []).filter(a => a.id !== actA.id)} : prev;
       const existing = withoutOld[targetDate] || [];
