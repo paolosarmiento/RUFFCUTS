@@ -9147,11 +9147,13 @@ function App() {
     name: "Staff",
     password: STF_PASS
   }]);
+  const [passwordsLoaded, setPasswordsLoaded] = useState(false);
 
   // Load passwords from Firebase on mount
   useEffect(() => {
     if (!db || !DOCS.passwords) {
       console.log("[Passwords] Waiting for Firebase init...");
+      setPasswordsLoaded(true); // Allow login with defaults if Firebase not ready
       return;
     }
 
@@ -9165,8 +9167,10 @@ function App() {
       } else {
         console.log("[Passwords] No saved passwords found, using defaults");
       }
+      setPasswordsLoaded(true);
     }).catch(err => {
       console.error("[Passwords] Load error:", err);
+      setPasswordsLoaded(true); // Allow login even if load fails
     });
   }, []);
 
@@ -9188,6 +9192,21 @@ function App() {
     setRole(r);
     setLoggedInStaff(acc);
   };
+
+  // Wait for passwords to load before showing login screen
+  if (!passwordsLoaded) {
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        height: "100vh",
+        background: "#000",
+        color: "#fff"
+      }
+    }, "Loading...");
+  }
+
   if (!role) return /*#__PURE__*/React.createElement(LoginScreen, {
     ownerPass: ownerPass,
     staffAccounts: staffAccounts,
