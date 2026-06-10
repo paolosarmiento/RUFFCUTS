@@ -9136,15 +9136,24 @@ function App() {
 
   // Load passwords from Firebase on mount
   useEffect(() => {
-    if (!db || !DOCS.passwords) return;
+    if (!db || !DOCS.passwords) {
+      console.log("[Passwords] Waiting for Firebase init...");
+      return;
+    }
 
+    console.log("[Passwords] Loading from Firebase...");
     getDoc(DOCS.passwords).then(snap => {
       if (snap.exists) {
         const d = snap.data().data || {};
+        console.log("[Passwords] Loaded:", d);
         if (d.ownerPass) setOwnerPass(d.ownerPass);
         if (d.staffAccounts) setStaffAccounts(d.staffAccounts);
+      } else {
+        console.log("[Passwords] No saved passwords found, using defaults");
       }
-    }).catch(() => {});
+    }).catch(err => {
+      console.error("[Passwords] Load error:", err);
+    });
   }, []);
 
   // Save passwords to Firebase when they change
@@ -9152,7 +9161,10 @@ function App() {
     if (!db || !DOCS.passwords) return;
 
     const timer = setTimeout(() => {
-      setDoc(DOCS.passwords, {data: {ownerPass, staffAccounts}}).catch(() => {});
+      console.log("[Passwords] Saving to Firebase:", {ownerPass, staffAccounts});
+      setDoc(DOCS.passwords, {data: {ownerPass, staffAccounts}})
+        .then(() => console.log("[Passwords] Saved successfully"))
+        .catch(err => console.error("[Passwords] Save error:", err));
     }, 1000);
 
     return () => clearTimeout(timer);
