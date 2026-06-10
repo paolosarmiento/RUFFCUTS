@@ -2811,7 +2811,9 @@ function EodModal({
       background: "#111827",
       borderRadius: 12,
       padding: "12px 14px",
-      marginBottom: 12
+      marginBottom: 12,
+      maxWidth: "100%",
+      overflow: "hidden"
     }
   }, /*#__PURE__*/React.createElement("p", {
     style: {
@@ -2829,37 +2831,49 @@ function EodModal({
       justifyContent: "space-between",
       paddingBottom: 6,
       marginBottom: 6,
-      borderBottom: "0.5px solid rgba(255,255,255,.07)"
+      borderBottom: "0.5px solid rgba(255,255,255,.07)",
+      gap: 8,
+      minWidth: 0
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 12,
-      color: "rgba(255,255,255,.4)"
+      color: "rgba(255,255,255,.4)",
+      flexShrink: 0
     }
   }, l), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 13,
       fontWeight: 600,
-      color: c
+      color: c,
+      textAlign: "right",
+      minWidth: 0,
+      wordBreak: "break-word"
     }
   }, v))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
       paddingTop: 4,
-      borderTop: "1px solid rgba(255,255,255,.1)"
+      borderTop: "1px solid rgba(255,255,255,.1)",
+      gap: 8,
+      minWidth: 0
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 13,
       fontWeight: 700,
-      color: "#fff"
+      color: "#fff",
+      flexShrink: 0
     }
   }, "Expected Closing"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 16,
       fontWeight: 700,
-      color: closingBal >= 0 ? "#34c759" : "#ff375f"
+      color: closingBal >= 0 ? "#34c759" : "#ff375f",
+      textAlign: "right",
+      minWidth: 0,
+      wordBreak: "break-word"
     }
   }, fmt(closingBal)))), expenses.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
