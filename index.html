@@ -123,7 +123,7 @@ textarea{resize:vertical;min-height:96px;line-height:1.5;}
   .btm-nav{display:block;}.top-bar{display:flex;}
   .sec{padding:16px;padding-top:calc(128px + env(safe-area-inset-top));padding-bottom:max(24px,env(safe-area-inset-bottom));background:#F5F5F7;min-height:calc(100dvh - 60px - env(safe-area-inset-top));}
   .phdr h1{font-size:26px;}.g2{grid-template-columns:1fr;}.g3{grid-template-columns:1fr 1fr;}
-  .g4{grid-template-columns:1fr 1fr;}.gm{grid-template-columns:1fr 1fr;}.gw{gap:4px;}.gf{grid-template-columns:1fr 1fr;}
+  .g4{grid-template-columns:1fr 1fr;}.gm{grid-template-columns:1fr;}.gw{gap:4px;}.gf{grid-template-columns:1fr 1fr;}
   .md{border-radius:24px 24px 0 0;-webkit-overflow-scrolling:touch;padding-bottom:calc(70px + env(safe-area-inset-bottom))!important;}
   .cal-wrap{-webkit-overflow-scrolling:touch;}
 }
@@ -6152,18 +6152,24 @@ function MainApp({
           style: {
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center"
+            alignItems: "center",
+            gap: 8,
+            minWidth: 0
           }
         }, /*#__PURE__*/React.createElement("span", {
           style: {
             fontSize: 12,
-            color: "rgba(255,255,255,.4)"
+            color: "rgba(255,255,255,.4)",
+            flexShrink: 0
           }
         }, l), /*#__PURE__*/React.createElement("span", {
           style: {
             fontSize: 13,
             fontWeight: 600,
-            color: c
+            color: c,
+            textAlign: "right",
+            minWidth: 0,
+            wordBreak: "break-word"
           }
         }, fmt(v)))), /*#__PURE__*/React.createElement("div", {
           style: {
@@ -6171,19 +6177,25 @@ function MainApp({
             paddingTop: 10,
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center"
+            alignItems: "center",
+            gap: 8,
+            minWidth: 0
           }
         }, /*#__PURE__*/React.createElement("span", {
           style: {
             fontSize: 13,
             fontWeight: 700,
-            color: "#fff"
+            color: "#fff",
+            flexShrink: 0
           }
         }, "Expected Closing"), /*#__PURE__*/React.createElement("span", {
           style: {
             fontSize: 18,
             fontWeight: 700,
-            color: closing >= 0 ? "#34c759" : "#ff375f"
+            color: closing >= 0 ? "#34c759" : "#ff375f",
+            textAlign: "right",
+            minWidth: 0,
+            wordBreak: "break-word"
           }
         }, fmt(closing)))));
       })()))), calView === "agenda" && /*#__PURE__*/React.createElement("div", {
