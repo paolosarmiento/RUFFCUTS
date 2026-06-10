@@ -192,7 +192,7 @@ try {
   db = firebase.firestore(app);
   db.enablePersistence({synchronizeTabs: true}).catch(() => {});
 
-  ["clients","schedules","expenses","services","staffByDate","staffMembers","paymentStatus","cashbox","cashAdvances","balances","ownerFinances"].forEach(n=>{
+  ["clients","schedules","expenses","services","staffByDate","staffMembers","paymentStatus","cashbox","cashAdvances","balances","ownerFinances","passwords"].forEach(n=>{
     DOCS[n] = db.collection("ruffcuts").doc(n);
   });
   DOCS._legacy = db.collection("ruffcuts").doc("appdata");
@@ -9083,6 +9083,31 @@ function App() {
     name: "Staff",
     password: STF_PASS
   }]);
+
+  // Load passwords from Firebase on mount
+  useEffect(() => {
+    if (!db || !DOCS.passwords) return;
+
+    getDoc(DOCS.passwords).then(snap => {
+      if (snap.exists) {
+        const d = snap.data().data || {};
+        if (d.ownerPass) setOwnerPass(d.ownerPass);
+        if (d.staffAccounts) setStaffAccounts(d.staffAccounts);
+      }
+    }).catch(() => {});
+  }, []);
+
+  // Save passwords to Firebase when they change
+  useEffect(() => {
+    if (!db || !DOCS.passwords) return;
+
+    const timer = setTimeout(() => {
+      setDoc(DOCS.passwords, {data: {ownerPass, staffAccounts}}).catch(() => {});
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [ownerPass, staffAccounts]);
+
   const handleLogin = (r, acc = null) => {
     setRole(r);
     setLoggedInStaff(acc);
