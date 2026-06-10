@@ -5689,7 +5689,8 @@ function MainApp({
         style: {
           paddingTop: window.innerWidth <= 767 ? "calc(36px + env(safe-area-inset-top) + 190px)" : 8,
           overflowX: window.innerWidth <= 1024 ? "hidden" : "auto",
-          overflowY: "auto"
+          overflowY: "auto",
+          maxWidth: window.innerWidth <= 1024 ? "100vw" : "none"
         }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
