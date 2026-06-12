@@ -7073,10 +7073,10 @@ function MainApp({
           display: "flex",
           gap: 8
         }
-      }, staffMembers.some(s => s.name === "Rhian" || s.name === "Test") && /*#__PURE__*/React.createElement(Btn, {
+      }, isOwner && /*#__PURE__*/React.createElement(Btn, {
         v: "dan",
-        onClick: () => askConfirm("Delete test staff members (Rhian & Test) from all schedules?", deleteTestStaff, "")
-      }, "🗑️ Delete Test Staff"), /*#__PURE__*/React.createElement(Btn, {
+        onClick: () => askConfirm("Delete test staff members (Rhian & Test) from all schedules and data?", deleteTestStaff, "")
+      }, "🗑️ Clean Test Data"), /*#__PURE__*/React.createElement(Btn, {
         onClick: () => {
           setSmForm({
             id: null,
