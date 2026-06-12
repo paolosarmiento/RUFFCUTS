@@ -3672,6 +3672,19 @@ function MainApp({
     setShowSmForm(false);
     showToast("Staff member saved ✓");
   };
+  const deleteStaff = (staffId) => {
+    // Remove from staff members list
+    setStaffMembers(p => p.filter(x => x.id !== staffId));
+
+    // Remove from all schedule assignments (staffByDate)
+    setStaffByDate(prev => {
+      const updated = {...prev};
+      Object.keys(updated).forEach(date => {
+        updated[date] = (updated[date] || []).filter(s => s.staffId !== staffId);
+      });
+      return updated;
+    });
+  };
   const saveA = () => {
     if (!aForm.clientId) return;
     const targetDate = actA ? selDate : (aForm.date || selDate);
@@ -7401,7 +7414,7 @@ function MainApp({
         }, "Edit"), /*#__PURE__*/React.createElement(Btn, {
           sm: true,
           v: "dan",
-          onClick: () => askConfirm("Delete " + sm.name + " from staff?", () => setStaffMembers(p => p.filter(x => x.id !== sm.id)), "Staff member deleted")
+          onClick: () => askConfirm("Delete " + sm.name + " from staff? This will also remove them from all schedules.", () => deleteStaff(sm.id), "Staff member deleted from all schedules ✓")
         }, "Delete"))), /*#__PURE__*/React.createElement("p", {
           style: {
             fontSize: 13,
