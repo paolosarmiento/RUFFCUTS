@@ -3685,6 +3685,24 @@ function MainApp({
       return updated;
     });
   };
+  const deleteTestStaff = () => {
+    // Remove test staff "Rhian" and "Test" by name
+    const testNames = ["Rhian", "Test"];
+
+    // Remove from staff members
+    setStaffMembers(prev => prev.filter(s => !testNames.includes(s.name)));
+
+    // Remove from all schedule assignments
+    setStaffByDate(prev => {
+      const updated = {...prev};
+      Object.keys(updated).forEach(date => {
+        updated[date] = (updated[date] || []).filter(s => !testNames.includes(s.name));
+      });
+      return updated;
+    });
+
+    showToast("Test staff (Rhian & Test) deleted from all schedules ✓");
+  };
   const saveA = () => {
     if (!aForm.clientId) return;
     const targetDate = actA ? selDate : (aForm.date || selDate);
@@ -7050,7 +7068,15 @@ function MainApp({
         className: "sec"
       }, /*#__PURE__*/React.createElement("div", {
         className: "phdr"
-      }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", null, "Staff"), /*#__PURE__*/React.createElement("p", null, staffMembers.length, " member", staffMembers.length !== 1 ? "s" : "")), /*#__PURE__*/React.createElement(Btn, {
+      }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", null, "Staff"), /*#__PURE__*/React.createElement("p", null, staffMembers.length, " member", staffMembers.length !== 1 ? "s" : "")), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          gap: 8
+        }
+      }, staffMembers.some(s => s.name === "Rhian" || s.name === "Test") && /*#__PURE__*/React.createElement(Btn, {
+        v: "dan",
+        onClick: () => askConfirm("Delete test staff members (Rhian & Test) from all schedules?", deleteTestStaff, "")
+      }, "🗑️ Delete Test Staff"), /*#__PURE__*/React.createElement(Btn, {
         onClick: () => {
           setSmForm({
             id: null,
@@ -7066,7 +7092,7 @@ function MainApp({
           });
           setShowSmForm(true);
         }
-      }, "+ Add")), showSmForm && /*#__PURE__*/React.createElement("div", {
+      }, "+ Add"))), showSmForm && /*#__PURE__*/React.createElement("div", {
         className: "fbox"
       }, /*#__PURE__*/React.createElement("p", {
         style: {
