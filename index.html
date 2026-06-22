@@ -192,7 +192,7 @@ try {
   db = firebase.firestore(app);
   db.enablePersistence({synchronizeTabs: true}).catch(() => {});
 
-  ["clients","schedules","expenses","services","staffByDate","staffMembers","paymentStatus","cashbox","cashAdvances","balances","ownerFinances","passwords"].forEach(n=>{
+  ["clients","schedules","expenses","services","staffByDate","staffMembers","paymentStatus","cashbox","cashAdvances","balances","ownerFinances","passwords","transactionLog"].forEach(n=>{
     DOCS[n] = db.collection("ruffcuts").doc(n);
   });
   DOCS._legacy = db.collection("ruffcuts").doc("appdata");
@@ -3284,6 +3284,7 @@ function MainApp({
   const [commDetailId, setCommDetailId] = useState(null);
   const [cashbox, setCashbox] = useState({});
   const [balances, setBalances] = useState(DEF_BAL);
+  const [transactionLog, setTransactionLog] = useState([]);
   const [ownerFinances, setOwnerFinances] = useState(DEF_OWN);
   const [depositModal, setDepositModal] = useState(null);
   const [depositAmt, setDepositAmt] = useState("");
@@ -3329,6 +3330,21 @@ function MainApp({
     }
   });
   const closeConfirm = () => setConfirmModal(null);
+
+  // ── Transaction Audit Log ──────────────────────────────────────
+  const logTransaction = (type, details, balanceChange = null) => {
+    const log = {
+      id: Date.now() + Math.random(),
+      timestamp: new Date().toISOString(),
+      user: role === "owner" ? "Owner" : (loggedInStaff ? loggedInStaff.name : "Unknown"),
+      type: type,
+      details: details,
+      balanceBefore: balanceChange ? {...balances} : null,
+      balanceAfter: balanceChange || null
+    };
+    setTransactionLog(prev => [log, ...prev].slice(0, 1000)); // Keep last 1000 transactions
+  };
+
   const softDelA = (date, id) => {
     const appt = (schedules[date] || []).find(a => a.id === id);
     if (!appt) return;
@@ -3427,6 +3443,7 @@ function MainApp({
       cashbox: v => { lastR.current.cashbox = v; setCashbox(v || {}); },
       cashAdvances: v => { lastR.current.cashAdvances = v; setCashAdvances(v || []); },
       balances: v => { lastR.current.balances = v; setBalances(v || DEF_BAL); },
+      transactionLog: v => { lastR.current.transactionLog = v; setTransactionLog(v || []); },
       ownerFinances: v => { lastR.current.ownerFinances = v; setOwnerFinances(v || DEF_OWN); },
     };
     const unsubs = Object.entries(setters).map(([name, setter]) =>
@@ -3607,6 +3624,7 @@ function MainApp({
 
     const oldStatus = appt.status || "pending";
     const amt = Number(appt.cost || 0);
+    const balanceBefore = {...balances};
 
     // Handle balance changes when status changes
     setBalances(prev => {
@@ -3632,6 +3650,20 @@ function MainApp({
 
       return newBalances;
     });
+
+    // AUDIT LOG: Track status change with balance impact
+    if ((oldStatus === "completed" && appt.paymentMode) || (ns === "completed" && appt.paymentMode)) {
+      logTransaction("appointment_status_change", {
+        appointmentId: apptId,
+        petName: appt.petName,
+        clientName: appt.clientName,
+        oldStatus: oldStatus,
+        newStatus: ns,
+        cost: amt,
+        paymentMode: appt.paymentMode,
+        date: date
+      }, balanceBefore);
+    }
 
     setSchedules(prev => ({
       ...prev,
@@ -3738,14 +3770,23 @@ function MainApp({
 
     // Handle balance changes when editing a completed/paid appointment
     if (actA && actA.status === "completed" && actA.paymentMode && actA.cost) {
-      const oldAmt = Number(actA.cost);
+      // CRITICAL FIX: Find ALL related appointments (same client, time, date) for multi-pet bookings
+      const relatedAppts = (schedules[selDate] || []).filter(a =>
+        a.clientId === actA.clientId &&
+        a.time === actA.time &&
+        a.status === "completed" &&
+        a.paymentMode
+      );
 
-      // Reverse old appointment's balance effect
+      // Calculate TOTAL old amount from ALL related appointments
+      const oldTotal = relatedAppts.reduce((sum, a) => sum + Number(a.cost || 0), 0);
+
+      // Reverse COMPLETE old balance effect (all related appointments)
       setBalances(prev => {
         if (actA.paymentMode === "Cash") {
-          return {...prev, cashOnHand: Math.max(0, (prev.cashOnHand || 0) - oldAmt)};
+          return {...prev, cashOnHand: Math.max(0, (prev.cashOnHand || 0) - oldTotal)};
         } else if (actA.paymentMode === "GCash") {
-          return {...prev, gcashBalance: Math.max(0, (prev.gcashBalance || 0) - oldAmt)};
+          return {...prev, gcashBalance: Math.max(0, (prev.gcashBalance || 0) - oldTotal)};
         }
         return prev;
       });
@@ -3765,7 +3806,13 @@ function MainApp({
     }
 
     setSchedules(prev => {
-      const withoutOld = actA ? {...prev, [selDate]: (prev[selDate] || []).filter(a => a.id !== actA.id)} : prev;
+      // CRITICAL FIX: Remove ALL related appointments (multi-pet bookings), not just actA
+      const withoutOld = actA ? {
+        ...prev,
+        [selDate]: (prev[selDate] || []).filter(a =>
+          !(a.clientId === actA.clientId && a.time === actA.time)  // Remove all same client+time
+        )
+      } : prev;
       const existing = withoutOld[targetDate] || [];
       return {...withoutOld, [targetDate]: [...existing, ...newA].sort((a, b) => (a.time || "").localeCompare(b.time || ""))};
     });
@@ -3836,6 +3883,9 @@ function MainApp({
       }));
       showToast("Cash advance updated ✓");
     } else {
+      const balanceBefore = {...balances};
+      const staffMember = staffMembers.find(s => s.id === Number(staffId));
+
       setCashAdvances(prev => [...prev, {id: Date.now(), staffId: Number(staffId), amount: amt, purpose: caForm.purpose.trim(), dateIssued: caForm.dateIssued || tod(), deductionAmount: deduct, frequency: caForm.frequency || "weekly", remainingDebt: amt, deductionsMade: 0, status: "active"}]);
 
       // Deduct from cash balance when advance is given
@@ -3843,6 +3893,17 @@ function MainApp({
         ...prev,
         cashOnHand: Math.max(0, (prev.cashOnHand || 0) - amt)
       }));
+
+      // AUDIT LOG: Track cash advance
+      logTransaction("cash_advance_given", {
+        staffId: Number(staffId),
+        staffName: staffMember ? staffMember.name : "Unknown",
+        amount: amt,
+        purpose: caForm.purpose.trim(),
+        dateIssued: caForm.dateIssued || tod(),
+        deductionAmount: deduct,
+        frequency: caForm.frequency || "weekly"
+      }, balanceBefore);
 
       showToast("Cash advance recorded ✓");
     }
