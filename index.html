@@ -442,17 +442,17 @@ const bC = () => ({
 const bA = (d = "") => ({
   clientId: "",
   time: "",
-  groomerId: "",
   paymentMode: "",
   duration: 60,
-  status: "en-route",
   date: d,
   pets: [{
     petId: "",
     furLength: "",
     service: "",
     cost: "",
-    notes: ""
+    notes: "",
+    status: "en-route",
+    groomerId: ""
   }]
 });
 const aColor = svc => {
@@ -2195,7 +2195,6 @@ function ApptForm({
       setAForm(p => ({
         ...p,
         clientId: cid,
-        groomerId: lv.groomerId || "",
         paymentMode: lv.paymentMode || "",
         duration: lv.duration || 60,
         pets: [{
@@ -2203,7 +2202,9 @@ function ApptForm({
           furLength: lv.furLength || "",
           service: lv.service || "",
           cost: lv.cost || "",
-          notes: ""
+          notes: "",
+          status: "en-route",
+          groomerId: lv.groomerId || ""
         }]
       }));
     } else {
@@ -2215,7 +2216,9 @@ function ApptForm({
           furLength: "",
           service: "",
           cost: "",
-          notes: ""
+          notes: "",
+          status: "en-route",
+          groomerId: ""
         }]
       }));
     }
@@ -2348,40 +2351,6 @@ function ApptForm({
       marginBottom: 10
     }
   }, /*#__PURE__*/React.createElement(Lbl, {
-    c: "Status"
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      flexWrap: "wrap"
-    }
-  }, STATUS_ORDER.filter(s => ["en-route", "in-progress", "completed", "cancelled"].includes(s)).map(s => {
-    const sc = sConf(s);
-    return /*#__PURE__*/React.createElement("button", {
-      key: s,
-      onClick: () => setAForm(p => ({
-        ...p,
-        status: s
-      })),
-      style: {
-        padding: "7px 14px",
-        borderRadius: 20,
-        border: "1.5px solid " + (aForm.status === s ? sc.bd : A.g2),
-        background: aForm.status === s ? sc.bg : "transparent",
-        color: aForm.status === s ? sc.tx : A.g4,
-        fontFamily: "inherit",
-        fontSize: 12,
-        fontWeight: 700,
-        cursor: "pointer",
-        minHeight: "auto"
-      }
-    }, sc.label);
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "g2",
-    style: {
-      marginBottom: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Lbl, {
     c: "Payment Mode"
   }), /*#__PURE__*/React.createElement(Sel, {
     value: aForm.paymentMode,
@@ -2401,20 +2370,7 @@ function ApptForm({
       color: pmColor(aForm.paymentMode),
       marginTop: 4
     }
-  }, aForm.paymentMode)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Lbl, {
-    c: "Groomer"
-  }), /*#__PURE__*/React.createElement(Sel, {
-    value: aForm.groomerId,
-    onChange: e => setAForm(p => ({
-      ...p,
-      groomerId: e.target.value
-    }))
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "Unassigned"), staffOnDuty.map(s => /*#__PURE__*/React.createElement("option", {
-    key: s.staffId,
-    value: s.staffId
-  }, s.name))))), aForm.pets.map((pet, idx) => {
+  }, aForm.paymentMode)), aForm.pets.map((pet, idx) => {
     const upd = (f, v) => setAForm(p => ({
       ...p,
       pets: p.pets.map((pt, i) => i === idx ? {
@@ -2492,7 +2448,43 @@ function ApptForm({
       value: pet.cost,
       onChange: e => upd("cost", e.target.value),
       placeholder: "0"
-    }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Lbl, {
+    }))), /*#__PURE__*/React.createElement("div", {
+      style: {marginBottom: 10}
+    }, /*#__PURE__*/React.createElement(Lbl, {
+      c: "Status"
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {display: "flex", gap: 6, flexWrap: "wrap"}
+    }, STATUS_ORDER.filter(s => ["en-route", "in-progress", "completed", "cancelled"].includes(s)).map(s => {
+      const sc = sConf(s);
+      return /*#__PURE__*/React.createElement("button", {
+        key: s,
+        onClick: () => upd("status", s),
+        style: {
+          padding: "6px 12px",
+          borderRadius: 16,
+          border: "1.5px solid " + (pet.status === s ? sc.bd : A.g2),
+          background: pet.status === s ? sc.bg : "transparent",
+          color: pet.status === s ? sc.tx : A.g4,
+          fontFamily: "inherit",
+          fontSize: 11,
+          fontWeight: 700,
+          cursor: "pointer",
+          minHeight: "auto"
+        }
+      }, sc.label);
+    }))), /*#__PURE__*/React.createElement("div", {
+      style: {marginBottom: 10}
+    }, /*#__PURE__*/React.createElement(Lbl, {
+      c: "Groomer"
+    }), /*#__PURE__*/React.createElement(Sel, {
+      value: pet.groomerId || "",
+      onChange: e => upd("groomerId", e.target.value)
+    }, /*#__PURE__*/React.createElement("option", {
+      value: ""
+    }, "Unassigned"), staffOnDuty.map(s => /*#__PURE__*/React.createElement("option", {
+      key: s.staffId,
+      value: s.staffId
+    }, s.name)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Lbl, {
       c: "Notes"
     }), /*#__PURE__*/React.createElement("textarea", {
       value: pet.notes,
@@ -3868,9 +3860,9 @@ function MainApp({
         notes: p.notes,
         time: aForm.time,
         duration: aForm.duration || 60,
-        groomerId: aForm.groomerId ? Number(aForm.groomerId) || aForm.groomerId : null,
+        groomerId: p.groomerId ? Number(p.groomerId) || p.groomerId : null,
         paymentMode: aForm.paymentMode || "",
-        status: aForm.status || "en-route"
+        status: p.status || "en-route"
       };
     });
     if (!newA.length) return;
@@ -3898,17 +3890,23 @@ function MainApp({
         return prev;
       });
 
-      // Apply new appointment's balance effect (only if still completed and paid)
-      if (aForm.status === "completed" && aForm.paymentMode && aForm.pets.length > 0) {
-        const newTotal = aForm.pets.reduce((sum, p) => sum + Number(p.cost || 0), 0);
-        setBalances(prev => {
-          if (aForm.paymentMode === "Cash") {
-            return {...prev, cashOnHand: (prev.cashOnHand || 0) + newTotal};
-          } else if (aForm.paymentMode === "GCash") {
-            return {...prev, gcashBalance: (prev.gcashBalance || 0) + newTotal};
-          }
-          return prev;
-        });
+      // Apply new appointment's balance effect (only for completed pets with payment)
+      if (aForm.paymentMode && aForm.pets.length > 0) {
+        // Calculate total from COMPLETED pets only
+        const newTotal = aForm.pets
+          .filter(p => p.status === "completed")
+          .reduce((sum, p) => sum + Number(p.cost || 0), 0);
+
+        if (newTotal > 0) {
+          setBalances(prev => {
+            if (aForm.paymentMode === "Cash") {
+              return {...prev, cashOnHand: (prev.cashOnHand || 0) + newTotal};
+            } else if (aForm.paymentMode === "GCash") {
+              return {...prev, gcashBalance: (prev.gcashBalance || 0) + newTotal};
+            }
+            return prev;
+          });
+        }
       }
     }
 
@@ -3944,23 +3942,25 @@ function MainApp({
           furLength: appt.furLength || "",
           service: appt.service,
           cost: appt.cost,
-          notes: appt.notes || ""
+          notes: appt.notes || "",
+          status: appt.status || "en-route",
+          groomerId: appt.groomerId || ""
         }))
       : [{
           petId: a.petId,
           furLength: a.furLength || "",
           service: a.service,
           cost: a.cost,
-          notes: a.notes || ""
+          notes: a.notes || "",
+          status: a.status || "en-route",
+          groomerId: a.groomerId || ""
         }];
 
     setAForm({
       clientId: a.clientId,
       time: a.time || "",
-      groomerId: a.groomerId || "",
       paymentMode: a.paymentMode || "",
       duration: a.duration || 60,
-      status: a.status || "pending",
       date: date || selDate,
       pets: allPets
     });
