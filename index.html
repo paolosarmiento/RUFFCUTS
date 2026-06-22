@@ -244,7 +244,7 @@ const ROUTE_CATS = ["Fuel", "Toll", "Parking", "Village Entrance Fee", "Maintena
 const COMMISSION_RATE = 0.10;
 const DEFAULT_DAILY_SALARY = 700;
 const REBOOK_DAYS = 28;
-const SYNC_DEBOUNCE_MS = 800;
+const SYNC_DEBOUNCE_MS = 200;  // CRITICAL FIX #10: Reduced from 800ms to minimize data loss risk
 const MIN_PASSWORD_LENGTH = 4;
 const DEF_BAL = {cashOnHand:0, gcashBalance:0, bankBalance:0, deposits:[]};
 const DEF_OWN = {salaryCycle:"monthly", salaryAmount:0, capitalItems:[], salaryPayments:[], businessStartDate:""};
@@ -3576,6 +3576,32 @@ function MainApp({
     const t = setTimeout(() => sf("ownerFinances", ownerFinances, lastR.current.ownerFinances), SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [ownerFinances]);
+
+  // CRITICAL FIX #10: Warn before closing with unsaved changes
+  useEffect(() => {
+    const hasPendingChanges = () => {
+      return (
+        JSON.stringify(clients) !== JSON.stringify(lastR.current.clients) ||
+        JSON.stringify(schedules) !== JSON.stringify(lastR.current.schedules) ||
+        JSON.stringify(expenses) !== JSON.stringify(lastR.current.expenses) ||
+        JSON.stringify(balances) !== JSON.stringify(lastR.current.balances) ||
+        JSON.stringify(cashbox) !== JSON.stringify(lastR.current.cashbox) ||
+        JSON.stringify(cashAdvances) !== JSON.stringify(lastR.current.cashAdvances)
+      );
+    };
+
+    const handleBeforeUnload = (e) => {
+      if (hasPendingChanges()) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [clients, schedules, expenses, balances, cashbox, cashAdvances]);
+
   useEffect(() => {
     if (!isOwner) setSelDate(tod());
   }, [isOwner]);
@@ -3603,7 +3629,11 @@ function MainApp({
       return s + rate;
     }, 0);
   };
-  const gRev = d => gA(d).filter(a => a.status === "completed").reduce((s, a) => s + Number(a.cost || 0), 0);
+  // CRITICAL FIX #8: Standardize revenue calculation
+  // Revenue = Money COLLECTED (completed + paymentMode set)
+  // Accrual = Services rendered but not yet paid (completed + no paymentMode)
+  const gRev = d => gA(d).filter(a => a.status === "completed" && a.paymentMode).reduce((s, a) => s + Number(a.cost || 0), 0);
+  const gAccrual = d => gA(d).filter(a => a.status === "completed" && !a.paymentMode).reduce((s, a) => s + Number(a.cost || 0), 0);
   const gExpR = d => gE(d).reduce((s, e) => s + Number(e.amount || 0), 0);
   const gComm = d => gA(d).filter(a => a.groomerId && a.status === "completed" && a.paymentMode).reduce((s, a) => s + Number(a.cost || 0) * COMMISSION_RATE, 0);
   const gExp = d => gExpR(d) + gSal(d);
@@ -5783,7 +5813,9 @@ function MainApp({
           fontSize: 12,
           color: "rgba(255,255,255,.35)"
         }
-      }, "Opening"), /*#__PURE__*/React.createElement("input", {
+      }, "Opening"), /*#__PURE__*/React.createElement("div", {
+        style: {display: "flex", flexDirection: "column", gap: 2}
+      }, /*#__PURE__*/React.createElement("input", {
         type: "number",
         inputMode: "decimal",
         value: cashbox[selDate] || "",
@@ -5805,7 +5837,29 @@ function MainApp({
           textAlign: "right",
           outline: "none"
         }
-      }), /*#__PURE__*/React.createElement("span", {
+      }), (() => {
+        // CRITICAL FIX #9: Auto-calculate expected opening from previous day
+        const prevDateStr = (() => {
+          const d = new Date(selDate + "T12:00:00");
+          d.setDate(d.getDate() - 1);
+          return d.toISOString().split("T")[0];
+        })();
+        const prevCashRev = (schedules[prevDateStr] || [])
+          .filter(a => a.status === "completed" && a.paymentMode === "Cash")
+          .reduce((s, a) => s + Number(a.cost || 0), 0);
+        const prevCashExp = (expenses[prevDateStr] || [])
+          .filter(e => e.cashbox)
+          .reduce((s, e) => s + Number(e.amount || 0), 0);
+        const prevOpen = cashbox[prevDateStr] || 0;
+        const expected = prevOpen + prevCashRev - prevCashExp;
+
+        if (expected > 0 && !(cashbox[selDate])) {
+          return /*#__PURE__*/React.createElement("span", {
+            style: {fontSize: 10, color: "rgba(255,255,255,.4)", fontStyle: "italic"}
+          }, "Expected: ", fmt(expected));
+        }
+        return null;
+      })()), /*#__PURE__*/React.createElement("span", {
         style: {
           fontSize: 12,
           color: "rgba(255,255,255,.35)"
