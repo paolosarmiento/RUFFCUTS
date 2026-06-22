@@ -3930,6 +3930,30 @@ function MainApp({
   };
   const openEditAppt = (a, date) => {
     setActA(a);
+
+    // CRITICAL FIX: Load ALL pets from multi-pet booking (same client + time)
+    const allRelatedAppts = (schedules[date || selDate] || []).filter(appt =>
+      appt.clientId === a.clientId &&
+      appt.time === a.time
+    );
+
+    // If multiple pets, load them all; otherwise just the one
+    const allPets = allRelatedAppts.length > 1
+      ? allRelatedAppts.map(appt => ({
+          petId: appt.petId,
+          furLength: appt.furLength || "",
+          service: appt.service,
+          cost: appt.cost,
+          notes: appt.notes || ""
+        }))
+      : [{
+          petId: a.petId,
+          furLength: a.furLength || "",
+          service: a.service,
+          cost: a.cost,
+          notes: a.notes || ""
+        }];
+
     setAForm({
       clientId: a.clientId,
       time: a.time || "",
@@ -3938,13 +3962,7 @@ function MainApp({
       duration: a.duration || 60,
       status: a.status || "pending",
       date: date || selDate,
-      pets: [{
-        petId: a.petId,
-        furLength: a.furLength || "",
-        service: a.service,
-        cost: a.cost,
-        notes: a.notes || ""
-      }]
+      pets: allPets
     });
     setShowAForm(true);
   };
