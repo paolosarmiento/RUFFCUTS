@@ -4516,10 +4516,13 @@ function MainApp({
       }, apptFormModal, showEod && /*#__PURE__*/React.createElement(EodModal, {
         date: todStr,
         todAppts: todAppts,
-        expenses: gE(todStr),
+        expenses: expenses[todStr] || [],
         cashboxBal: cashbox[todStr] || 0,
         staffMembers: staffMembers,
         staffByDate: staffByDate,
+        schedules: schedules,
+        allExpenses: expenses,
+        cashbox: cashbox,
         onClose: () => setShowEod(false)
       }), /*#__PURE__*/React.createElement("div", {
         style: {
