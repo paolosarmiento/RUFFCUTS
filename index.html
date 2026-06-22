@@ -5121,8 +5121,8 @@ function MainApp({
         }
       }, apptFormModal, showSchedEod && /*#__PURE__*/React.createElement(EodModal, {
         date: selDate,
-        todAppts: gA(selDate),
-        expenses: gE(selDate),
+        todAppts: schedules[selDate] || [],
+        expenses: expenses[selDate] || [],
         cashboxBal: cashbox[selDate] || 0,
         staffMembers: staffMembers,
         staffByDate: staffByDate,
