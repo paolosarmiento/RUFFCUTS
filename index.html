@@ -2541,6 +2541,7 @@ function EodModal({
   schedules,
   allExpenses,
   cashbox,
+  ownerFinances,
   onClose
 }) {
   const done = todAppts.filter(a => a.status === "completed");
@@ -4523,6 +4524,7 @@ function MainApp({
         schedules: schedules,
         allExpenses: expenses,
         cashbox: cashbox,
+        ownerFinances: ownerFinances,
         onClose: () => setShowEod(false)
       }), /*#__PURE__*/React.createElement("div", {
         style: {
@@ -5135,6 +5137,7 @@ function MainApp({
         schedules: schedules,
         allExpenses: expenses,
         cashbox: cashbox,
+        ownerFinances: ownerFinances,
         onClose: () => setShowSchedEod(false)
       }), /*#__PURE__*/React.createElement("div", {
         style: {
