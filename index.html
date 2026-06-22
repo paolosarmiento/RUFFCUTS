@@ -3349,6 +3349,8 @@ function MainApp({
     const appt = (schedules[date] || []).find(a => a.id === id);
     if (!appt) return;
 
+    const balanceBefore = {...balances};
+
     // Reverse balance if appointment was completed and paid
     if (appt.status === "completed" && appt.paymentMode && appt.cost) {
       const amt = Number(appt.cost);
@@ -3360,6 +3362,18 @@ function MainApp({
         }
         return prev;
       });
+
+      // AUDIT LOG: Track deletion of completed/paid appointment
+      logTransaction("appointment_deleted", {
+        appointmentId: id,
+        petName: appt.petName,
+        clientName: appt.clientName,
+        status: appt.status,
+        cost: appt.cost,
+        paymentMode: appt.paymentMode,
+        date: date,
+        hadPayment: true
+      }, balanceBefore);
     }
 
     setSchedules(prev => ({
@@ -3368,11 +3382,39 @@ function MainApp({
     }));
     const token = {
       date,
-      appt
+      appt,
+      balanceSnapshot: {...balances}  // Save balance state for undo verification
     };
     showToast(appt.petName + " deleted", "success", token);
   };
   const undoDelA = token => {
+    // CRITICAL FIX: Check if balance was manually adjusted since deletion
+    if (token.balanceSnapshot && token.appt.status === "completed" && token.appt.paymentMode) {
+      const paymentMode = token.appt.paymentMode;
+      const balanceKey = paymentMode === "Cash" ? "cashOnHand" : "gcashBalance";
+      const currentBalance = balances[balanceKey] || 0;
+      const snapshotBalance = token.balanceSnapshot[balanceKey] || 0;
+
+      if (currentBalance !== snapshotBalance) {
+        // Balance changed since deletion - warn user
+        const diff = currentBalance - snapshotBalance;
+        askConfirm(
+          `Warning: ${paymentMode} balance changed by ₱${Math.abs(diff).toLocaleString()} since deletion. Restore appointment anyway?`,
+          () => {
+            performUndoDelete(token);
+          },
+          ""
+        );
+        return;
+      }
+    }
+
+    performUndoDelete(token);
+  };
+
+  const performUndoDelete = (token) => {
+    const balanceBefore = {...balances};
+
     // Restore balance if appointment was completed and paid
     if (token.appt.status === "completed" && token.appt.paymentMode && token.appt.cost) {
       const amt = Number(token.appt.cost);
@@ -3384,6 +3426,16 @@ function MainApp({
         }
         return prev;
       });
+
+      // AUDIT LOG: Track undo delete
+      logTransaction("appointment_undeleted", {
+        appointmentId: token.appt.id,
+        petName: token.appt.petName,
+        clientName: token.appt.clientName,
+        cost: token.appt.cost,
+        paymentMode: token.appt.paymentMode,
+        date: token.date
+      }, balanceBefore);
     }
 
     setSchedules(prev => ({
@@ -3709,6 +3761,51 @@ function MainApp({
     showToast("Staff member saved ✓");
   };
   const deleteStaff = (staffId) => {
+    // CRITICAL FIX: Check for pending cash advances before deletion
+    const pendingAdvances = cashAdvances.filter(a =>
+      String(a.staffId) === String(staffId) &&
+      a.status === "active" &&
+      a.remainingDebt > 0
+    );
+
+    if (pendingAdvances.length > 0) {
+      const totalDebt = pendingAdvances.reduce((sum, a) => sum + a.remainingDebt, 0);
+      askConfirm(
+        `This staff member has ₱${totalDebt.toLocaleString()} in unpaid cash advances. Delete anyway? (Advances will become unrecoverable)`,
+        () => {
+          // User confirmed - proceed with deletion
+          performStaffDeletion(staffId);
+        },
+        ""
+      );
+      return;
+    }
+
+    // Check for future appointments
+    const futureAppts = Object.keys(schedules).flatMap(date =>
+      (schedules[date] || []).filter(a =>
+        String(a.groomerId) === String(staffId) &&
+        new Date(date) >= new Date()
+      )
+    );
+
+    if (futureAppts.length > 0) {
+      askConfirm(
+        `This staff member has ${futureAppts.length} future appointments assigned. Delete anyway? (Appointments will become unassigned)`,
+        () => {
+          performStaffDeletion(staffId);
+        },
+        ""
+      );
+      return;
+    }
+
+    performStaffDeletion(staffId);
+  };
+
+  const performStaffDeletion = (staffId) => {
+    const staffMember = staffMembers.find(s => s.id === staffId);
+
     // Remove from staff members list
     setStaffMembers(p => p.filter(x => x.id !== staffId));
 
@@ -3720,6 +3817,16 @@ function MainApp({
       });
       return updated;
     });
+
+    // AUDIT LOG: Track staff deletion
+    logTransaction("staff_deleted", {
+      staffId: staffId,
+      staffName: staffMember ? staffMember.name : "Unknown",
+      designation: staffMember ? staffMember.designation : "Unknown",
+      hadPendingAdvances: cashAdvances.some(a => String(a.staffId) === String(staffId) && a.status === "active")
+    });
+
+    showToast("Staff member deleted");
   };
   const deleteTestStaff = () => {
     // Remove test staff "Rhian" and "Test" by name
@@ -3883,34 +3990,70 @@ function MainApp({
       }));
       showToast("Cash advance updated ✓");
     } else {
-      const balanceBefore = {...balances};
-      const staffMember = staffMembers.find(s => s.id === Number(staffId));
+      // CRITICAL FIX: Check if sufficient cash on hand
+      const currentCash = balances.cashOnHand || 0;
 
-      setCashAdvances(prev => [...prev, {id: Date.now(), staffId: Number(staffId), amount: amt, purpose: caForm.purpose.trim(), dateIssued: caForm.dateIssued || tod(), deductionAmount: deduct, frequency: caForm.frequency || "weekly", remainingDebt: amt, deductionsMade: 0, status: "active"}]);
+      if (amt > currentCash) {
+        // Insufficient cash - show warning
+        askConfirm(
+          `Insufficient cash on hand (₱${currentCash.toLocaleString()}). Give advance of ₱${amt.toLocaleString()} anyway? This will create a deficit of ₱${(amt - currentCash).toLocaleString()}.`,
+          () => {
+            performCashAdvance(staffId, amt, deduct);
+          },
+          ""
+        );
+        return;
+      }
 
-      // Deduct from cash balance when advance is given
-      setBalances(prev => ({
-        ...prev,
-        cashOnHand: Math.max(0, (prev.cashOnHand || 0) - amt)
-      }));
-
-      // AUDIT LOG: Track cash advance
-      logTransaction("cash_advance_given", {
-        staffId: Number(staffId),
-        staffName: staffMember ? staffMember.name : "Unknown",
-        amount: amt,
-        purpose: caForm.purpose.trim(),
-        dateIssued: caForm.dateIssued || tod(),
-        deductionAmount: deduct,
-        frequency: caForm.frequency || "weekly"
-      }, balanceBefore);
-
-      showToast("Cash advance recorded ✓");
+      performCashAdvance(staffId, amt, deduct);
     }
     setCaForm({amount:"", purpose:"", dateIssued:tod(), deductionAmount:"", frequency:"weekly"});
     setShowCaForm(null);
     setEditCaId(null);
   };
+
+  const performCashAdvance = (staffId, amt, deduct) => {
+    const balanceBefore = {...balances};
+    const staffMember = staffMembers.find(s => s.id === Number(staffId));
+
+    setCashAdvances(prev => [...prev, {
+      id: Date.now(),
+      staffId: Number(staffId),
+      amount: amt,
+      purpose: caForm.purpose.trim(),
+      dateIssued: caForm.dateIssued || tod(),
+      deductionAmount: deduct,
+      frequency: caForm.frequency || "weekly",
+      remainingDebt: amt,
+      deductionsMade: 0,
+      status: "active"
+    }]);
+
+    // Deduct from cash balance (allow negative for deficit tracking)
+    setBalances(prev => ({
+      ...prev,
+      cashOnHand: (prev.cashOnHand || 0) - amt  // No Math.max - allow negative
+    }));
+
+    // AUDIT LOG: Track cash advance
+    logTransaction("cash_advance_given", {
+      staffId: Number(staffId),
+      staffName: staffMember ? staffMember.name : "Unknown",
+      amount: amt,
+      purpose: caForm.purpose.trim(),
+      dateIssued: caForm.dateIssued || tod(),
+      deductionAmount: deduct,
+      frequency: caForm.frequency || "weekly",
+      insufficientCash: amt > balanceBefore.cashOnHand,
+      deficit: amt > balanceBefore.cashOnHand ? amt - balanceBefore.cashOnHand : 0
+    }, balanceBefore);
+
+    showToast("Cash advance recorded ✓");
+    setCaForm({amount:"", purpose:"", dateIssued:tod(), deductionAmount:"", frequency:"weekly"});
+    setShowCaForm(null);
+    setEditCaId(null);
+  };
+
   const markAdvancePaid = (id) => { setCashAdvances(prev => prev.map(a => a.id === id ? {...a, remainingDebt:0, status:"paid"} : a)); showToast("Marked as fully paid ✓"); };
   const deleteAdvance = (id) => askConfirm("Delete this cash advance record?", () => { setCashAdvances(prev => prev.filter(a => a.id !== id)); showToast("Advance deleted"); });
   const startEditAdvance = (adv) => {
