@@ -2539,6 +2539,7 @@ function EodModal({
   staffMembers,
   staffByDate,
   schedules,
+  allExpenses,
   cashbox,
   onClose
 }) {
@@ -2564,7 +2565,7 @@ function EodModal({
   const prevDate = getPrevDate(date);
   const prevAppts = (schedules[prevDate] || []).filter(a => a.status === "completed");
   const prevCashRev = prevAppts.filter(a => a.paymentMode === "Cash").reduce((s, a) => s + Number(a.cost || 0), 0);
-  const prevCashExp = (expenses[prevDate] || []).filter(e => e.cashbox).reduce((s, e) => s + Number(e.amount || 0), 0);
+  const prevCashExp = (allExpenses[prevDate] || []).filter(e => e.cashbox).reduce((s, e) => s + Number(e.amount || 0), 0);
   const prevOpen = cashbox[prevDate] || 0;
   const expectedOpening = prevOpen + prevCashRev - prevCashExp;
   const openBal = cashboxBal || 0;
@@ -5129,6 +5130,7 @@ function MainApp({
         staffMembers: staffMembers,
         staffByDate: staffByDate,
         schedules: schedules,
+        allExpenses: expenses,
         cashbox: cashbox,
         onClose: () => setShowSchedEod(false)
       }), /*#__PURE__*/React.createElement("div", {
