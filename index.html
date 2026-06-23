@@ -1489,7 +1489,8 @@ function ExpTable({
   all,
   expenses,
   setExpenses,
-  askConfirm
+  askConfirm,
+  setBalances
 }) {
   const [editId, setEditId] = useState(null);
   const [ef, setEf] = useState({
@@ -1714,10 +1715,12 @@ function ExpTable({
     }, "Edit"), /*#__PURE__*/React.createElement(Btn, {
       sm: true,
       v: "gho",
-      onClick: () => askConfirm("Delete this expense?", () => setExpenses(prev => ({
-        ...prev,
-        [e.date]: (prev[e.date] || []).filter(x => x.id !== e.id)
-      })), "Expense deleted")
+      onClick: () => askConfirm("Delete this expense?", () => {
+        const amt = Number(e.amount || 0);
+        const pm = e.paymentMode || "Cash";
+        setBalances(prev => pm === "Cash" ? {...prev, cashOnHand: (prev.cashOnHand || 0) + amt} : {...prev, gcashBalance: (prev.gcashBalance || 0) + amt});
+        setExpenses(prev => ({...prev, [e.date]: (prev[e.date] || []).filter(x => x.id !== e.id)}));
+      }, "Expense deleted")
     }, "Del")));
   }));
 }
@@ -3236,7 +3239,8 @@ function MainApp({
     cat: "",
     custCat: "",
     amt: "",
-    cashbox: false
+    cashbox: false,
+    paymentMode: "Cash"
   });
   const [showEForm, setShowEForm] = useState(false);
   const [svForm, setSvForm] = useState({
@@ -4343,13 +4347,27 @@ function MainApp({
       return;
     }
 
+    const expAmt = Number(eForm.amt);
+    const payMode = eForm.paymentMode || "Cash";
+
+    // Update balances
+    setBalances(prev => {
+      if (payMode === "Cash") {
+        return {...prev, cashOnHand: Math.max(0, (prev.cashOnHand || 0) - expAmt)};
+      } else if (payMode === "GCash") {
+        return {...prev, gcashBalance: Math.max(0, (prev.gcashBalance || 0) - expAmt)};
+      }
+      return prev;
+    });
+
     setExpenses(prev => ({
       ...prev,
       [eForm.date]: [...(prev[eForm.date] || []), {
         id: Date.now(),
         category: cat,
-        amount: Number(eForm.amt),
-        cashbox: eForm.cashbox || false
+        amount: expAmt,
+        cashbox: eForm.cashbox || false,
+        paymentMode: payMode
       }]
     }));
     setEForm({
@@ -4357,7 +4375,8 @@ function MainApp({
       cat: "",
       custCat: "",
       amt: "",
-      cashbox: false
+      cashbox: false,
+      paymentMode: "Cash"
     });
     setShowEForm(false);
     showToast("Expense logged ✓");
@@ -6363,7 +6382,7 @@ function MainApp({
           borderRadius: "50%",
           background: "#ff375f"
         }
-      }))), appts.length > 0 && /*#__PURE__*/React.createElement("div", {
+      }))), /*#__PURE__*/React.createElement("div", {
         style: {
           padding: "14px",
           background: "#f2f2f7",
@@ -8873,7 +8892,30 @@ function MainApp({
           amt: e.target.value
         })),
         placeholder: "0"
-      }))), /*#__PURE__*/React.createElement("div", {
+      })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Lbl, {
+        c: "Payment"
+      }), /*#__PURE__*/React.createElement("select", {
+        value: eForm.paymentMode || "Cash",
+        onChange: e => setEForm(p => ({
+          ...p,
+          paymentMode: e.target.value
+        })),
+        style: {
+          width: "100%",
+          background: "rgba(255,255,255,.08)",
+          border: "1px solid rgba(255,255,255,.12)",
+          borderRadius: 6,
+          padding: "8px 10px",
+          color: "#fff",
+          fontSize: 13,
+          fontFamily: "inherit",
+          outline: "none"
+        }
+      }, /*#__PURE__*/React.createElement("option", {
+        value: "Cash"
+      }, "Cash"), /*#__PURE__*/React.createElement("option", {
+        value: "GCash"
+      }, "GCash"))), /*#__PURE__*/React.createElement("div", {
         style: {
           display: "flex",
           gap: 8
@@ -8929,7 +8971,8 @@ function MainApp({
         }))),
         expenses: expenses,
         setExpenses: setExpenses,
-        askConfirm: askConfirm
+        askConfirm: askConfirm,
+        setBalances: setBalances
       })));
     }
     if (tab === "finances") {
