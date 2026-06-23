@@ -1,2 +1,10 @@
 [build.processing]
   skip_processing = true
+
+# Cache Control Headers
+# Ensures users always get the latest version after deployments
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    X-Content-Type-Options = "nosniff"
