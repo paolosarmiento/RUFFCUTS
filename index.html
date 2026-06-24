@@ -381,6 +381,12 @@ const tod = () => {
   const day = String(now.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
+// Parse date string (YYYY-MM-DD) as LOCAL timezone, not UTC
+const parseLocalDate = (dateStr) => {
+  if (!dateStr) return new Date();
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
 const fmt = n => "P" + Number(n).toLocaleString("en-PH", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2
@@ -2611,7 +2617,7 @@ function EodModal({
   });
   // Calculate expected opening from previous day
   const getPrevDate = (dateStr) => {
-    const d = new Date(dateStr + "T12:00:00");
+    const d = parseLocalDate(dateStr);
     d.setDate(d.getDate() - 1);
     return d.toISOString().split("T")[0];
   };
@@ -4221,7 +4227,7 @@ function MainApp({
   const getAdvanceDeductionForPeriod = (adv, periodEnd) => {
     if (adv.status !== "active" || adv.remainingDebt <= 0) return 0;
     const issued = new Date(adv.dateIssued + "T12:00:00");
-    const end = new Date(periodEnd + "T12:00:00");
+    const end = parseLocalDate(periodEnd);
     let totalDue = 0;
     for (let i = 1; ; i++) {
       const d = new Date(issued);
@@ -4695,12 +4701,12 @@ function MainApp({
     setMenuOpen(false);
   };
   const prevDay = () => {
-    const d = new Date(selDate + "T12:00:00");
+    const d = parseLocalDate(selDate);
     d.setDate(d.getDate() - 1);
     setSelDate(d.toISOString().split("T")[0]);
   };
   const nextDay = () => {
-    const d = new Date(selDate + "T12:00:00");
+    const d = parseLocalDate(selDate);
     d.setDate(d.getDate() + 1);
     setSelDate(d.toISOString().split("T")[0]);
   };
@@ -5526,7 +5532,7 @@ function MainApp({
         onClick: () => cycleStatus(todStr, a.id)
       }), /*#__PURE__*/React.createElement("button", {
         onClick: () => {
-          const d = new Date(todStr + "T12:00:00");
+          const d = parseLocalDate(todStr);
           d.setDate(d.getDate() + REBOOK_DAYS);
           const nd = d.toISOString().split("T")[0];
           if (isOwner) setSelDate(nd);
@@ -5626,7 +5632,7 @@ function MainApp({
       }, "+ Add Appointment")));
     }
     if (tab === "schedule") {
-      const selDayName = DNAMES[new Date(selDate + "T12:00:00").getDay()];
+      const selDayName = DNAMES[parseLocalDate(selDate).getDay()];
       const filteredAppts = schedSearch ? appts.filter(a => (a.petName||"").toLowerCase().includes(schedSearch.toLowerCase()) || (a.clientName||"").toLowerCase().includes(schedSearch.toLowerCase())) : appts;
       const totalPets = filteredAppts.filter(a => a.status !== "cancelled").length;
       const columns = [...dSt, {
@@ -6136,7 +6142,7 @@ function MainApp({
       }), (() => {
         // CRITICAL FIX #9: Auto-calculate expected opening from previous day
         const prevDateStr = (() => {
-          const d = new Date(selDate + "T12:00:00");
+          const d = parseLocalDate(selDate);
           d.setDate(d.getDate() - 1);
           return d.toISOString().split("T")[0];
         })();
@@ -7191,7 +7197,7 @@ function MainApp({
             fontWeight: 700,
             marginBottom: 3
           }
-        }, new Date(date + "T12:00:00").getDate()), da.slice(0, 3).map(a => {
+        }, parseLocalDate(date).getDate()), da.slice(0, 3).map(a => {
           const col = aColor(a.service);
           return /*#__PURE__*/React.createElement("div", {
             key: a.id,
