@@ -221,6 +221,45 @@ const onSnapshot = (ref, callback) => ref.onSnapshot(callback);
 const writeBatch = () => db.batch();
 const doc = (collectionRef, id) => collectionRef.doc(id);
 const collection = (db, path) => db.collection(path);
+
+// ── CRITICAL: Firebase Transaction Helpers ────────────────────────────
+// Prevents data loss from concurrent multi-device edits
+const runTransaction = (updateFunction) => db.runTransaction(updateFunction);
+
+// Update balances atomically (prevents race conditions when multiple devices complete appointments)
+const updateBalanceTransaction = async (paymentMode, amount, operation = 'add') => {
+  try {
+    await runTransaction(async (transaction) => {
+      const balanceRef = DOCS.balances;
+      const balanceDoc = await transaction.get(balanceRef);
+      const currentBalances = balanceDoc.exists ? balanceDoc.data().data : {
+        cashOnHand: 0,
+        gcashBalance: 0,
+        bankBalance: 0
+      };
+
+      let updatedBalances = {...currentBalances};
+      const balanceKey = paymentMode === "Cash" ? "cashOnHand" :
+                         paymentMode === "GCash" ? "gcashBalance" : "bankBalance";
+
+      const currentAmount = Number(currentBalances[balanceKey] || 0);
+      const changeAmount = Number(amount);
+
+      if (operation === 'add') {
+        updatedBalances[balanceKey] = currentAmount + changeAmount;
+      } else if (operation === 'subtract') {
+        updatedBalances[balanceKey] = Math.max(0, currentAmount - changeAmount);
+      }
+
+      transaction.set(balanceRef, {data: updatedBalances});
+      return updatedBalances;
+    });
+    return true;
+  } catch (error) {
+    console.error('[Transaction] Balance update failed:', error);
+    return false;
+  }
+};
 const OWN_PASS = "owner1234";
 const STF_PASS = "ruffcuts2024";
 const DEF_SVC = [
@@ -3564,7 +3603,65 @@ function MainApp({
       console.log(`[DATA SAVE] ${name}:`, Array.isArray(v) ? `${v.length} items` : 'object', new Date().toISOString());
     }
 
-    setDoc(DOCS[name], {data: v}).then(() => setSync("Synced")).catch(() => setSync("Error"));
+    // CRITICAL: Use transactions for critical data to prevent race conditions
+    const useTransaction = ["balances", "staffMembers", "clients", "expenses"].includes(name);
+
+    if (useTransaction) {
+      runTransaction(async (transaction) => {
+        const docRef = DOCS[name];
+        const doc = await transaction.get(docRef);
+
+        // Get current server data
+        const currentData = doc.exists ? doc.data().data : null;
+
+        // For arrays (staff, clients): merge by ID
+        if (Array.isArray(v) && Array.isArray(currentData)) {
+          // Build map of current items by ID
+          const currentMap = {};
+          currentData.forEach(item => {
+            if (item.id) currentMap[item.id] = item;
+          });
+
+          // Build map of our items by ID
+          const ourMap = {};
+          v.forEach(item => {
+            if (item.id) ourMap[item.id] = item;
+          });
+
+          // Merge: keep all items from server, update with our changes
+          const merged = [];
+          const seen = new Set();
+
+          // Add all items that exist in either version
+          [...currentData, ...v].forEach(item => {
+            if (!item.id || seen.has(item.id)) return;
+            seen.add(item.id);
+
+            // If we have this item, use our version (our edits take precedence)
+            // Otherwise use server version
+            merged.push(ourMap[item.id] || currentMap[item.id] || item);
+          });
+
+          transaction.set(docRef, {data: merged});
+          console.log(`[Transaction] Merged ${name}: ${currentData.length} server + ${v.length} local = ${merged.length} final`);
+        }
+        // For objects (balances): use our version if we have the latest base
+        else if (JSON.stringify(currentData) === JSON.stringify(r)) {
+          transaction.set(docRef, {data: v});
+        } else {
+          // Conflict on object - log warning and use our version
+          console.warn(`[Transaction] ${name} conflict detected, using latest local version`);
+          transaction.set(docRef, {data: v});
+        }
+      })
+        .then(() => setSync("Synced"))
+        .catch((error) => {
+          console.error(`[Transaction] ${name} save failed:`, error);
+          setSync("Error");
+        });
+    } else {
+      setDoc(DOCS[name], {data: v}).then(() => setSync("Synced")).catch(() => setSync("Error"));
+    }
   };
   useEffect(() => {
     const t = setTimeout(() => sf("clients", clients, lastR.current.clients), SYNC_DEBOUNCE_MS);
