@@ -88,9 +88,20 @@ textarea{resize:vertical;min-height:96px;line-height:1.5;}
 .cal-abs-col:active{background:rgba(0,0,0,.02);}
 .sp{display:inline-flex;align-items:center;padding:10px 18px;border-radius:24px;font-size:12px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;border:none;font-family:inherit;min-height:44px;letter-spacing:.3px;transition:all .2s ease;}
 .sp:hover{transform:scale(1.05);}
-.today-card{background:#fff;border-radius:18px;padding:16px 18px;margin-bottom:12px;border-left:4px solid #e8e8ed;box-shadow:0 2px 6px rgba(0,0,0,.05),0 4px 12px rgba(0,0,0,.06);transition:all .2s ease;cursor:pointer;}
+.today-card{background:#fff;border-radius:18px;padding:16px 18px;margin-bottom:12px;border-left:4px solid #e8e8ed;box-shadow:0 2px 6px rgba(0,0,0,.05),0 4px 12px rgba(0,0,0,.06);transition:all .2s ease;}
 .today-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.08),0 8px 24px rgba(0,0,0,.12);transform:translateY(-1px);}
 .today-card-primary{background:#fff;border-radius:18px;padding:18px;margin-bottom:12px;border:2px solid rgba(10,132,255,.12);box-shadow:0 4px 12px rgba(0,0,0,.06),0 8px 24px rgba(0,0,0,.08);transition:all .2s ease;}
+.quick-actions{display:flex;gap:8px;padding-top:12px;border-top:1px solid #f0f0f0;margin-top:12px;}
+.quick-btn{flex:1;padding:10px 14px;border-radius:12px;border:none;font-weight:600;font-size:13px;min-height:44px;cursor:pointer;transition:all .15s ease;font-family:inherit;-webkit-tap-highlight-color:transparent;}
+.quick-btn.primary{background:#007AFF;color:#fff;}
+.quick-btn.primary:active{background:#0051D5;transform:scale(0.96);}
+.quick-btn.success{background:#34C759;color:#fff;}
+.quick-btn.success:active{background:#248A3D;transform:scale(0.96);}
+.quick-btn.danger{background:#FF3B30;color:#fff;}
+.quick-btn.danger:active{background:#C7362B;transform:scale(0.96);}
+.quick-btn.secondary{background:#f0f0f5;color:#1c1c1e;}
+.quick-btn.secondary:active{background:#e0e0e5;transform:scale(0.96);}
+@media(min-width:768px){.quick-btn{min-height:48px;padding:12px 16px;font-size:14px;}}
 .att-dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
 #boot{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;}
 #boot img{height:90px;object-fit:contain;margin-bottom:16px;animation:pulse 2s ease-in-out infinite;}
@@ -3515,6 +3526,44 @@ function MainApp({
   }, []);
   const sf = (name, v, r) => {
     if (!DOCS[name] || JSON.stringify(v) === JSON.stringify(r)) return;
+
+    // CRITICAL: Data loss protection
+    // Prevent overwriting data with smaller/empty datasets
+    const isCriticalData = ["clients", "staffMembers", "balances", "schedules", "expenses"].includes(name);
+
+    if (isCriticalData) {
+      // For arrays: prevent saving if new data has fewer items than what we're replacing
+      if (Array.isArray(v) && Array.isArray(r)) {
+        const reduction = r.length - v.length;
+        if (reduction > 0) {
+          console.error(`[DATA PROTECTION] Blocked save to ${name}: would delete ${reduction} items (had ${r.length}, trying to save ${v.length})`);
+          const msg = `⚠️ BLOCKED: Attempted to save ${name} with ${reduction} fewer items. This could be data loss from tab sync conflict. Close other tabs and refresh.`;
+          setSync("⚠️ Blocked");
+          alert(msg);
+          return;
+        }
+      }
+
+      // For objects (balances): prevent saving if critical fields are missing or zero when they were positive
+      if (name === "balances" && r && v) {
+        const criticalFields = ["cashOnHand", "gcashBalance", "bankBalance"];
+        for (const field of criticalFields) {
+          const oldVal = Number(r[field] || 0);
+          const newVal = Number(v[field] || 0);
+          if (oldVal > 100 && newVal === 0) {
+            console.error(`[DATA PROTECTION] Blocked save to balances: ${field} dropped from ${oldVal} to 0`);
+            const msg = `⚠️ BLOCKED: ${field} would be reset to zero (was ₱${oldVal.toLocaleString()}). Potential tab sync conflict.`;
+            setSync("⚠️ Blocked");
+            alert(msg);
+            return;
+          }
+        }
+      }
+
+      // Log all critical data saves for audit trail
+      console.log(`[DATA SAVE] ${name}:`, Array.isArray(v) ? `${v.length} items` : 'object', new Date().toISOString());
+    }
+
     setDoc(DOCS[name], {data: v}).then(() => setSync("Synced")).catch(() => setSync("Error"));
   };
   useEffect(() => {
@@ -3761,16 +3810,71 @@ function MainApp({
       } : a)
     }));
   };
+
+  // Quick status change with balance updates
+  const quickStatusChange = (date, apptId, newStatus) => {
+    const appt = (schedules[date] || []).find(a => a.id === apptId);
+    if (!appt) return;
+
+    const oldStatus = appt.status || "pending";
+
+    // Handle balance updates for completion
+    if (newStatus === "completed" && oldStatus !== "completed" && appt.paymentMode) {
+      const amount = Number(appt.cost || 0);
+      setBalances(prev => {
+        if (appt.paymentMode === "Cash") {
+          return {...prev, cashOnHand: (prev.cashOnHand || 0) + amount};
+        } else if (appt.paymentMode === "GCash") {
+          return {...prev, gcashBalance: (prev.gcashBalance || 0) + amount};
+        }
+        return prev;
+      });
+    }
+
+    // Handle balance reversal if un-completing
+    if (oldStatus === "completed" && newStatus !== "completed" && appt.paymentMode) {
+      const amount = Number(appt.cost || 0);
+      setBalances(prev => {
+        if (appt.paymentMode === "Cash") {
+          return {...prev, cashOnHand: Math.max(0, (prev.cashOnHand || 0) - amount)};
+        } else if (appt.paymentMode === "GCash") {
+          return {...prev, gcashBalance: Math.max(0, (prev.gcashBalance || 0) - amount)};
+        }
+        return prev;
+      });
+    }
+
+    // Update status
+    setSchedules(prev => ({
+      ...prev,
+      [date]: (prev[date] || []).map(a => a.id === apptId ? {...a, status: newStatus} : a)
+    }));
+
+    showToast("→ " + sConf(newStatus).label);
+  };
   const saveSm = () => {
     if (!smForm.name.trim()) return;
     const data = {
       ...smForm,
       dailySalary: Number(smForm.dailySalary) || DEFAULT_DAILY_SALARY
     };
+
+    const isEdit = !!smForm.id;
+    const oldStaff = isEdit ? staffMembers.find(s => s.id === smForm.id) : null;
+
     if (smForm.id) setStaffMembers(p => p.map(s => s.id === smForm.id ? data : s));else setStaffMembers(p => [...p, {
       ...data,
       id: Date.now()
     }]);
+
+    // Log the operation
+    logTransaction(
+      isEdit ? "STAFF_EDIT" : "STAFF_ADD",
+      isEdit
+        ? `Edited staff: ${oldStaff?.name} → ${data.name} (${data.designation})`
+        : `Added staff: ${data.name} (${data.designation}, salary: ₱${data.dailySalary})`
+    );
+
     setSmForm({
       id: null,
       name: "",
@@ -3832,6 +3936,12 @@ function MainApp({
   const performStaffDeletion = (staffId) => {
     const staffMember = staffMembers.find(s => s.id === staffId);
 
+    // Log deletion BEFORE removing
+    logTransaction(
+      "STAFF_DELETE",
+      `Deleted staff: ${staffMember?.name} (${staffMember?.designation})`
+    );
+
     // Remove from staff members list
     setStaffMembers(p => p.filter(x => x.id !== staffId));
 
@@ -3842,14 +3952,6 @@ function MainApp({
         updated[date] = (updated[date] || []).filter(s => s.staffId !== staffId);
       });
       return updated;
-    });
-
-    // AUDIT LOG: Track staff deletion
-    logTransaction("staff_deleted", {
-      staffId: staffId,
-      staffName: staffMember ? staffMember.name : "Unknown",
-      designation: staffMember ? staffMember.designation : "Unknown",
-      hadPendingAdvances: cashAdvances.some(a => String(a.staffId) === String(staffId) && a.status === "active")
     });
 
     showToast("Staff member deleted");
@@ -3872,6 +3974,17 @@ function MainApp({
 
     showToast("Test staff (Rhian & Test) deleted from all schedules ✓");
   };
+
+  const deleteClient = (clientId, clientName) => {
+    // Log deletion BEFORE removing
+    logTransaction(
+      "CLIENT_DELETE",
+      `Deleted client: ${clientName} (ID: ${clientId})`
+    );
+
+    setClients(prev => prev.filter(x => x.id !== clientId));
+  };
+
   const saveA = () => {
     if (!aForm.clientId) return;
     const targetDate = actA ? selDate : (aForm.date || selDate);
@@ -4324,6 +4437,10 @@ function MainApp({
       ...p,
       id: p.id || Date.now() + Math.random()
     }));
+
+    const isEdit = !!editCId;
+    const oldClient = isEdit ? clients.find(c => c.id === editCId) : null;
+
     if (editCId) setClients(prev => prev.map(c => c.id === editCId ? {
       ...c,
       ...cForm,
@@ -4333,6 +4450,15 @@ function MainApp({
       ...cForm,
       pets
     }]);
+
+    // Log the operation
+    logTransaction(
+      isEdit ? "CLIENT_EDIT" : "CLIENT_ADD",
+      isEdit
+        ? `Edited client: ${oldClient?.name} → ${cForm.name} (${pets.length} pets)`
+        : `Added client: ${cForm.name} (${pets.length} pets)`
+    );
+
     setCForm(bC());
     setEditCId(null);
     setShowCForm(false);
@@ -4376,6 +4502,13 @@ function MainApp({
         paymentMode: payMode
       }]
     }));
+
+    // Log the expense
+    logTransaction(
+      "EXPENSE_ADD",
+      `Added expense: ${cat} - ₱${expAmt.toLocaleString()} (${payMode}${eForm.cashbox ? ', from cashbox' : ''})`
+    );
+
     setEForm({
       date: tod(),
       cat: "",
@@ -4651,6 +4784,38 @@ function MainApp({
         const sc = sConf(a.status || "pending");
         const groomer = todSt.find(s => String(s.staffId) === String(a.groomerId));
         const groomersAvail = todSt.filter(s => s.designation === "Groomer");
+        const status = a.status || "pending";
+
+        // Build quick action buttons based on status
+        const quickActions = [];
+        if (status === "pending" || status === "en-route") {
+          quickActions.push(
+            /*#__PURE__*/React.createElement("button", {
+              key: "start",
+              className: "quick-btn primary",
+              onClick: (e) => { e.stopPropagation(); quickStatusChange(date || todStr, a.id, status === "pending" ? "en-route" : "in-progress"); }
+            }, status === "pending" ? "Start Job" : "Begin Grooming")
+          );
+        }
+        if (status === "in-progress") {
+          quickActions.push(
+            /*#__PURE__*/React.createElement("button", {
+              key: "complete",
+              className: "quick-btn success",
+              onClick: (e) => { e.stopPropagation(); quickStatusChange(date || todStr, a.id, "completed"); }
+            }, "Mark Complete")
+          );
+        }
+        if (status === "pending" || status === "en-route") {
+          quickActions.push(
+            /*#__PURE__*/React.createElement("button", {
+              key: "cancel",
+              className: "quick-btn danger",
+              onClick: (e) => { e.stopPropagation(); quickStatusChange(date || todStr, a.id, "cancelled"); }
+            }, "Cancel")
+          );
+        }
+
         return /*#__PURE__*/React.createElement("div", {
           className: "today-card",
           style: {
@@ -4787,7 +4952,9 @@ function MainApp({
             minHeight: "auto",
             display: "block"
           }
-        }, "Del"))));
+        }, "Del"))), quickActions.length > 0 && /*#__PURE__*/React.createElement("div", {
+          className: "quick-actions"
+        }, quickActions));
       }
       return /*#__PURE__*/React.createElement("div", {
         className: "sec"
@@ -7207,7 +7374,7 @@ function MainApp({
       }, "Edit"), /*#__PURE__*/React.createElement(Btn, {
         sm: true,
         v: "gho",
-        onClick: () => askConfirm("Delete " + c.name + " and all their pets?", () => setClients(prev => prev.filter(x => x.id !== c.id)), "Client deleted")
+        onClick: () => askConfirm("Delete " + c.name + " and all their pets?", () => deleteClient(c.id, c.name), "Client deleted")
       }, "Del"))), /*#__PURE__*/React.createElement("div", {
         style: {
           padding: "10px 12px",
