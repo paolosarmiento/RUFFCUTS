@@ -373,7 +373,14 @@ const STATUS_CONFIG = {
   }
 };
 const STATUS_ORDER = ["pending", "confirmed", "en-route", "in-progress", "completed", "cancelled"];
-const tod = () => new Date().toISOString().split("T")[0];
+// Get today's date in LOCAL timezone (not UTC)
+const tod = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 const fmt = n => "P" + Number(n).toLocaleString("en-PH", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2
