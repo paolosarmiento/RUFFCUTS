@@ -373,7 +373,55 @@ const STATUS_CONFIG = {
   }
 };
 const STATUS_ORDER = ["pending", "confirmed", "en-route", "in-progress", "completed", "cancelled"];
-// Get today's date in LOCAL timezone (not UTC)
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DATE/TIME HANDLING STANDARD - RUFFCUTS PHILIPPINES
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// TIMEZONE: Asia/Manila (UTC+8) - Philippines Standard Time
+//
+// BUSINESS REQUIREMENT:
+// RuffCuts serves customers exclusively in the Philippines. All business dates
+// (appointments, schedules, reports, finances) must use Philippines timezone.
+//
+// STORAGE STRATEGY:
+// - Dates stored as YYYY-MM-DD strings (ISO 8601 date-only format)
+// - Timezone is implicitly Asia/Manila (UTC+8)
+// - No timezone information stored (dates are "calendar days" not "moments")
+// - Firestore document keys use YYYY-MM-DD format
+//
+// WHY THIS APPROACH:
+// - Eliminates timezone drift (strings don't convert timezones)
+// - Simple comparisons work ("2026-06-25" > "2026-06-24")
+// - No UTC midnight issues (common bug in date handling)
+// - Consistent across all browsers regardless of system timezone
+//
+// CRITICAL RULES:
+// 1. NEVER use Date.toISOString() for dates (it converts to UTC)
+// 2. NEVER create Date objects from strings without parseLocalDate()
+// 3. NEVER use UTC methods (getUTCFullYear, toUTCString, etc.)
+// 4. ALWAYS use the helper functions below for date operations
+//
+// HELPER FUNCTIONS:
+// - tod() → Get today's date in Manila timezone (YYYY-MM-DD)
+// - parseLocalDate(str) → Parse YYYY-MM-DD as Manila midnight Date object
+// - toLocalDateString(date) → Convert Date object to YYYY-MM-DD (Manila)
+// - fmtD(str) → Format YYYY-MM-DD for display ("June 25, 2026")
+//
+// EXAMPLES:
+// ✅ CORRECT:
+//   const today = tod();                    // "2026-06-25"
+//   const date = parseLocalDate("2026-06-25"); // Manila midnight
+//   const str = toLocalDateString(date);    // "2026-06-25"
+//
+// ❌ WRONG:
+//   const today = new Date().toISOString().split("T")[0]; // UTC!
+//   const date = new Date("2026-06-25");    // Browser-dependent!
+//   const str = date.toISOString();         // UTC!
+//
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Get today's date in Manila timezone (Asia/Manila UTC+8)
 const tod = () => {
   const now = new Date();
   const year = now.getFullYear();
@@ -3401,7 +3449,17 @@ function MainApp({
   const logTransaction = (type, details, balanceChange = null) => {
     const log = {
       id: Date.now() + Math.random(),
-      timestamp: new Date().toISOString(),
+      // Use Manila timezone for audit trail (not UTC)
+      timestamp: new Date().toLocaleString('en-PH', {
+        timeZone: 'Asia/Manila',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      }),
       user: role === "owner" ? "Owner" : (loggedInStaff ? loggedInStaff.name : "Unknown"),
       type: type,
       details: details,
