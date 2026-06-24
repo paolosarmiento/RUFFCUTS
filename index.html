@@ -387,6 +387,13 @@ const parseLocalDate = (dateStr) => {
   const [y, m, d] = dateStr.split('-').map(Number);
   return new Date(y, m - 1, d);
 };
+// Convert Date object to YYYY-MM-DD string in LOCAL timezone (not UTC)
+const toLocalDateString = (date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
 const fmt = n => "P" + Number(n).toLocaleString("en-PH", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2
@@ -483,7 +490,7 @@ function getWeek(off = 0) {
   }, (_, i) => {
     const d = new Date(mo);
     d.setDate(mo.getDate() + i);
-    return d.toISOString().split("T")[0];
+    return toLocalDateString(d);
   });
 }
 const bC = () => ({
@@ -2619,7 +2626,7 @@ function EodModal({
   const getPrevDate = (dateStr) => {
     const d = parseLocalDate(dateStr);
     d.setDate(d.getDate() - 1);
-    return d.toISOString().split("T")[0];
+    return toLocalDateString(d);
   };
   const prevDate = getPrevDate(date);
   const prevAppts = (schedules[prevDate] || []).filter(a => a.status === "completed");
@@ -4025,7 +4032,7 @@ function MainApp({
     const futureAppts = Object.keys(schedules).flatMap(date =>
       (schedules[date] || []).filter(a =>
         String(a.groomerId) === String(staffId) &&
-        new Date(date) >= new Date()
+        parseLocalDate(date) >= new Date()
       )
     );
 
@@ -4226,7 +4233,7 @@ function MainApp({
   // ── Cash Advance Helpers ──────────────────────────────────────
   const getAdvanceDeductionForPeriod = (adv, periodEnd) => {
     if (adv.status !== "active" || adv.remainingDebt <= 0) return 0;
-    const issued = new Date(adv.dateIssued + "T12:00:00");
+    const issued = parseLocalDate(adv.dateIssued);
     const end = parseLocalDate(periodEnd);
     let totalDue = 0;
     for (let i = 1; ; i++) {
@@ -4472,7 +4479,7 @@ function MainApp({
         const periodEnd = new Date(periodStart);
         periodEnd.setDate(periodEnd.getDate() + 13);
         const key = periodStart.getFullYear() + "-" + String(periodStart.getMonth() + 1).padStart(2, "0") + "-" + String(periodStart.getDate()).padStart(2, "0");
-        const label = fmtD(periodStart.toISOString().split("T")[0]) + " - " + fmtD(periodEnd.toISOString().split("T")[0]);
+        const label = fmtD(toLocalDateString(periodStart)) + " - " + fmtD(toLocalDateString(periodEnd));
         const payment = (ownerFinances.salaryPayments||[]).find(p=>p.period===key);
         periods.push({key, label, payment});
         periodStart.setDate(periodStart.getDate() + 14);
@@ -4485,7 +4492,7 @@ function MainApp({
         const periodEnd = new Date(periodStart);
         periodEnd.setDate(periodEnd.getDate() + 6);
         const key = periodStart.getFullYear() + "-" + String(periodStart.getMonth() + 1).padStart(2, "0") + "-" + String(periodStart.getDate()).padStart(2, "0");
-        const label = fmtD(periodStart.toISOString().split("T")[0]) + " - " + fmtD(periodEnd.toISOString().split("T")[0]);
+        const label = fmtD(toLocalDateString(periodStart)) + " - " + fmtD(toLocalDateString(periodEnd));
         const payment = (ownerFinances.salaryPayments||[]).find(p=>p.period===key);
         periods.push({key, label, payment});
         periodStart.setDate(periodStart.getDate() + 7);
@@ -4703,12 +4710,12 @@ function MainApp({
   const prevDay = () => {
     const d = parseLocalDate(selDate);
     d.setDate(d.getDate() - 1);
-    setSelDate(d.toISOString().split("T")[0]);
+    setSelDate(toLocalDateString(d));
   };
   const nextDay = () => {
     const d = parseLocalDate(selDate);
     d.setDate(d.getDate() + 1);
-    setSelDate(d.toISOString().split("T")[0]);
+    setSelDate(toLocalDateString(d));
   };
   const trkDates = [...new Set([...Object.keys(schedules), ...Object.keys(staffByDate)])].filter(d => d >= trkStart && d <= trkEnd && gSt(d).length > 0).sort().reverse();
   const periodKey = trkStart + "_" + trkEnd;
@@ -5534,7 +5541,7 @@ function MainApp({
         onClick: () => {
           const d = parseLocalDate(todStr);
           d.setDate(d.getDate() + REBOOK_DAYS);
-          const nd = d.toISOString().split("T")[0];
+          const nd = toLocalDateString(d);
           if (isOwner) setSelDate(nd);
           setActA(null);
           setAForm({
@@ -6144,7 +6151,7 @@ function MainApp({
         const prevDateStr = (() => {
           const d = parseLocalDate(selDate);
           d.setDate(d.getDate() - 1);
-          return d.toISOString().split("T")[0];
+          return toLocalDateString(d);
         })();
         const prevCashRev = (schedules[prevDateStr] || [])
           .filter(a => a.status === "completed" && a.paymentMode === "Cash")
