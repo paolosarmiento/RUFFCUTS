@@ -4569,9 +4569,22 @@ function MainApp({
   };
   const exportData = () => {
     try {
+      const now = new Date();
+      const timestamp = now.toLocaleString('en-PH', {
+        timeZone: 'Asia/Manila',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
       const payload = {
-        exportedAt: new Date().toISOString(),
-        appVersion: "ruffcuts-v1",
+        exportedAt: timestamp,
+        exportedAtISO: now.toISOString(),
+        appVersion: "ruffcuts-v1.1-backup",
+        backupType: "full-database-snapshot",
         clients,
         schedules,
         expenses,
@@ -4582,21 +4595,25 @@ function MainApp({
         paymentStatus,
         cashbox,
         balances,
-        ownerFinances
+        ownerFinances,
+        transactionLog: transactionLog || []
       };
       const json = JSON.stringify(payload, null, 2);
       const blob = new Blob([json], {type: "application/json"});
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "ruffcuts-backup-" + tod() + ".json";
+      const dateStr = tod();
+      const timeStr = now.toLocaleTimeString('en-PH', {timeZone: 'Asia/Manila', hour12: false}).replace(/:/g, '-');
+      a.download = `ruffcuts-backup-${dateStr}-${timeStr}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      showToast("Data exported ✓");
+      showToast("✅ Backup saved! Store this file safely in Google Drive or external drive.");
     } catch(e) {
-      showToast("Export failed: " + e.message);
+      showToast("❌ Backup failed: " + e.message);
+      console.error('[BACKUP ERROR]', e);
     }
   };
   const estPayoff = adv => { if (adv.remainingDebt <= 0) return "Fully paid"; const p = Math.ceil(adv.remainingDebt / adv.deductionAmount); const u = adv.frequency === "monthly" ? "mo" : adv.frequency === "biweekly" ? " 2-wk periods" : " wks"; return "~" + p + u + " left"; };
@@ -8821,9 +8838,9 @@ function MainApp({
         style: {
           padding: "7px 14px",
           borderRadius: A.pill,
-          border: "1px solid " + A.g2,
-          background: A.g1,
-          color: A.g4,
+          border: "1px solid #34c759",
+          background: "#34c759",
+          color: "#fff",
           fontFamily: "inherit",
           fontSize: 13,
           fontWeight: 600,
@@ -8833,7 +8850,7 @@ function MainApp({
           alignItems: "center",
           gap: 5
         }
-      }, "⬇ Export"), availYears.map(y => /*#__PURE__*/React.createElement("button", {
+      }, "💾 Backup Data"), availYears.map(y => /*#__PURE__*/React.createElement("button", {
         key: y,
         onClick: () => setAnnualYear(y),
         style: {
