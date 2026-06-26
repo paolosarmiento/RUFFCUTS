@@ -3400,6 +3400,7 @@ function MainApp({
   const [balances, setBalances] = useState(DEF_BAL);
   const [transactionLog, setTransactionLog] = useState([]);
   const [ownerFinances, setOwnerFinances] = useState(DEF_OWN);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [depositModal, setDepositModal] = useState(null);
   const [depositAmt, setDepositAmt] = useState("");
   const [depositNotes, setDepositNotes] = useState("");
@@ -3622,8 +3623,18 @@ function MainApp({
       transactionLog: v => { lastR.current.transactionLog = v; setTransactionLog(v || []); },
       ownerFinances: v => { lastR.current.ownerFinances = v; setOwnerFinances(v || DEF_OWN); },
     };
+    let loadedCount = 0;
+    const totalDocs = Object.keys(setters).length;
     const unsubs = Object.entries(setters).map(([name, setter]) =>
-      onSnapshot(DOCS[name], snap => { setter(snap.exists ? snap.data().data : null); setSync("Synced"); }, () => setSync("Offline"))
+      onSnapshot(DOCS[name], snap => {
+        setter(snap.exists ? snap.data().data : null);
+        loadedCount++;
+        if (loadedCount >= totalDocs) {
+          setDataLoaded(true);
+          console.log('[FIREBASE] All data loaded - saves now enabled');
+        }
+        setSync("Synced");
+      }, () => setSync("Offline"))
     );
     // Monthly schedule collection listener — merges all month docs into schedules state
     const schedUnsub = onSnapshot(SCHED_COL, snap => {
@@ -3644,11 +3655,26 @@ function MainApp({
   const sf = (name, v, r) => {
     if (!DOCS[name] || JSON.stringify(v) === JSON.stringify(r)) return;
 
+    // CRITICAL: Prevent saves before initial Firebase load completes
+    if (!dataLoaded && ["clients", "staffMembers"].includes(name)) {
+      console.warn(`[DATA PROTECTION] Delayed save to ${name}: waiting for Firebase to load`);
+      return;
+    }
+
     // CRITICAL: Data loss protection
     // Prevent overwriting data with smaller/empty datasets
     const isCriticalData = ["clients", "staffMembers", "balances", "schedules", "expenses"].includes(name);
 
     if (isCriticalData) {
+      // ENHANCED: Block saving empty arrays for critical data (prevents cache poisoning)
+      if (Array.isArray(v) && v.length === 0 && ["clients", "staffMembers"].includes(name)) {
+        console.error(`[DATA PROTECTION] BLOCKED: Attempted to save empty ${name} array. This is likely a cache/sync bug.`);
+        const msg = `🚫 BLOCKED: Cannot save empty ${name} list. This prevents accidental data deletion.\n\nIf you intentionally want to delete all ${name}, contact support.`;
+        setSync("🚫 Blocked");
+        alert(msg);
+        return;
+      }
+
       // For arrays: prevent saving if new data has fewer items than what we're replacing
       if (Array.isArray(v) && Array.isArray(r)) {
         const reduction = r.length - v.length;
