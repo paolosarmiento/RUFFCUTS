@@ -3423,6 +3423,8 @@ function MainApp({
   const [confirmModal, setConfirmModal] = useState(null);
   const [toasts, setToasts] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [showReconcile, setShowReconcile] = useState(false);
+  const [reconResult, setReconResult] = useState(null);
   useEffect(() => {
     const bootEl = document.getElementById("boot");
     if (bootEl) bootEl.style.display = "none";
@@ -4661,6 +4663,94 @@ function MainApp({
       console.error('[BACKUP ERROR]', e);
     }
   };
+
+  // ── BALANCE RECONCILIATION TOOL ──────────────────────────────
+  const calculateCorrectBalances = () => {
+    // Calculate what balances SHOULD be based on completed+paid appointments
+    let calculatedCash = 0;
+    let calculatedGCash = 0;
+
+    // Add revenue from all completed+paid appointments
+    Object.values(schedules).flat().forEach(appt => {
+      if (appt.status === "completed" && appt.paymentMode && appt.cost) {
+        const amt = Number(appt.cost);
+        if (appt.paymentMode === "Cash") {
+          calculatedCash += amt;
+        } else if (appt.paymentMode === "GCash") {
+          calculatedGCash += amt;
+        }
+      }
+    });
+
+    // Subtract all expenses
+    Object.values(expenses).flat().forEach(exp => {
+      const amt = Number(exp.amount || 0);
+      const pm = exp.paymentMode || "Cash";
+      if (pm === "Cash") {
+        calculatedCash -= amt;
+      } else if (pm === "GCash") {
+        calculatedGCash -= amt;
+      }
+    });
+
+    // Add deposits (cash/gcash to bank transfers)
+    (balances.deposits || []).forEach(dep => {
+      const amt = Number(dep.amount || 0);
+      if (dep.type === "cash") {
+        calculatedCash -= amt; // Cash moved to bank
+      } else if (dep.type === "gcash") {
+        calculatedGCash -= amt; // GCash moved to bank
+      }
+    });
+
+    return {
+      cash: Math.max(0, calculatedCash),
+      gcash: Math.max(0, calculatedGCash)
+    };
+  };
+
+  const runBalanceReconciliation = () => {
+    const correct = calculateCorrectBalances();
+    const current = {
+      cash: balances.cashOnHand || 0,
+      gcash: balances.gcashBalance || 0
+    };
+
+    setReconResult({
+      current,
+      correct,
+      diff: {
+        cash: correct.cash - current.cash,
+        gcash: correct.gcash - current.gcash
+      }
+    });
+    setShowReconcile(true);
+  };
+
+  const applyBalanceReconciliation = () => {
+    if (!reconResult) return;
+
+    const balanceBefore = {...balances};
+
+    setBalances(prev => ({
+      ...prev,
+      cashOnHand: reconResult.correct.cash,
+      gcashBalance: reconResult.correct.gcash
+    }));
+
+    logTransaction("balance_reconciliation", {
+      oldCash: reconResult.current.cash,
+      newCash: reconResult.correct.cash,
+      oldGCash: reconResult.current.gcash,
+      newGCash: reconResult.correct.gcash,
+      reason: "Reconciled balances from appointment history"
+    }, balanceBefore);
+
+    setShowReconcile(false);
+    setReconResult(null);
+    showToast("✅ Balances reconciled successfully!");
+  };
+
   const estPayoff = adv => { if (adv.remainingDebt <= 0) return "Fully paid"; const p = Math.ceil(adv.remainingDebt / adv.deductionAmount); const u = adv.frequency === "monthly" ? "mo" : adv.frequency === "biweekly" ? " 2-wk periods" : " wks"; return "~" + p + u + " left"; };
   const freqLabel = f => f === "monthly" ? "Monthly" : f === "biweekly" ? "Every 2 weeks" : "Weekly";
   // ─────────────────────────────────────────────────────────────
@@ -9479,13 +9569,57 @@ function MainApp({
             )
           )
         ),
+        showReconcile&&reconResult&&/*#__PURE__*/React.createElement("div", {className:"mdbg",onClick:()=>setShowReconcile(false)},
+          /*#__PURE__*/React.createElement("div", {className:"md",onClick:e=>e.stopPropagation(),style:{maxWidth:500}},
+            /*#__PURE__*/React.createElement("div", {className:"mdh"}),
+            /*#__PURE__*/React.createElement("p", {style:{fontSize:17,fontWeight:700,marginBottom:16}}, "🔍 Balance Reconciliation"),
+            /*#__PURE__*/React.createElement("p", {style:{fontSize:14,color:A.g4,marginBottom:20}}, "This tool recalculates balances from appointment history to fix any discrepancies."),
+            /*#__PURE__*/React.createElement("div", {style:{background:A.g1,borderRadius:12,padding:16,marginBottom:20}},
+              /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between",marginBottom:12,paddingBottom:12,borderBottom:"1px solid "+A.g2}},
+                /*#__PURE__*/React.createElement("span", {style:{fontSize:13,fontWeight:600}}, "Cash on Hand"),
+                /*#__PURE__*/React.createElement("div", {style:{textAlign:"right"}},
+                  /*#__PURE__*/React.createElement("div", {style:{fontSize:13,color:A.g4}}, "Current: "+fmt(reconResult.current.cash)),
+                  /*#__PURE__*/React.createElement("div", {style:{fontSize:14,fontWeight:700,color:reconResult.diff.cash===0?A.ok:A.wn}}, "Correct: "+fmt(reconResult.correct.cash)),
+                  reconResult.diff.cash!==0&&/*#__PURE__*/React.createElement("div", {style:{fontSize:12,color:reconResult.diff.cash>0?A.ok:A.er}}, (reconResult.diff.cash>0?"+":"")+fmt(reconResult.diff.cash))
+                )
+              ),
+              /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between"}},
+                /*#__PURE__*/React.createElement("span", {style:{fontSize:13,fontWeight:600}}, "GCash Balance"),
+                /*#__PURE__*/React.createElement("div", {style:{textAlign:"right"}},
+                  /*#__PURE__*/React.createElement("div", {style:{fontSize:13,color:A.g4}}, "Current: "+fmt(reconResult.current.gcash)),
+                  /*#__PURE__*/React.createElement("div", {style:{fontSize:14,fontWeight:700,color:reconResult.diff.gcash===0?A.ok:A.wn}}, "Correct: "+fmt(reconResult.correct.gcash)),
+                  reconResult.diff.gcash!==0&&/*#__PURE__*/React.createElement("div", {style:{fontSize:12,color:reconResult.diff.gcash>0?A.ok:A.er}}, (reconResult.diff.gcash>0?"+":"")+fmt(reconResult.diff.gcash))
+                )
+              )
+            ),
+            (reconResult.diff.cash===0&&reconResult.diff.gcash===0)
+              ? /*#__PURE__*/React.createElement("div", {style:{textAlign:"center",padding:20}},
+                  /*#__PURE__*/React.createElement("p", {style:{fontSize:16,fontWeight:700,color:A.ok,marginBottom:8}}, "✅ Balances are correct!"),
+                  /*#__PURE__*/React.createElement("p", {style:{fontSize:13,color:A.g4}}, "No discrepancies found."),
+                  /*#__PURE__*/React.createElement(Btn, {style:{marginTop:16},onClick:()=>setShowReconcile(false)}, "Close")
+                )
+              : /*#__PURE__*/React.createElement("div", null,
+                  /*#__PURE__*/React.createElement("div", {style:{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:8,padding:12,marginBottom:16}},
+                    /*#__PURE__*/React.createElement("p", {style:{fontSize:13,fontWeight:600,color:"#856404",marginBottom:4}}, "⚠️ Discrepancy detected"),
+                    /*#__PURE__*/React.createElement("p", {style:{fontSize:12,color:"#856404"}}, "Click 'Apply Fix' to update balances based on appointment history.")
+                  ),
+                  /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:10}},
+                    /*#__PURE__*/React.createElement(Btn, {v:"sec",style:{flex:1},onClick:()=>setShowReconcile(false)}, "Cancel"),
+                    /*#__PURE__*/React.createElement(Btn, {v:"warm",style:{flex:1},onClick:applyBalanceReconciliation}, "Apply Fix")
+                  )
+                )
+          )
+        ),
         /*#__PURE__*/React.createElement("div", {className:"phdr"},
           /*#__PURE__*/React.createElement("div", null,
             /*#__PURE__*/React.createElement("h1", null, "Finances"),
             /*#__PURE__*/React.createElement("p", null, "Balances · Investment · Owner pay")
           )
         ),
-        /*#__PURE__*/React.createElement(Shdr, {c:"Balances",style:{marginBottom:12}}),
+        /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}},
+          /*#__PURE__*/React.createElement(Shdr, {c:"Balances",style:{marginBottom:0}}),
+          isOwner&&/*#__PURE__*/React.createElement("button", {onClick:runBalanceReconciliation,style:{padding:"6px 12px",borderRadius:A.pill,border:"1px solid "+A.wn,background:A.g1,color:A.wn,fontFamily:"inherit",fontSize:12,fontWeight:600,cursor:"pointer",minHeight:"auto",display:"flex",alignItems:"center",gap:5}}, "🔍 Check Balances")
+        ),
         /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap"}},
           /*#__PURE__*/React.createElement(BalCard, {bKey:"cashOnHand",label:"Cash on Hand",color:A.ok,actionLabel:"Deposit to Bank →",onAction:()=>{setDepositAmt(String(balances.cashOnHand||0));setDepositModal("cash");},icon:/*#__PURE__*/React.createElement(IconCash, {size:32,color:A.ok})}),
           /*#__PURE__*/React.createElement(BalCard, {bKey:"gcashBalance",label:"GCash Wallet",color:A.bu,actionLabel:"Transfer to Bank →",onAction:()=>{setDepositAmt(String(balances.gcashBalance||0));setDepositModal("gcash");},icon:/*#__PURE__*/React.createElement(IconPhone, {size:32,color:A.bu})}),
