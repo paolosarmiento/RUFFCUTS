@@ -4215,46 +4215,65 @@ function MainApp({
     });
     if (!newA.length) return;
 
-    // Handle balance changes when editing a completed/paid appointment
-    if (actA && actA.status === "completed" && actA.paymentMode && actA.cost) {
-      // CRITICAL FIX: Find ALL related appointments (same client, time, date) for multi-pet bookings
+    // ENHANCED: Handle balance changes for ALL editing scenarios
+    if (actA) {
+      const balanceBefore = {...balances};
+
+      // Find ALL related appointments (multi-pet bookings)
       const relatedAppts = (schedules[selDate] || []).filter(a =>
         a.clientId === actA.clientId &&
-        a.time === actA.time &&
-        a.status === "completed" &&
-        a.paymentMode
+        a.time === actA.time
       );
 
-      // Calculate TOTAL old amount from ALL related appointments
-      const oldTotal = relatedAppts.reduce((sum, a) => sum + Number(a.cost || 0), 0);
+      // Calculate old total from completed+paid appointments only
+      const oldCompletedPaid = relatedAppts.filter(a => a.status === "completed" && a.paymentMode);
+      const oldTotal = oldCompletedPaid.reduce((sum, a) => sum + Number(a.cost || 0), 0);
+      const oldPaymentMode = actA.paymentMode;
 
-      // Reverse COMPLETE old balance effect (all related appointments)
-      setBalances(prev => {
-        if (actA.paymentMode === "Cash") {
-          return {...prev, cashOnHand: Math.max(0, (prev.cashOnHand || 0) - oldTotal)};
-        } else if (actA.paymentMode === "GCash") {
-          return {...prev, gcashBalance: Math.max(0, (prev.gcashBalance || 0) - oldTotal)};
-        }
-        return prev;
-      });
+      // Calculate new total from completed pets with payment
+      const newCompletedPaid = aForm.pets.filter(p => p.status === "completed");
+      const newTotal = aForm.paymentMode && newCompletedPaid.length > 0
+        ? newCompletedPaid.reduce((sum, p) => sum + Number(p.cost || 0), 0)
+        : 0;
+      const newPaymentMode = aForm.paymentMode;
 
-      // Apply new appointment's balance effect (only for completed pets with payment)
-      if (aForm.paymentMode && aForm.pets.length > 0) {
-        // Calculate total from COMPLETED pets only
-        const newTotal = aForm.pets
-          .filter(p => p.status === "completed")
-          .reduce((sum, p) => sum + Number(p.cost || 0), 0);
+      // Only update balances if there's an actual change
+      if (oldTotal !== newTotal || oldPaymentMode !== newPaymentMode) {
+        setBalances(prev => {
+          let updated = {...prev};
 
-        if (newTotal > 0) {
-          setBalances(prev => {
-            if (aForm.paymentMode === "Cash") {
-              return {...prev, cashOnHand: (prev.cashOnHand || 0) + newTotal};
-            } else if (aForm.paymentMode === "GCash") {
-              return {...prev, gcashBalance: (prev.gcashBalance || 0) + newTotal};
+          // Reverse old balance effect
+          if (oldTotal > 0 && oldPaymentMode) {
+            if (oldPaymentMode === "Cash") {
+              updated.cashOnHand = Math.max(0, (updated.cashOnHand || 0) - oldTotal);
+            } else if (oldPaymentMode === "GCash") {
+              updated.gcashBalance = Math.max(0, (updated.gcashBalance || 0) - oldTotal);
             }
-            return prev;
-          });
-        }
+          }
+
+          // Apply new balance effect
+          if (newTotal > 0 && newPaymentMode) {
+            if (newPaymentMode === "Cash") {
+              updated.cashOnHand = (updated.cashOnHand || 0) + newTotal;
+            } else if (newPaymentMode === "GCash") {
+              updated.gcashBalance = (updated.gcashBalance || 0) + newTotal;
+            }
+          }
+
+          return updated;
+        });
+
+        // Log balance change for audit
+        logTransaction("appointment_edit_balance_change", {
+          appointmentId: actA.id,
+          petName: actA.petName,
+          clientName: actA.clientName,
+          oldPaymentMode,
+          newPaymentMode,
+          oldTotal,
+          newTotal,
+          date: selDate
+        }, balanceBefore);
       }
     }
 
