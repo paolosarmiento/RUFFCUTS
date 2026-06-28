@@ -10460,19 +10460,19 @@ function App() {
     setLoggedInStaff(acc);
   };
 
-  // ISOLATION TEST #1: Bypass password loading to test if it's blocking startup
-  // if (!passwordsLoaded) {
-  //   return /*#__PURE__*/React.createElement("div", {
-  //     style: {
-  //       display: "flex",
-  //       alignItems: "center",
-  //       justifyContent: "center",
-  //       height: "100vh",
-  //       background: "#000",
-  //       color: "#fff"
-  //     }
-  //   }, "Loading...");
-  // }
+  // Wait for passwords to load before showing login screen
+  if (!passwordsLoaded) {
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        height: "100vh",
+        background: "#000",
+        color: "#fff"
+      }
+    }, "Loading...");
+  }
 
   if (!role) return /*#__PURE__*/React.createElement(LoginScreen, {
     ownerPass: ownerPass,
