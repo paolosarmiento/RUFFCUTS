@@ -571,7 +571,10 @@ const bA = (d = "") => ({
     notes: "",
     status: "en-route",
     groomerId: ""
-  }]
+  }],
+  isRecurring: false,
+  recurringFrequency: "weekly",
+  recurringEndDate: null
 });
 const aColor = svc => {
   if (!svc) return {
@@ -2294,6 +2297,7 @@ function ApptForm({
   services,
   staffOnDuty,
   lastVisitData,
+  isOwner,
   onSave,
   onClose
 }) {
@@ -4282,6 +4286,32 @@ function MainApp({
       }
     }
 
+    // Handle recurring appointment creation
+    if (!actA && aForm.isRecurring) {
+      const cl = clients.find(c => c.id === Number(aForm.clientId));
+      createRecurringSchedule({
+        clientId: Number(aForm.clientId),
+        clientName: cl ? cl.name : "",
+        pets: newA.map(appt => ({
+          petId: appt.petId,
+          petName: appt.petName,
+          breed: appt.breed,
+          service: appt.service,
+          cost: appt.cost
+        })),
+        time: aForm.time,
+        duration: aForm.duration || 60,
+        groomerId: newA[0].groomerId || null,
+        frequency: aForm.recurringFrequency || "weekly",
+        startDate: targetDate,
+        endDate: aForm.recurringEndDate || null
+      });
+      setAForm(bA(selDate));
+      setActA(null);
+      setShowAForm(false);
+      return;
+    }
+
     setSchedules(prev => {
       // CRITICAL FIX: Remove ALL related appointments (multi-pet bookings), not just actA
       const withoutOld = actA ? {
@@ -5220,6 +5250,7 @@ function MainApp({
     services: services,
     staffOnDuty: dSt,
     lastVisitData: lastVisitData,
+    isOwner: isOwner,
     onSave: saveA,
     onClose: () => {
       setShowAForm(false);
