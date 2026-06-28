@@ -203,7 +203,7 @@ try {
   db = firebase.firestore(app);
   db.enablePersistence({synchronizeTabs: true}).catch(() => {});
 
-  ["clients","schedules","expenses","services","staffByDate","staffMembers","paymentStatus","cashbox","cashAdvances","balances","ownerFinances","passwords","transactionLog"].forEach(n=>{
+  ["clients","schedules","expenses","services","staffByDate","staffMembers","paymentStatus","cashbox","cashAdvances","balances","ownerFinances","passwords","transactionLog","recurringSchedules"].forEach(n=>{
     DOCS[n] = db.collection("ruffcuts").doc(n);
   });
   DOCS._legacy = db.collection("ruffcuts").doc("appdata");
@@ -3425,6 +3425,8 @@ function MainApp({
   const [isSaving, setIsSaving] = useState(false);
   const [showReconcile, setShowReconcile] = useState(false);
   const [reconResult, setReconResult] = useState(null);
+  const [recurringSchedules, setRecurringSchedules] = useState([]);
+  const [showRecurringPrompt, setShowRecurringPrompt] = useState(null); // {type: "edit"|"delete", appt, date}
   useEffect(() => {
     const bootEl = document.getElementById("boot");
     if (bootEl) bootEl.style.display = "none";
@@ -3624,6 +3626,7 @@ function MainApp({
       balances: v => { lastR.current.balances = v; setBalances(v || DEF_BAL); },
       transactionLog: v => { lastR.current.transactionLog = v; setTransactionLog(v || []); },
       ownerFinances: v => { lastR.current.ownerFinances = v; setOwnerFinances(v || DEF_OWN); },
+      recurringSchedules: v => { lastR.current.recurringSchedules = v; setRecurringSchedules(v || []); },
     };
     let loadedCount = 0;
     const totalDocs = Object.keys(setters).length;
@@ -4753,6 +4756,147 @@ function MainApp({
 
   const estPayoff = adv => { if (adv.remainingDebt <= 0) return "Fully paid"; const p = Math.ceil(adv.remainingDebt / adv.deductionAmount); const u = adv.frequency === "monthly" ? "mo" : adv.frequency === "biweekly" ? " 2-wk periods" : " wks"; return "~" + p + u + " left"; };
   const freqLabel = f => f === "monthly" ? "Monthly" : f === "biweekly" ? "Every 2 weeks" : "Weekly";
+
+  // ── RECURRING SCHEDULES ───────────────────────────────────────
+  const generateRecurringAppointments = (recSchedule, weeksAhead = 12) => {
+    const generated = [];
+    const start = parseLocalDate(recSchedule.startDate);
+    const today = new Date();
+    const endDate = new Date(today);
+    endDate.setDate(endDate.getDate() + (weeksAhead * 7));
+
+    let currentDate = new Date(start);
+    let count = 0;
+    const maxIterations = 100; // Safety limit
+
+    while (currentDate <= endDate && count < maxIterations) {
+      const dateStr = toLocalDateString(currentDate);
+
+      // Check if appointment already exists for this date/client/time
+      const existing = (schedules[dateStr] || []).find(a =>
+        a.clientId === recSchedule.clientId &&
+        a.time === recSchedule.time &&
+        !a.recurringScheduleId // Don't match other recurring appointments
+      );
+
+      if (!existing && currentDate >= today) {
+        // Generate appointments for all pets in the recurring schedule
+        recSchedule.pets.forEach(pet => {
+          generated.push({
+            id: Date.now() + Math.random(),
+            clientId: recSchedule.clientId,
+            clientName: recSchedule.clientName,
+            petId: pet.petId,
+            petName: pet.petName,
+            breed: pet.breed || "",
+            service: pet.service,
+            cost: pet.cost,
+            time: recSchedule.time,
+            duration: recSchedule.duration || 60,
+            groomerId: recSchedule.groomerId || null,
+            paymentMode: "",
+            status: "pending",
+            notes: "",
+            recurringScheduleId: recSchedule.id,
+            isRecurring: true,
+            date: dateStr
+          });
+        });
+      }
+
+      // Move to next occurrence based on frequency
+      if (recSchedule.frequency === "weekly") {
+        currentDate.setDate(currentDate.getDate() + 7);
+      } else if (recSchedule.frequency === "biweekly") {
+        currentDate.setDate(currentDate.getDate() + 14);
+      } else if (recSchedule.frequency === "monthly") {
+        currentDate.setMonth(currentDate.getMonth() + 1);
+      }
+
+      count++;
+    }
+
+    return generated;
+  };
+
+  const saveRecurringAppointments = (appointments) => {
+    const byDate = {};
+    appointments.forEach(appt => {
+      const date = appt.date;
+      delete appt.date; // Remove temporary date field
+      if (!byDate[date]) byDate[date] = [];
+      byDate[date].push(appt);
+    });
+
+    setSchedules(prev => {
+      const updated = {...prev};
+      Object.entries(byDate).forEach(([date, appts]) => {
+        updated[date] = [...(updated[date] || []), ...appts].sort((a, b) =>
+          (a.time || "").localeCompare(b.time || "")
+        );
+      });
+      return updated;
+    });
+  };
+
+  const createRecurringSchedule = (formData) => {
+    const newSchedule = {
+      id: Date.now(),
+      clientId: formData.clientId,
+      clientName: formData.clientName,
+      pets: formData.pets, // [{petId, petName, breed, service, cost}]
+      time: formData.time,
+      duration: formData.duration || 60,
+      groomerId: formData.groomerId || null,
+      frequency: formData.frequency, // "weekly" | "biweekly" | "monthly"
+      startDate: formData.startDate,
+      dayOfWeek: parseLocalDate(formData.startDate).getDay(),
+      status: "active",
+      endDate: formData.endDate || null,
+      createdAt: new Date().toISOString(),
+      createdBy: role === "owner" ? "Owner" : (loggedInStaff ? loggedInStaff.name : "Unknown")
+    };
+
+    // Generate initial 12 weeks of appointments
+    const appointments = generateRecurringAppointments(newSchedule, 12);
+
+    // Save recurring schedule template
+    setRecurringSchedules(prev => [...prev, newSchedule]);
+
+    // Save generated appointments
+    saveRecurringAppointments(appointments);
+
+    const freqText = newSchedule.frequency === "weekly" ? "Weekly" :
+                     newSchedule.frequency === "biweekly" ? "Bi-weekly" : "Monthly";
+    showToast(`✅ ${freqText} recurring schedule created! Generated ${appointments.length} appointments.`);
+  };
+
+  const endRecurringSchedule = (scheduleId) => {
+    // Mark schedule as ended
+    setRecurringSchedules(prev => prev.map(s =>
+      s.id === scheduleId ? {...s, status: "ended", endDate: tod()} : s
+    ));
+
+    // Cancel all future appointments from this series
+    setSchedules(prev => {
+      const updated = {};
+      Object.entries(prev).forEach(([date, appts]) => {
+        if (date >= tod()) {
+          updated[date] = appts.map(a =>
+            a.recurringScheduleId === scheduleId && a.status === "pending"
+              ? {...a, status: "cancelled"}
+              : a
+          );
+        } else {
+          updated[date] = appts;
+        }
+      });
+      return updated;
+    });
+
+    showToast("Recurring schedule ended. Future appointments cancelled.");
+  };
+
   // ─────────────────────────────────────────────────────────────
   const delA = (d, id) => setSchedules(prev => ({
     ...prev,
