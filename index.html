@@ -3706,15 +3706,24 @@ function MainApp({
         return;
       }
 
-      // For arrays: prevent saving if new data has fewer items than what we're replacing
+      // For arrays: prevent saving if new data has MANY fewer items (indicates tab sync conflict)
+      // Allow single-item deletions (normal user action) but block mass deletions (likely bugs)
       if (Array.isArray(v) && Array.isArray(r)) {
         const reduction = r.length - v.length;
-        if (reduction > 0) {
+        const reductionPct = r.length > 0 ? (reduction / r.length) * 100 : 0;
+
+        // Block if losing >25% of data OR losing >3 items at once (likely not intentional)
+        if (reduction > 3 || reductionPct > 25) {
           console.error(`[DATA PROTECTION] Blocked save to ${name}: would delete ${reduction} items (had ${r.length}, trying to save ${v.length})`);
           const msg = `⚠️ BLOCKED: Attempted to save ${name} with ${reduction} fewer items. This could be data loss from tab sync conflict. Close other tabs and refresh.`;
           setSync("⚠️ Blocked");
           alert(msg);
           return;
+        }
+
+        // Log single deletions for audit (allowed but tracked)
+        if (reduction > 0) {
+          console.log(`[DATA PROTECTION] Allowed deletion of ${reduction} ${name} item(s)`);
         }
       }
 
