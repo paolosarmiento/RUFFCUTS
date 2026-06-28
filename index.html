@@ -5156,16 +5156,16 @@ function MainApp({
   const salByStaff = {};
   trkDates.forEach(d => {
     gSt(d).forEach(s => {
-      const salId = s.staffId || s.name;
+      const salId = s.staffMemberId || s.staffId || s.name;
       if (!salByStaff[salId]) salByStaff[salId] = {
         name: s.name,
-        staffId: s.staffId,
+        staffId: s.staffMemberId || s.staffId,
         designation: s.designation || "",
         days: 0,
         total: 0,
         dates: []
       };
-      const member = staffMembers.find(m => m.id === s.staffId);
+      const member = staffMembers.find(m => m.id === (s.staffMemberId || s.staffId));
       const rate = member && member.dailySalary ? Number(member.dailySalary) : DEFAULT_DAILY_SALARY;
       salByStaff[salId].days++;
       salByStaff[salId].total += rate;
