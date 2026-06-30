@@ -3730,7 +3730,8 @@ function MainApp({
         const reductionPct = r.length > 0 ? (reduction / r.length) * 100 : 0;
 
         // Block if losing >25% of data OR losing >3 items at once (likely not intentional)
-        if (reduction > 3 || reductionPct > 25) {
+        // EXCEPTION: Small datasets (≤5 items) allow any deletion (small team/client operations)
+        if ((reduction > 3 || reductionPct > 25) && r.length > 5) {
           console.error(`[DATA PROTECTION] Blocked save to ${name}: would delete ${reduction} items (had ${r.length}, trying to save ${v.length})`);
           const msg = `⚠️ BLOCKED: Attempted to save ${name} with ${reduction} fewer items. This could be data loss from tab sync conflict. Close other tabs and refresh.`;
           setSync("⚠️ Blocked");
