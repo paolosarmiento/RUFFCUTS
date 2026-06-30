@@ -4208,7 +4208,7 @@ function MainApp({
     setStaffByDate(prev => {
       const updated = {...prev};
       Object.keys(updated).forEach(date => {
-        updated[date] = (updated[date] || []).filter(s => s.staffId !== staffId);
+        updated[date] = (updated[date] || []).filter(s => s.staffMemberId !== staffId && s.staffId !== staffId);
       });
       return updated;
     });
