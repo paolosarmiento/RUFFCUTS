@@ -201,7 +201,8 @@ try {
   };
   const app = firebase.apps.length === 0 ? firebase.initializeApp(cfg) : firebase.apps[0];
   db = firebase.firestore(app);
-  db.enablePersistence({synchronizeTabs: false}).catch(() => {});
+  // Offline persistence disabled - always fetch fresh data from server
+  // Prevents stale cache causing data loss/conflicts across devices
 
   ["clients","schedules","expenses","services","staffByDate","staffMembers","paymentStatus","cashbox","cashAdvances","balances","ownerFinances","passwords","transactionLog","recurringSchedules"].forEach(n=>{
     DOCS[n] = db.collection("ruffcuts").doc(n);
