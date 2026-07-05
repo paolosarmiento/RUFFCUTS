@@ -8416,7 +8416,7 @@ function MainApp({
         style: {
           fontSize: 14
         }
-      }, "Add your first member above.")), staffMembers.map(sm => {
+      }, "Add your first member above.")), console.log('[STAFF RENDER] Rendering', staffMembers.length, 'staff:', staffMembers.map(s => s.name + ' (ID:' + s.id + ')')) || staffMembers.map(sm => {
         const presentDates = monthDates.filter(d => gSt(d).some(s => s.staffId === sm.id));
         return /*#__PURE__*/React.createElement("div", {
           key: sm.id,
