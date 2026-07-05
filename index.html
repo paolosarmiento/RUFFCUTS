@@ -3746,19 +3746,19 @@ function MainApp({
         }
       }
 
-      // For objects (balances): prevent saving if critical fields are missing or zero when they were positive
+      // Balance protection: Check TOTAL money doesn't disappear (transfers between fields allowed)
       if (name === "balances" && r && v) {
         const criticalFields = ["cashOnHand", "gcashBalance", "bankBalance"];
-        for (const field of criticalFields) {
-          const oldVal = Number(r[field] || 0);
-          const newVal = Number(v[field] || 0);
-          if (oldVal > 100 && newVal === 0) {
-            console.error(`[DATA PROTECTION] Blocked save to balances: ${field} dropped from ${oldVal} to 0`);
-            const msg = `⚠️ BLOCKED: ${field} would be reset to zero (was ₱${oldVal.toLocaleString()}). Potential tab sync conflict.`;
-            setSync("⚠️ Blocked");
-            alert(msg);
-            return;
-          }
+        const totalBefore = criticalFields.reduce((sum, f) => sum + Number(r[f] || 0), 0);
+        const totalAfter = criticalFields.reduce((sum, f) => sum + Number(v[f] || 0), 0);
+
+        // Only block if TOTAL money decreased by >50% (actual money loss, not transfers)
+        if (totalBefore > 1000 && totalAfter < totalBefore * 0.5) {
+          console.error(`[DATA PROTECTION] Blocked: Total balance dropped from ₱${totalBefore} to ₱${totalAfter}`);
+          const msg = `⚠️ BLOCKED: Total money decreased from ₱${totalBefore.toLocaleString()} to ₱${totalAfter.toLocaleString()}. Possible data loss.`;
+          setSync("⚠️ Blocked");
+          alert(msg);
+          return;
         }
       }
 
