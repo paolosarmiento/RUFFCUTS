@@ -3746,22 +3746,6 @@ function MainApp({
         }
       }
 
-      // Balance protection: Check TOTAL money doesn't disappear (transfers between fields allowed)
-      if (name === "balances" && r && v) {
-        const criticalFields = ["cashOnHand", "gcashBalance", "bankBalance"];
-        const totalBefore = criticalFields.reduce((sum, f) => sum + Number(r[f] || 0), 0);
-        const totalAfter = criticalFields.reduce((sum, f) => sum + Number(v[f] || 0), 0);
-
-        // Only block if TOTAL money decreased by >50% (actual money loss, not transfers)
-        if (totalBefore > 1000 && totalAfter < totalBefore * 0.5) {
-          console.error(`[DATA PROTECTION] Blocked: Total balance dropped from ₱${totalBefore} to ₱${totalAfter}`);
-          const msg = `⚠️ BLOCKED: Total money decreased from ₱${totalBefore.toLocaleString()} to ₱${totalAfter.toLocaleString()}. Possible data loss.`;
-          setSync("⚠️ Blocked");
-          alert(msg);
-          return;
-        }
-      }
-
       // Log all critical data saves for audit trail
       console.log(`[DATA SAVE] ${name}:`, Array.isArray(v) ? `${v.length} items` : 'object', new Date().toISOString());
     }
