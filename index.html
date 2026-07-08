@@ -3817,6 +3817,14 @@ function MainApp({
   useEffect(() => {
     const t = setTimeout(() => {
       if (!db || !SCHED_COL) return;
+
+      // CRITICAL: Don't save schedules until Firebase data has loaded
+      // Prevents race condition where empty state overwrites real data
+      if (!dataLoaded) {
+        console.warn('[DATA PROTECTION] Delaying schedule save: waiting for Firebase to load');
+        return;
+      }
+
       const byMonth = {};
       Object.entries(schedules).forEach(([date, appts]) => {
         const m = date.substring(0, 7);
@@ -3830,8 +3838,20 @@ function MainApp({
         }
       });
       // Delete month docs whose appointments were all removed
+      // SAFETY: Never delete months if schedules state is empty or data not loaded
+      // This prevents race conditions from wiping all appointment data
       Object.keys(prev).forEach(m => {
-        if (!byMonth[m]) deleteDoc(doc(SCHED_COL, m)).catch(() => {});
+        if (!byMonth[m]) {
+          const totalDates = Object.keys(schedules).length;
+
+          // Only delete if we have OTHER month data loaded (proves state is valid)
+          if (dataLoaded && totalDates > 0) {
+            console.log(`[CLEANUP] Deleting empty month: ${m}`);
+            deleteDoc(doc(SCHED_COL, m)).catch(() => {});
+          } else {
+            console.warn(`[PROTECTION] Skipped deleting month ${m} - schedules state may be incomplete (loaded: ${dataLoaded}, dates: ${totalDates})`);
+          }
+        }
       });
       lastR.current.schedulesByMonth = byMonth;
     }, SYNC_DEBOUNCE_MS);
