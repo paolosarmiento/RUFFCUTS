@@ -3862,11 +3862,23 @@ function MainApp({
     return () => clearTimeout(t);
   }, [expenses]);
   useEffect(() => {
-    const t = setTimeout(() => sf("services", services, lastR.current.services), SYNC_DEBOUNCE_MS);
+    const t = setTimeout(() => {
+      if (!dataLoaded) {
+        console.warn('[DATA PROTECTION] Delaying services save: waiting for Firebase to load');
+        return;
+      }
+      sf("services", services, lastR.current.services);
+    }, SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [services]);
   useEffect(() => {
-    const t = setTimeout(() => sf("staffByDate", staffByDate, lastR.current.staffByDate), SYNC_DEBOUNCE_MS);
+    const t = setTimeout(() => {
+      if (!dataLoaded) {
+        console.warn('[DATA PROTECTION] Delaying staffByDate save: waiting for Firebase to load');
+        return;
+      }
+      sf("staffByDate", staffByDate, lastR.current.staffByDate);
+    }, SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [staffByDate]);
   useEffect(() => {
@@ -3886,7 +3898,13 @@ function MainApp({
     return () => clearTimeout(t);
   }, [cashAdvances]);
   useEffect(() => {
-    const t = setTimeout(() => sf("balances", balances, lastR.current.balances), SYNC_DEBOUNCE_MS);
+    const t = setTimeout(() => {
+      if (!dataLoaded) {
+        console.warn('[DATA PROTECTION] Delaying balances save: waiting for Firebase to load');
+        return;
+      }
+      sf("balances", balances, lastR.current.balances);
+    }, SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [balances]);
   useEffect(() => {
