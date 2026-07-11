@@ -3673,15 +3673,25 @@ function MainApp({
       recurringSchedules: v => { lastR.current.recurringSchedules = v; setRecurringSchedules(v || []); },
     };
     let loadedCount = 0;
-    const totalDocs = Object.keys(setters).length;
+    // CRITICAL: totalDocs includes the schedules collection (+1) so dataLoaded
+    // cannot flip true until the schedules listener has also delivered its first
+    // snapshot. Previously dataLoaded only tracked the named singleton docs, so a
+    // booking made before schedUnsub's first snapshot arrived could trigger a
+    // save with an empty/partial `schedules` state, which the schedule save
+    // effect (setDoc, not merge) would use to overwrite the entire month's
+    // Firestore doc — silently deleting every other appointment that month.
+    const totalDocs = Object.keys(setters).length + 1;
+    const checkAllLoaded = () => {
+      if (loadedCount >= totalDocs) {
+        setDataLoaded(true);
+        console.log('[FIREBASE] All data loaded - saves now enabled');
+      }
+    };
     const unsubs = Object.entries(setters).map(([name, setter]) =>
       onSnapshot(DOCS[name], snap => {
         setter(snap.exists ? snap.data().data : null);
         loadedCount++;
-        if (loadedCount >= totalDocs) {
-          setDataLoaded(true);
-          console.log('[FIREBASE] All data loaded - saves now enabled');
-        }
+        checkAllLoaded();
         setSync("Synced");
       }, () => setSync("Offline"))
     );
@@ -3697,6 +3707,8 @@ function MainApp({
       lastR.current.schedules = merged;
       lastR.current.schedulesByMonth = byMonth;
       setSchedules(merged);
+      loadedCount++;
+      checkAllLoaded();
       setSync("Synced");
     }, () => setSync("Offline"));
     return () => { unsubs.forEach(u => u()); schedUnsub(); };
@@ -3831,9 +3843,24 @@ function MainApp({
         if (!byMonth[m]) byMonth[m] = {};
         byMonth[m][date] = appts;
       });
+      const apptCount = monthData => Object.values(monthData || {}).reduce((n, appts) => n + (Array.isArray(appts) ? appts.length : 0), 0);
       const prev = lastR.current.schedulesByMonth || {};
       Object.entries(byMonth).forEach(([m, data]) => {
         if (JSON.stringify(data) !== JSON.stringify(prev[m])) {
+          // CRITICAL: Block overwrites that would drop a large chunk of a month's
+          // appointments at once (mirrors the array reduction guard used for
+          // clients/staffMembers in sf()). A legitimate save should only ever
+          // remove the handful of appointments the user actually deleted.
+          const oldCount = apptCount(prev[m]);
+          const newCount = apptCount(data);
+          const reduction = oldCount - newCount;
+          const reductionPct = oldCount > 0 ? (reduction / oldCount) * 100 : 0;
+          if (oldCount > 5 && (reduction > 3 || reductionPct > 25)) {
+            console.error(`[DATA PROTECTION] Blocked schedule save for ${m}: would drop ${reduction} of ${oldCount} appointments (had ${oldCount}, trying to save ${newCount})`);
+            alert(`⚠️ BLOCKED: A save tried to remove ${reduction} appointments from ${m} at once. This looks like a sync issue, not an intentional bulk delete. Please refresh the page before making further changes.`);
+            setSync("⚠️ Blocked");
+            return;
+          }
           setDoc(doc(SCHED_COL, m), {data}).then(() => setSync("Synced")).catch(() => setSync("Error"));
         }
       });
