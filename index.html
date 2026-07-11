@@ -3942,6 +3942,14 @@ function MainApp({
     const t = setTimeout(() => sf("ownerFinances", ownerFinances, lastR.current.ownerFinances), SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [ownerFinances]);
+  useEffect(() => {
+    const t = setTimeout(() => sf("recurringSchedules", recurringSchedules, lastR.current.recurringSchedules), SYNC_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [recurringSchedules]);
+  useEffect(() => {
+    const t = setTimeout(() => sf("transactionLog", transactionLog, lastR.current.transactionLog), SYNC_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [transactionLog]);
 
   // CRITICAL FIX #10: Warn before closing with unsaved changes
   useEffect(() => {
