@@ -1653,6 +1653,17 @@ function ExpTable({
     const c = ef.cat === "Other" ? ef.custCat : ef.cat;
     const a = Number(ef.amt);
     if (!c || !a) return;
+    // Keep balances in step with the amount change: adding an expense deducts
+    // from the balance and deleting refunds it, so editing must apply the
+    // difference — otherwise cash/GCash drifts from reality on every edit.
+    const oldAmt = Number(e.amount || 0);
+    const pm = e.paymentMode || "Cash";
+    const diff = a - oldAmt;
+    if (diff !== 0) {
+      setBalances(prev => pm === "Cash"
+        ? {...prev, cashOnHand: Math.max(0, (prev.cashOnHand || 0) - diff)}
+        : {...prev, gcashBalance: Math.max(0, (prev.gcashBalance || 0) - diff)});
+    }
     setExpenses(prev => {
       const w = {
         ...prev,
@@ -1665,7 +1676,11 @@ function ExpTable({
           category: c,
           amount: a,
           cashbox: e.cashbox || false,
-          notes: e.notes || ""
+          notes: e.notes || "",
+          // Preserve the payment mode so a later delete refunds the right
+          // balance (previously dropped here, making every edited expense
+          // refund to Cash even if paid via GCash)
+          paymentMode: pm
         }]
       };
     });
