@@ -4635,11 +4635,17 @@ function MainApp({
     return balances;
   };
   const deleteDeposit = (depositId) => {
-    setBalances(prev => ({
-      ...prev,
-      deposits: (prev.deposits || []).filter(d => d.id !== depositId)
-    }));
-    showToast("Deposit removed");
+    // Reverse the transfer, not just the record: recording a deposit moves
+    // money between balances (e.g. cash → bank), and editing one reverses the
+    // old effect before applying the new — deleting must reverse it too,
+    // otherwise the money stays moved with no deposit record explaining why.
+    setBalances(prev => {
+      const dep = (prev.deposits || []).find(d => d.id === depositId);
+      if (!dep) return prev;
+      const reversed = reverseDepositEffect(prev, dep);
+      return {...reversed, deposits: (prev.deposits || []).filter(d => d.id !== depositId)};
+    });
+    showToast("Deposit removed — balances restored");
   };
   const startEditDeposit = (deposit) => {
     setEditDepositId(deposit.id);
