@@ -3510,7 +3510,7 @@ function MainApp({
   const closeConfirm = () => setConfirmModal(null);
 
   // ── Transaction Audit Log ──────────────────────────────────────
-  const logTransaction = (type, details, balanceChange = null) => {
+  const logTransaction = (type, details, balanceBefore = null, balanceAfter = null) => {
     const log = {
       id: Date.now() + Math.random(),
       // Use Manila timezone for audit trail (not UTC)
@@ -3527,8 +3527,14 @@ function MainApp({
       user: role === "owner" ? "Owner" : (loggedInStaff ? loggedInStaff.name : "Unknown"),
       type: type,
       details: details,
-      balanceBefore: balanceChange ? {...balances} : null,
-      balanceAfter: balanceChange || null
+      // Callers snapshot balances BEFORE their setBalances call and pass that
+      // snapshot as the 3rd arg. The post-change state is not observable here
+      // synchronously (setBalances hasn't applied yet), so balanceAfter is
+      // only recorded when a caller supplies it explicitly — never guessed
+      // from the stale closure, which previously put the before-value in
+      // both fields.
+      balanceBefore: balanceBefore ? {...balanceBefore} : null,
+      balanceAfter: balanceAfter ? {...balanceAfter} : null
     };
     setTransactionLog(prev => [log, ...prev].slice(0, 1000)); // Keep last 1000 transactions
   };
