@@ -3672,17 +3672,17 @@ function MainApp({
       ownerFinances: v => { lastR.current.ownerFinances = v; setOwnerFinances(v || DEF_OWN); },
       recurringSchedules: v => { lastR.current.recurringSchedules = v; setRecurringSchedules(v || []); },
     };
-    let loadedCount = 0;
-    // CRITICAL: totalDocs includes the schedules collection (+1) so dataLoaded
-    // cannot flip true until the schedules listener has also delivered its first
-    // snapshot. Previously dataLoaded only tracked the named singleton docs, so a
-    // booking made before schedUnsub's first snapshot arrived could trigger a
-    // save with an empty/partial `schedules` state, which the schedule save
-    // effect (setDoc, not merge) would use to overwrite the entire month's
-    // Firestore doc — silently deleting every other appointment that month.
-    const totalDocs = Object.keys(setters).length + 1;
-    const checkAllLoaded = () => {
-      if (loadedCount >= totalDocs) {
+    // CRITICAL: dataLoaded must not flip true until EVERY document (including
+    // the schedules collection) has delivered its first snapshot. A plain
+    // counter is not safe here: local writes and the startup migrations can
+    // make one doc fire multiple snapshots, inflating the count past the
+    // threshold while other docs are still loading. Track distinct doc names
+    // instead, so each document only counts once no matter how often it fires.
+    const loadedDocs = new Set();
+    const totalDocs = Object.keys(setters).length + 1; // +1 = schedules collection
+    const markLoaded = name => {
+      loadedDocs.add(name);
+      if (loadedDocs.size >= totalDocs) {
         setDataLoaded(true);
         console.log('[FIREBASE] All data loaded - saves now enabled');
       }
@@ -3690,8 +3690,7 @@ function MainApp({
     const unsubs = Object.entries(setters).map(([name, setter]) =>
       onSnapshot(DOCS[name], snap => {
         setter(snap.exists ? snap.data().data : null);
-        loadedCount++;
-        checkAllLoaded();
+        markLoaded(name);
         setSync("Synced");
       }, () => setSync("Offline"))
     );
@@ -3707,8 +3706,7 @@ function MainApp({
       lastR.current.schedules = merged;
       lastR.current.schedulesByMonth = byMonth;
       setSchedules(merged);
-      loadedCount++;
-      checkAllLoaded();
+      markLoaded("_schedulesCollection");
       setSync("Synced");
     }, () => setSync("Offline"));
     return () => { unsubs.forEach(u => u()); schedUnsub(); };
@@ -3716,8 +3714,14 @@ function MainApp({
   const sf = (name, v, r) => {
     if (!DOCS[name] || JSON.stringify(v) === JSON.stringify(r)) return;
 
-    // CRITICAL: Prevent saves before initial Firebase load completes
-    if (!dataLoaded && ["clients", "staffMembers"].includes(name)) {
+    // CRITICAL: Prevent saves before initial Firebase load completes.
+    // Applies to ALL data types: on mount every save effect fires with the
+    // initial empty/default state, and if Firebase's first snapshot takes
+    // longer than SYNC_DEBOUNCE_MS that empty state would overwrite the real
+    // data (this exact race wiped balances before it was gated). Gating all
+    // types is safe now that dataLoaded tracks distinct docs — it reliably
+    // becomes true once every listener has delivered its first snapshot.
+    if (!dataLoaded) {
       console.warn(`[DATA PROTECTION] Delayed save to ${name}: waiting for Firebase to load`);
       return;
     }
