@@ -3683,19 +3683,34 @@ function MainApp({
         }
       }
     }).catch(() => {});
+    // RC-001 hardening: manual Firebase Console edits can store an array as a
+    // keyed map ({0: {...}, 1: {...}}) or drop the `data` nesting entirely.
+    // Array-typed docs must coerce maps back to arrays, otherwise the setter
+    // silently replaces real data with [] and the UI shows e.g. "No staff
+    // members yet" while the doc looks fine in the Console.
+    const asArray = (v, name) => {
+      if (v == null) return null;
+      if (Array.isArray(v)) return v;
+      if (typeof v === "object") {
+        console.error(`[LOAD] ${name} is stored as an object, not an array (manual Console edit?) — recovering items via Object.values`);
+        return Object.values(v);
+      }
+      console.error(`[LOAD] ${name} has unexpected type ${typeof v} — treating as empty`);
+      return null;
+    };
     const setters = {
-      clients: v => { lastR.current.clients = v; setClients(v || []); },
+      clients: v => { const a = asArray(v, "clients"); lastR.current.clients = a; setClients(a || []); },
       expenses: v => { lastR.current.expenses = v; if (v) setExpenses(v); },
-      services: v => { lastR.current.services = v; setServices(v || DEF_SVC); },
+      services: v => { const a = asArray(v, "services"); lastR.current.services = a; setServices(a || DEF_SVC); },
       staffByDate: v => { lastR.current.staffByDate = v; if (v) setStaffByDate(v); },
-      staffMembers: v => { lastR.current.staffMembers = v; setStaffMembers(v || []); },
+      staffMembers: v => { const a = asArray(v, "staffMembers"); lastR.current.staffMembers = a; setStaffMembers(a || []); },
       paymentStatus: v => { lastR.current.paymentStatus = v; setPaymentStatus(v || {}); },
       cashbox: v => { lastR.current.cashbox = v; setCashbox(v || {}); },
-      cashAdvances: v => { lastR.current.cashAdvances = v; setCashAdvances(v || []); },
+      cashAdvances: v => { const a = asArray(v, "cashAdvances"); lastR.current.cashAdvances = a; setCashAdvances(a || []); },
       balances: v => { lastR.current.balances = v; setBalances(v || DEF_BAL); },
-      transactionLog: v => { lastR.current.transactionLog = v; setTransactionLog(v || []); },
+      transactionLog: v => { const a = asArray(v, "transactionLog"); lastR.current.transactionLog = a; setTransactionLog(a || []); },
       ownerFinances: v => { lastR.current.ownerFinances = v; setOwnerFinances(v || DEF_OWN); },
-      recurringSchedules: v => { lastR.current.recurringSchedules = v; setRecurringSchedules(v || []); },
+      recurringSchedules: v => { const a = asArray(v, "recurringSchedules"); lastR.current.recurringSchedules = a; setRecurringSchedules(a || []); },
     };
     // CRITICAL: dataLoaded must not flip true until EVERY document (including
     // the schedules collection) has delivered its first snapshot. A plain
@@ -3714,7 +3729,22 @@ function MainApp({
     };
     const unsubs = Object.entries(setters).map(([name, setter]) =>
       onSnapshot(DOCS[name], snap => {
-        setter(snap.exists ? snap.data().data : null);
+        const raw = snap.exists ? snap.data().data : null;
+        // RC-001: a doc that exists but has no `data` field (fields added at
+        // the doc root via the Firebase Console) previously became [] in
+        // React state with zero indication why — the doc "looked fine" in
+        // the Console while the UI showed nothing. Same treatment (empty),
+        // but now loudly diagnosable.
+        if (snap.exists && raw === undefined) {
+          console.error(`[LOAD] ${name} doc exists but has no 'data' field (manual Console edit?) — app will treat it as empty. Fix the doc shape in Firestore: content must be nested under a 'data' field.`);
+          // Flag so sf() refuses to overwrite this doc — its real content is
+          // sitting at the doc root where a save of the (empty) app state
+          // would destroy it
+          lastR.current["_malformed_" + name] = true;
+        } else {
+          lastR.current["_malformed_" + name] = false;
+        }
+        setter(raw === undefined ? null : raw);
         markLoaded(name);
         setSync("Synced");
       }, () => setSync("Offline"))
@@ -3751,14 +3781,27 @@ function MainApp({
       return;
     }
 
+    // RC-001: never overwrite a doc whose server shape we couldn't parse
+    // (exists but no 'data' field) — the user's real content is at the doc
+    // root and a save would destroy it. Requires a manual fix in Firestore.
+    if (lastR.current["_malformed_" + name]) {
+      console.error(`[DATA PROTECTION] Refusing to save ${name}: its Firestore doc has an unrecognized shape (no 'data' field). Fix the doc in the Firebase Console first.`);
+      setSync("⚠️ Blocked");
+      return;
+    }
+
     // CRITICAL: Data loss protection
     // Prevent overwriting data with smaller/empty datasets
     const isCriticalData = ["clients", "staffMembers", "balances", "schedules", "expenses"].includes(name);
 
     if (isCriticalData) {
       // ENHANCED: Block saving empty arrays for critical data (prevents cache poisoning)
-      if (Array.isArray(v) && v.length === 0 && ["clients", "staffMembers"].includes(name)) {
-        console.error(`[DATA PROTECTION] BLOCKED: Attempted to save empty ${name} array. This is likely a cache/sync bug.`);
+      // RC-001: only block when the server reference actually HAS items —
+      // blocking when both sides are empty created a deadlock during the
+      // staff-loading bug (empty state couldn't sync, alert() fired on every
+      // debounce) and a fresh install is a legitimate both-empty state.
+      if (Array.isArray(v) && v.length === 0 && Array.isArray(r) && r.length > 0 && ["clients", "staffMembers"].includes(name)) {
+        console.error(`[DATA PROTECTION] BLOCKED: Attempted to save empty ${name} array over ${r.length} existing items. This is likely a cache/sync bug.`);
         const msg = `🚫 BLOCKED: Cannot save empty ${name} list. This prevents accidental data deletion.\n\nIf you intentionally want to delete all ${name}, contact support.`;
         setSync("🚫 Blocked");
         alert(msg);
