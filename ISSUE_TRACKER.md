@@ -91,7 +91,7 @@ UI shows "No staff members yet" despite Firebase containing Francis & Bobby data
 
 ### RC-002: Application Load Time Excessive (75+ seconds)
 **Severity:** 🔴 CRITICAL  
-**Status:** ⚠️ App half FIXED (commit 5f6c4b0, July 12) — hosting half needs USER ACTION (DNS)  
+**Status:** ✅ FULLY RESOLVED (July 12, 2026)  
 
 **RESOLUTION (July 12, 2026):**
 Two independent causes confirmed:
@@ -108,9 +108,10 @@ Two independent causes confirmed:
    resolves to GitHub Pages (185.199.109.153) — the June move to Netlify
    configured the repo (netlify.toml, deploy.sh) but the domain was never
    pointed at Netlify. No app code can fix a slow first byte of the document.
-   **Action:** point ruffcuts.app at Netlify per Netlify's custom-domain
-   instructions (registrar DNS change), or accept occasional GitHub Pages
-   slow loads.
+   **RESOLVED July 12:** ruffcuts.app DNS moved to Netlify (Namecheap A record
+   @ -> 75.2.60.5, CNAME www -> ruffcuts.netlify.app). Verified: Let's Encrypt
+   cert issued for ruffcuts.app, domain serves latest code byte-for-byte, and
+   10 consecutive requests all answered in <0.2s (worst 0.16s vs 75s before).
 
 
 **Description:**
@@ -724,14 +725,14 @@ design); previously settled payouts are not retroactively adjusted.
 ## STATISTICS UPDATE
 
 **Total Issues:** 19  
-**Critical:** 5 (4 fixed & verified; RC-002 app half fixed, hosting half awaits DNS change)  
+**Critical:** 5 (all fixed & verified — RC-002 fully resolved July 12 via DNS move to Netlify)  
 **High:** 3 (all fixed — RC-001 resolved July 12)  
 **Medium:** 6 (all fixed)  
 **Low:** 3 (2 fixed, 1 open — RC-009 memoization)  
 **Security:** 1 (documented, won't fix — RC-007 plain-text passwords)  
 
-**Fixed & Deployed (July 12):** 9 (RC-001, RC-002 app half, RC-013 → RC-019)  
-**Awaiting User Action:** 1 (RC-002 hosting half — DNS still on GitHub Pages)  
+**Fixed & Deployed (July 12):** 10 (RC-001, RC-002 both halves, RC-013 → RC-019)  
+**Awaiting User Action:** 0  
 **Open (Won't Fix):** 2
 
 ---
