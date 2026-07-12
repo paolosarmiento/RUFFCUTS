@@ -91,7 +91,27 @@ UI shows "No staff members yet" despite Firebase containing Francis & Bobby data
 
 ### RC-002: Application Load Time Excessive (75+ seconds)
 **Severity:** 🔴 CRITICAL  
-**Status:** Investigating  
+**Status:** ⚠️ App half FIXED (commit 5f6c4b0, July 12) — hosting half needs USER ACTION (DNS)  
+
+**RESOLUTION (July 12, 2026):**
+Two independent causes confirmed:
+
+1. **In-app hang (FIXED — commit 5f6c4b0):** The entire app rendered
+   "Loading..." until a single `getDoc` of the passwords doc answered, with no
+   timeout. Now a 5s fallback shows the login screen regardless; late-arriving
+   passwords still apply at submit time. Bonus fix: the password save effect
+   could overwrite real passwords with in-code defaults if the initial load
+   took >1s (RC-014 race class) — saves now gated on the read having answered.
+
+2. **Hosting stalls (NEEDS USER ACTION):** Reproduced 75.1s time-to-first-byte
+   on the HTML document itself (July 12 curl test). `ruffcuts.app` DNS still
+   resolves to GitHub Pages (185.199.109.153) — the June move to Netlify
+   configured the repo (netlify.toml, deploy.sh) but the domain was never
+   pointed at Netlify. No app code can fix a slow first byte of the document.
+   **Action:** point ruffcuts.app at Netlify per Netlify's custom-domain
+   instructions (registrar DNS change), or accept occasional GitHub Pages
+   slow loads.
+
 
 **Description:**
 GitHub Pages responds in 75 seconds instead of expected <5 seconds. Users may perceive app as down/timeout.
@@ -704,14 +724,14 @@ design); previously settled payouts are not retroactively adjusted.
 ## STATISTICS UPDATE
 
 **Total Issues:** 19  
-**Critical:** 5 (4 fixed & verified, 1 investigating — RC-002 load time)  
+**Critical:** 5 (4 fixed & verified; RC-002 app half fixed, hosting half awaits DNS change)  
 **High:** 3 (all fixed — RC-001 resolved July 12)  
 **Medium:** 6 (all fixed)  
 **Low:** 3 (2 fixed, 1 open — RC-009 memoization)  
 **Security:** 1 (documented, won't fix — RC-007 plain-text passwords)  
 
-**Fixed & Deployed (July 12):** 8 (RC-001, RC-013 → RC-019)  
-**Investigating:** 1 (RC-002 load time)  
+**Fixed & Deployed (July 12):** 9 (RC-001, RC-002 app half, RC-013 → RC-019)  
+**Awaiting User Action:** 1 (RC-002 hosting half — DNS still on GitHub Pages)  
 **Open (Won't Fix):** 2
 
 ---
