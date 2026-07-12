@@ -613,7 +613,9 @@ const aColor = svc => {
 function buildGroomerCommMap(appts, staffMembers) {
   const map = {};
   appts.filter(a => a.groomerId && a.status === "completed" && a.paymentMode).forEach(a => {
-    const member = staffMembers.find(m => m.id === a.groomerId);
+    // String-coerce: quick-assign historically stored groomerId as a string
+    // while staff ids are numbers, so strict === misattributed to "Unknown"
+    const member = staffMembers.find(m => String(m.id) === String(a.groomerId));
     const name = member ? member.name : "Unknown";
     if (!map[a.groomerId]) map[a.groomerId] = { name, comm: 0, pets: 0 };
     map[a.groomerId].comm += Number(a.cost || 0) * COMMISSION_RATE;
@@ -2745,8 +2747,10 @@ function EodModal({
   const closingBal = openBal + cashRev - cashboxExp;
   const openingVariance = openBal !== 0 && expectedOpening !== 0 ? openBal - expectedOpening : 0;
   const groomerComm = {};
-  done.filter(a => a.groomerId).forEach(a => {
-    const member = staffMembers.find(m => m.id === a.groomerId);
+  // Commission policy: only completed AND paid jobs earn commission
+  // (a.paymentMode), matching gComm and buildGroomerCommMap
+  done.filter(a => a.groomerId && a.paymentMode).forEach(a => {
+    const member = staffMembers.find(m => String(m.id) === String(a.groomerId));
     const name = member ? member.name : "Unknown";
     if (!groomerComm[name]) groomerComm[name] = {
       comm: 0,
@@ -4148,7 +4152,10 @@ function MainApp({
       ...prev,
       [date]: (prev[date] || []).map(a => a.id === apptId ? {
         ...a,
-        groomerId: groomerId || null
+        // Normalize to number like the appointment form does (line ~4352):
+        // select values are strings, staff ids are numbers, and strict-===
+        // lookups elsewhere break on the mismatch
+        groomerId: groomerId ? Number(groomerId) || groomerId : null
       } : a)
     }));
   };
@@ -5267,9 +5274,11 @@ function MainApp({
   });
   const commByGroomer = {};
   trkDates.forEach(d => {
-    gA(d).filter(a => a.groomerId && a.status === "completed").forEach(a => {
-      const member = staffMembers.find(m => m.id === a.groomerId);
-      const name = member ? member.name : (gSt(d).find(s => s.staffId === a.groomerId) || {
+    // Commission policy: only completed AND paid jobs earn commission —
+    // this tracker drives actual payouts, so it must match the dashboards
+    gA(d).filter(a => a.groomerId && a.status === "completed" && a.paymentMode).forEach(a => {
+      const member = staffMembers.find(m => String(m.id) === String(a.groomerId));
+      const name = member ? member.name : (gSt(d).find(s => String(s.staffId) === String(a.groomerId)) || {
         name: "Unknown"
       }).name;
       if (!commByGroomer[a.groomerId]) commByGroomer[a.groomerId] = {
@@ -9407,7 +9416,7 @@ function MainApp({
         const groomerRev = {};
         yrDates.forEach(d => {
           gA(d).filter(a => a.status !== "cancelled").forEach(a => {
-            const member = staffMembers.find(m => m.id === a.groomerId);
+            const member = staffMembers.find(m => String(m.id) === String(a.groomerId));
             const name = a.groomerId ? member ? member.name : "Unknown" : "Unassigned";
             if (!groomerRev[name]) groomerRev[name] = {
               revenue: 0,
