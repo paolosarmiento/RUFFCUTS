@@ -1,5 +1,5 @@
 # RUFF CUTS - PRODUCTION ISSUE TRACKER
-**Last Updated:** June 28, 2026, 10:20 PM  
+**Last Updated:** July 12, 2026  
 **Purpose:** Track all bugs discovered during financial audit  
 **Status Format:** Open → Investigating → Fixed → Verified
 
@@ -530,17 +530,165 @@ filter(s => s.staffMemberId !== staffId && s.staffId !== staffId)
 
 ---
 
+## JULY 12, 2026 FIXES (Persistence + Financial Audit Session)
+
+### RC-013: Schedules Wiped by dataLoaded Race (Monthly Collection Not Counted)
+**Severity:** 🔴 CRITICAL  
+**Status:** Fixed (deployed)  
+**Discovered:** July 12, 2026 (user report: "schedules I booked last night are gone")
+
+**Description:**
+Appointments booked the previous night disappeared. The `dataLoaded` flag —
+which gates all saves — was computed only from the named singleton doc
+listeners; the monthly schedules collection (`ruffcuts_schedules`) had its own
+listener that never contributed to it. A booking made after the singleton docs
+loaded but before the schedules collection's first snapshot fired a save with
+an empty/partial `schedules` state, and the per-month `setDoc` overwrote the
+entire month's Firestore doc with just the new booking.
+
+**Root Cause:** Same race class as the balance wipes (fed576c) — `dataLoaded`
+lied about what was actually loaded.
+
+**Fix Implemented:** Commit a07c362
+- `dataLoaded` now also waits for the schedules collection's first snapshot
+- Added per-month mass-deletion guard: blocks any schedule save that would
+  drop >3 or >25% of a month's appointments at once (mirrors the sf() array
+  guard for clients/staffMembers)
+
+**Verified:** Deployed to ruffcuts.app, live file matches commit
+
+---
+
+### RC-014: Five Data Types Still Exposed to Empty-State Overwrite Race
+**Severity:** 🔴 CRITICAL  
+**Status:** Fixed (deployed)
+
+**Description:**
+Save effects for `expenses`, `paymentStatus`, `cashbox`, `cashAdvances`, and
+`ownerFinances` had no `dataLoaded` gate. On mount each schedules a save of the
+initial empty/default state after 200ms; if Firebase's first snapshot took
+longer, the empty state overwrote real data. Additionally `dataLoaded` was
+driven by a raw snapshot counter that incremented on EVERY snapshot (not
+distinct docs), so migration writes could flip it true before all docs loaded —
+the likely reason the earlier all-types gate (Fix #4) misbehaved and was rolled
+back.
+
+**Fix Implemented:** Commit 093f094
+- `sf()` now blocks ALL data types until `dataLoaded`
+- `dataLoaded` tracks distinct doc names in a Set (each doc counts once)
+
+**Verified:** Deployed to ruffcuts.app
+
+---
+
+### RC-015: Recurring Schedules and Transaction Audit Log Never Persisted
+**Severity:** 🔴 HIGH  
+**Status:** Fixed (deployed)
+
+**Description:**
+`recurringSchedules` and `transactionLog` were loaded from Firebase on startup
+but had NO save effect anywhere — `createRecurringSchedule` and
+`logTransaction` only updated React state. Every recurring schedule and the
+entire audit trail silently vanished on refresh (also why past forensic
+investigations had no audit log to inspect).
+
+**Fix Implemented:** Commit 258e7f4 — added the standard debounced `sf()` save
+effect for both data types.
+
+**Verified:** Deployed to ruffcuts.app
+
+---
+
+### RC-016: Expense Edit Didn't Adjust Balances and Dropped paymentMode
+**Severity:** 🟡 MEDIUM (financial drift)  
+**Status:** Fixed (deployed)
+
+**Description:**
+Adding an expense deducts from cash/GCash and deleting one refunds it, but
+editing changed the amount without touching balances (drift on every edit).
+`saveEdit` also rebuilt the record without its `paymentMode` field, so any
+edited expense would later refund to Cash on delete even if paid via GCash.
+
+**Fix Implemented:** Commit 70c5d1e — edit applies the amount difference to the
+correct balance and preserves `paymentMode`.
+
+**Verified:** Deployed to ruffcuts.app
+
+---
+
+### RC-017: Deleting a Deposit Didn't Reverse the Transfer
+**Severity:** 🟡 MEDIUM (financial drift)  
+**Status:** Fixed (deployed)
+
+**Description:**
+Recording a deposit moves money between balances (e.g. cash → bank); editing
+one reverses the old effect before applying the new, but deleting only removed
+the record — the money stayed moved with no deposit entry explaining why.
+
+**Fix Implemented:** Commit 991baf1 — `deleteDeposit` reverses the deposit's
+effect via `reverseDepositEffect` (same helper the edit path uses).
+
+**Verified:** Deployed to ruffcuts.app
+
+---
+
+### RC-018: Audit Log Stored the Before-Snapshot in Both Balance Fields
+**Severity:** 🟢 LOW (audit quality)  
+**Status:** Fixed (deployed)
+
+**Description:**
+`logTransaction` put the caller's before-snapshot in `balanceAfter` and the
+stale closure state (also the before value) in `balanceBefore` — no log entry
+ever recorded a real after-state.
+
+**Fix Implemented:** Commit 6257c8b — passed snapshot recorded as
+`balanceBefore`; optional explicit 4th arg for `balanceAfter`; never guessed
+from the closure.
+
+**Verified:** Deployed to ruffcuts.app
+
+---
+
+### RC-019: Commission Included Unpaid Jobs + Misattributed to "Unknown"
+**Severity:** 🟡 MEDIUM (financial correctness)  
+**Status:** Fixed (deployed)
+
+**Description:**
+Two defects:
+1. **Policy inconsistency:** End-of-Day report and Commission Tracker (which
+   drives payouts) included completed-but-UNPAID appointments; Today tab, day
+   view, and annual/monthly reports required payment. Same day showed different
+   totals in different views, and payouts could include commission on
+   uncollected money.
+2. **Attribution:** Quick-assign dropdowns stored `groomerId` as a string while
+   staff ids are numbers; strict `===` lookups failed and credited commission
+   to "Unknown" across all views. Amounts were summed correctly — only
+   inclusion criteria and name attribution were wrong.
+
+**Owner Decision:** Commission counts only when the job is completed AND paid.
+
+**Fix Implemented:** Commit 29c7af5
+- All four computation sites now require `completed && paymentMode`
+- Lookups String-coerce both sides (fixes historical string ids in Firebase)
+- `quickAssign` normalizes new assignments to numbers
+
+**Note:** EOD/Tracker totals may drop vs. before (unpaid jobs excluded — by
+design); previously settled payouts are not retroactively adjusted.
+
+**Verified:** Deployed to ruffcuts.app
+
+---
+
 ## STATISTICS UPDATE
 
-**Total Issues:** 12  
-**Critical:** 3 (2 fixed & verified, 1 pending verification)  
-**High:** 2 (1 fixed & verified, 1 investigating)  
-**Medium:** 3 (all fixed & verified)  
-**Low:** 2 (1 fixed, 1 open)  
-**Security:** 1 (documented, won't fix)  
+**Total Issues:** 19  
+**Critical:** 5 (4 fixed & verified, 1 investigating — RC-002 load time)  
+**High:** 3 (2 fixed & verified, 1 investigating — RC-001 staff loading)  
+**Medium:** 6 (all fixed)  
+**Low:** 3 (2 fixed, 1 open — RC-009 memoization)  
+**Security:** 1 (documented, won't fix — RC-007 plain-text passwords)  
 
-**Fixed & Verified:** 7  
-**Fixed, Pending Verification:** 1 (RC-010 date picker)  
+**Fixed & Deployed (July 12):** 7 (RC-013 → RC-019)  
 **Investigating:** 2 (RC-001 staff loading, RC-002 load time)  
 **Open (Won't Fix):** 2
 
@@ -548,8 +696,10 @@ filter(s => s.staffMemberId !== staffId && s.staffId !== staffId)
 
 ## PRODUCTION STATUS: ✅ STABLE
 
-**Last Deployment:** June 30, 2026  
-**Commits Today:** 3 (RC-010, RC-011, RC-012)  
-**Regression Tests:** All passing  
-**Ready for Financial Audit:** Yes
+**Last Deployment:** July 12, 2026 (commit 29c7af5, verified live on ruffcuts.app)  
+**Commits This Session:** 7 (RC-013 → RC-019)  
+**Regression Tests:** Syntax-verified per commit; manual smoke test recommended
+(rapid-refresh persistence, recurring schedule survival, expense edit balance
+math, deposit delete reversal, commission attribution)  
+**Ready for Financial Audit:** Yes — audit trail now actually persists
 
