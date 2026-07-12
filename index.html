@@ -10558,6 +10558,11 @@ function App() {
     password: STF_PASS
   }]);
   const [passwordsLoaded, setPasswordsLoaded] = useState(false);
+  // True only once the initial passwords read has ANSWERED (doc read or
+  // confirmed missing). Gates the save effect: without this, a slow load let
+  // the mount-time save (1s debounce) overwrite the real passwords in
+  // Firebase with the in-code defaults — same overwrite-race class as RC-014.
+  const passwordsSynced = useRef(false);
 
   // Load passwords from Firebase on mount
   useEffect(() => {
@@ -10568,20 +10573,32 @@ function App() {
     }
 
     console.log("[Passwords] Loading from Firebase...");
+    // RC-002: never block the whole app on a single Firebase read. If the
+    // passwords doc hasn't answered within 5s (slow network, cold Firestore
+    // connection), show the login screen anyway — login validates against
+    // current state on submit, so passwords that arrive later still apply.
+    const fallback = setTimeout(() => {
+      console.warn("[Passwords] Load timed out after 5s — showing login screen; saved passwords will apply when the fetch completes");
+      setPasswordsLoaded(true);
+    }, 5000);
     getDoc(DOCS.passwords).then(snap => {
+      clearTimeout(fallback);
       if (snap.exists) {
         const d = snap.data().data || {};
-        console.log("[Passwords] Loaded:", d);
+        console.log("[Passwords] Loaded from Firebase");
         if (d.ownerPass) setOwnerPass(d.ownerPass);
         if (d.staffAccounts) setStaffAccounts(d.staffAccounts);
       } else {
         console.log("[Passwords] No saved passwords found, using defaults");
       }
+      passwordsSynced.current = true;
       setPasswordsLoaded(true);
     }).catch(err => {
+      clearTimeout(fallback);
       console.error("[Passwords] Load error:", err);
       setPasswordsLoaded(true); // Allow login even if load fails
     });
+    return () => clearTimeout(fallback);
   }, []);
 
   // Save passwords to Firebase when they change
@@ -10589,7 +10606,11 @@ function App() {
     if (!db || !DOCS.passwords) return;
 
     const timer = setTimeout(() => {
-      console.log("[Passwords] Saving to Firebase:", {ownerPass, staffAccounts});
+      if (!passwordsSynced.current) {
+        console.warn("[Passwords] Skipping save: initial load hasn't completed — saving now could overwrite real passwords with defaults");
+        return;
+      }
+      console.log("[Passwords] Saving to Firebase");
       setDoc(DOCS.passwords, {data: {ownerPass, staffAccounts}})
         .then(() => console.log("[Passwords] Saved successfully"))
         .catch(err => console.error("[Passwords] Save error:", err));
