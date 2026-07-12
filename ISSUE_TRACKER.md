@@ -9,8 +9,30 @@
 
 ### RC-001: Staff Data Not Loading in UI
 **Severity:** 🔴 HIGH  
-**Status:** Open  
+**Status:** ✅ Fixed (deployed July 12, 2026 — commit 06b666a)  
 **Discovered:** June 28, 2026, 9:00 PM  
+
+**RESOLUTION (July 12, 2026):**
+Proven mechanism found: the loader ran `setter(snap.exists ? snap.data().data : null)`.
+A doc that exists but whose content is not an array nested under the `data`
+field — exactly what manual Firebase Console edits produce (fields at the doc
+root, or an array stored as a keyed map) — silently became `[]` in React
+state. This matches all four pieces of the June 28 evidence: listener fired ✓,
+dataLoaded true ✓, doc "looked fine" in Console ✓, UI empty ✓. The empty state
+then couldn't save back (empty-array guard) and alert() fired on every
+debounce — deadlock until the doc was manually re-shaped.
+
+Fix (commit 06b666a):
+1. Array-typed docs coerce keyed maps back to arrays (Object.values) with a
+   loud console error
+2. Doc-exists-without-`data`-field logs an explicit diagnosis and is flagged;
+   sf() refuses to overwrite it (protects the user's content at the doc root)
+3. Empty-array guard only blocks when the server actually has items — fresh
+   installs / both-empty no longer deadlock or spam alert()
+
+Healthy-path behavior unchanged. If this ever recurs, the console now says
+exactly which doc is malformed and how to fix it.
+
 
 **Description:**
 UI shows "No staff members yet" despite Firebase containing Francis & Bobby data.
@@ -683,13 +705,13 @@ design); previously settled payouts are not retroactively adjusted.
 
 **Total Issues:** 19  
 **Critical:** 5 (4 fixed & verified, 1 investigating — RC-002 load time)  
-**High:** 3 (2 fixed & verified, 1 investigating — RC-001 staff loading)  
+**High:** 3 (all fixed — RC-001 resolved July 12)  
 **Medium:** 6 (all fixed)  
 **Low:** 3 (2 fixed, 1 open — RC-009 memoization)  
 **Security:** 1 (documented, won't fix — RC-007 plain-text passwords)  
 
-**Fixed & Deployed (July 12):** 7 (RC-013 → RC-019)  
-**Investigating:** 2 (RC-001 staff loading, RC-002 load time)  
+**Fixed & Deployed (July 12):** 8 (RC-001, RC-013 → RC-019)  
+**Investigating:** 1 (RC-002 load time)  
 **Open (Won't Fix):** 2
 
 ---
