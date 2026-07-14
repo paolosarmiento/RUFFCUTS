@@ -380,6 +380,27 @@ Verified: 10/10 simulation, clean live boot. Rollback: `git revert cfb27d2`.
 
 ---
 
+### Phase 4 (Sync roadmap): id-array docs on KSE array mode + H-1 fixed
+**Status:** ✅ Deployed July 14, 2026 (commit d64ea37) — awaiting owner runtime confirmation
+
+Added a KSE array mode (updateArray/commitArray) tracking added/edited AND
+deleted ids, and migrated clients, staffMembers, cashAdvances, services,
+recurringSchedules off sf()'s union-merge/plain-setDoc. **Fixes H-1**: the old
+union-merge could never represent a deletion, so deleted clients/staff
+reappeared on the next snapshot ("Bobby reappears after refresh"). Now
+deletions persist and stale tabs still can't clobber items added elsewhere.
+All ~18 mutation sites routed through the update* wrappers; listeners raw;
+updateArray diffs inside functional setState (batch-safe). transactionLog
+deferred (append-only/capped — per-id merge would risk unbounded growth).
+Doc shapes unchanged, no migration. Verified 17/17 simulation incl. the H-1
+delete-persists case, concurrent delete+add, undo, double-delete, services
+reset, id-less preservation. Clean live boot. Rollback: `git revert d64ea37`.
+
+Note: RC-011 ("deleted staff reappears after refresh") is the H-1 symptom —
+now actually fixed here, not just the guard-threshold change from June.
+
+---
+
 ### RC-021: Firestore Database Fully Public (`allow read, write: if true`)
 **Severity:** 🔴 CRITICAL (SECURITY)  
 **Status:** ✅ Mitigated (July 14, 2026 — anonymous-auth lockdown, commit d4cb77a)  
