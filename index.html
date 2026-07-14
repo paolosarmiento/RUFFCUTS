@@ -4319,7 +4319,7 @@ function MainApp({
     if (pendingAdvances.length > 0) {
       const totalDebt = pendingAdvances.reduce((sum, a) => sum + a.remainingDebt, 0);
       askConfirm(
-        `This staff member has ₱${totalDebt.toLocaleString()} in unpaid cash advances. Delete anyway? (Advances will become unrecoverable)`,
+        `This staff member has ₱${totalDebt.toLocaleString()} in unpaid cash advances. Delete anyway? (Cash advance records will be permanently deleted)`,
         () => {
           // User confirmed - proceed with deletion
           performStaffDeletion(staffId);
@@ -4363,11 +4363,33 @@ function MainApp({
     // Remove from staff members list
     setStaffMembers(p => p.filter(x => x.id !== staffId));
 
-    // Remove from all schedule assignments (staffByDate)
+    // Remove from all schedule assignments (staffByDate) - attendance history
     setStaffByDate(prev => {
       const updated = {...prev};
       Object.keys(updated).forEach(date => {
         updated[date] = (updated[date] || []).filter(s => s.staffMemberId !== staffId && s.staffId !== staffId);
+      });
+      return updated;
+    });
+
+    // Delete cash advance records tied to this staff member (both settled
+    // and outstanding) - they only make sense while the person is on staff.
+    setCashAdvances(prev => prev.filter(a => String(a.staffId) !== String(staffId)));
+
+    // Unassign (not delete) every appointment this groomer worked, past and
+    // future: the appointment, its revenue, and payment record stay intact
+    // for financial reports - only the now-deleted staff member's link to it
+    // is cleared, same as manually reassigning to "no groomer". Uses
+    // updateSchedules so only the dates actually touched get marked dirty
+    // and synced (dates with no appointment from this groomer keep their
+    // exact prior array reference and are left alone).
+    updateSchedules(prev => {
+      const updated = {...prev};
+      Object.keys(prev).forEach(date => {
+        const appts = prev[date] || [];
+        if (appts.some(a => String(a.groomerId) === String(staffId))) {
+          updated[date] = appts.map(a => String(a.groomerId) === String(staffId) ? {...a, groomerId: null} : a);
+        }
       });
       return updated;
     });
@@ -8664,7 +8686,7 @@ function MainApp({
         }, "Edit"), /*#__PURE__*/React.createElement(Btn, {
           sm: true,
           v: "dan",
-          onClick: () => askConfirm("Delete " + sm.name + " from staff? This will also remove them from all schedules.", () => deleteStaff(sm.id), "Staff member deleted from all schedules ✓")
+          onClick: () => askConfirm("Delete " + sm.name + " from staff? This removes their attendance history and cash advance records, and unassigns them from all appointments (past and future revenue stays intact).", () => deleteStaff(sm.id), "Staff member and their history deleted ✓")
         }, "Delete"))), /*#__PURE__*/React.createElement("p", {
           style: {
             fontSize: 13,
