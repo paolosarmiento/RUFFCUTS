@@ -349,6 +349,20 @@ schedule regression to be confirmed by owner before Phase 2. Rollback:
 
 ---
 
+### Phase 2 (Sync roadmap): Expenses migrated to KSE — fixes C-1
+**Status:** ✅ Deployed July 14, 2026 (commit fd364b6) — awaiting owner runtime confirmation
+
+Expenses (single doc keyed by date) moved off the whole-doc last-write-wins
+overwrite (`sf("expenses")`) onto the KSE per-key transactional merge. A
+stale tab can no longer erase expenses on dates it never loaded. All 4 local
+mutation sites (saveE, quick-expense, ExpTable edit/delete) route through
+`updateExpenses`; listener stays raw; removed expenses from sf() transaction
+list. Doc shape unchanged, no migration. Verified: 8/8 expense simulation
+(single-doc routing, stale-tab preservation, cross-date move, empty-date key
+removal), clean live boot. Rollback: `git revert fd364b6`.
+
+---
+
 ### RC-021: Firestore Database Fully Public (`allow read, write: if true`)
 **Severity:** 🔴 CRITICAL (SECURITY)  
 **Status:** ✅ Mitigated (July 14, 2026 — anonymous-auth lockdown, commit d4cb77a)  
