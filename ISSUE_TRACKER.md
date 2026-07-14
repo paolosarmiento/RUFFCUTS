@@ -334,6 +334,21 @@ Auth accounts (deferred, Phase 8).
 
 ---
 
+### Phase 1 (Sync roadmap): Keyed Sync Engine extracted — schedules canary
+**Status:** ✅ Deployed July 14, 2026 (commit afc86ef) — awaiting owner runtime confirmation
+
+Generalized the RC-020 per-date transactional-merge into a reusable engine
+(`updateKeyed`/`commitKeyed`/`dirtyOf`) and re-pointed **schedules** onto it
+with identical behavior (all 9 mutation call sites unchanged; month-shard
+routing and dataLoaded guards preserved). This is the foundation for migrating
+expenses (Phase 2), attendance (Phase 3), and the id-array docs (Phase 4) onto
+ONE architecture. Also added `recurringSchedules` to the backup export.
+Verified: 9/9 equivalence simulation, syntax, clean live boot. Runtime
+schedule regression to be confirmed by owner before Phase 2. Rollback:
+`git revert afc86ef` (returns to deployed RC-020 code, no data impact).
+
+---
+
 ### RC-021: Firestore Database Fully Public (`allow read, write: if true`)
 **Severity:** 🔴 CRITICAL (SECURITY)  
 **Status:** ✅ Mitigated (July 14, 2026 — anonymous-auth lockdown, commit d4cb77a)  
