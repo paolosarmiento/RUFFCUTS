@@ -3675,31 +3675,79 @@ function MainApp({
   const lastR = useRef({});
   const calRef = useRef(null);
   const schedDateRef = useRef(null);
-  // SYNC ARCHITECTURE: dates the user actually edited in THIS tab, pending
-  // write-back to Firestore. Only these dates are ever written — see
-  // updateSchedules() below and the schedules save effect. This replaces the
-  // old "diff the whole local schedules object against the last-known-good
-  // snapshot and setDoc() the entire month" approach, which could overwrite
-  // dates a stale/backgrounded tab never loaded (see RC-020 in ISSUE_TRACKER.md).
-  const dirtyDates = useRef(new Set());
-  // Every LOCAL schedule edit must go through this instead of setSchedules
-  // directly. It detects which date keys actually changed by reference
-  // equality: every mutation site in this file builds new arrays via
-  // spread/map/filter for the date(s) it touches and leaves every other
-  // date's array untouched (same reference), so `prev[k] !== next[k]` is a
-  // reliable — and cheap — signal of "this date was edited". Worst case if a
-  // callsite ever rebuilds an unchanged date's array too: that date gets
-  // flagged dirty and rewritten with identical data (wasted write, not data
-  // loss). The Firestore listener's own setSchedules(merged) call (server ->
-  // local direction) intentionally bypasses this and never marks dates dirty.
-  const updateSchedules = (updater) => {
-    setSchedules(prev => {
+  // ── KEYED SYNC ENGINE (KSE) ──────────────────────────────────────────
+  // Generic per-key transactional writer for "keyed-map" Firestore docs — a
+  // doc (or sharded set of docs) whose `data` is an object keyed by some
+  // string (schedules: keyed by date, sharded into month docs). Instead of
+  // overwriting the whole document from local state — which lets a stale tab
+  // destroy keys it never loaded (RC-020) — KSE tracks exactly which keys
+  // THIS tab edited (a dirty set per doc) and writes ONLY those keys, each
+  // inside a transaction that reads the live server doc first and merges the
+  // edited keys into it. Untouched keys pass through from the server, so a
+  // stale/backgrounded tab can never lose data it didn't touch, by
+  // construction. Schedules is the first consumer (this phase); expenses,
+  // attendance, etc. adopt the same engine in later phases.
+  const dirty = useRef({}); // { docName: Set<key> }
+  const dirtyOf = name => (dirty.current[name] || (dirty.current[name] = new Set()));
+  // Wrap a keyed-map state setter so local edits mark changed keys dirty.
+  // "Changed" = the key's value reference differs. Every mutation site
+  // rebuilds only the arrays/values it touched (spread/map/filter), leaving
+  // other keys' references intact, so reference-equality is a precise and
+  // cheap dirty signal; a false positive only costs one redundant identical
+  // write, never data loss. The Firestore listener's own server->local
+  // setState intentionally bypasses this and marks nothing dirty.
+  const updateKeyed = (name, setState, updater) => {
+    setState(prev => {
       const next = typeof updater === "function" ? updater(prev) : updater;
       const keys = new Set([...Object.keys(prev), ...Object.keys(next)]);
-      keys.forEach(k => { if (prev[k] !== next[k]) dirtyDates.current.add(k); });
+      keys.forEach(k => { if (prev[k] !== next[k]) dirtyOf(name).add(k); });
       return next;
     });
   };
+  // Commit the dirty keys for one keyed-map doc. routeKey(key) -> the docRef
+  // that key belongs to (single-doc types return the same ref for every key;
+  // sharded types like schedules return the month shard). getState() -> the
+  // current keyed-map. Each distinct target docRef gets ONE transaction:
+  // read live server data, set each dirty key to its local value (or delete
+  // it when the local value is missing/empty), write back. Failed keys are
+  // re-queued for the next commit.
+  const commitKeyed = (name, getState, routeKey) => {
+    const set = dirtyOf(name);
+    if (set.size === 0) return;
+    const pending = Array.from(set);
+    set.clear(); // re-queued per-group on failure
+    const state = getState();
+    const groups = new Map(); // ref.path -> { ref, keys }
+    pending.forEach(k => {
+      const ref = routeKey(k);
+      if (!groups.has(ref.path)) groups.set(ref.path, {ref, keys: []});
+      groups.get(ref.path).keys.push(k);
+    });
+    groups.forEach(({ref, keys}) => {
+      runTransaction(async (transaction) => {
+        const snap = await transaction.get(ref);
+        const serverData = snap.exists ? (snap.data().data || {}) : {};
+        const merged = {...serverData}; // start from LIVE server doc, not local state
+        keys.forEach(k => {
+          const v = state[k];
+          // Missing/null or empty-array => key was cleared locally, remove it;
+          // otherwise write the local value.
+          if (v == null || (Array.isArray(v) && v.length === 0)) delete merged[k];
+          else merged[k] = v;
+        });
+        transaction.set(ref, {data: merged});
+      }).then(() => setSync("Synced"))
+        .catch(err => {
+          console.error(`[SYNC] ${name} save failed (${ref.path}), will retry:`, err);
+          keys.forEach(k => dirtyOf(name).add(k));
+          setSync("Error");
+        });
+    });
+  };
+  // Schedules: a keyed-map doc keyed by date, sharded into month docs. Public
+  // mutation entry point for all 9 local schedule edits (server->local goes
+  // through the listener's setSchedules and stays out of the dirty set).
+  const updateSchedules = (updater) => updateKeyed("schedules", setSchedules, updater);
   useEffect(() => {
     if (!db || !getDoc) { setSync("Offline"); return; }
     // Migrate from legacy single document if needed
@@ -3947,53 +3995,25 @@ function MainApp({
     const t = setTimeout(() => sf("clients", clients, lastR.current.clients), SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [clients]);
-  // SYNC ARCHITECTURE (replaces whole-month overwrite): writes ONLY the dates
-  // in dirtyDates, and each write is a Firestore transaction that reads the
-  // month doc's CURRENT server data and merges just those date keys into it.
-  // This is what makes a stale/backgrounded tab safe — it can only ever
-  // touch the specific dates it edited; every other date key on the server,
-  // including ones this tab never loaded, is read fresh and passed through
-  // untouched. There is no longer a "does this look like too big a deletion"
-  // guess-based guard, because the transaction can't lose unrelated data by
-  // construction: it never had a chance to overwrite what it didn't touch.
+  // Schedule sync: delegates to the KSE (commitKeyed) so only the edited
+  // dates are written, each merged into its month shard's live server data
+  // via a transaction. A stale/backgrounded tab can only touch the dates it
+  // edited; every other date on the server (including ones it never loaded)
+  // is read fresh and passed through untouched.
   useEffect(() => {
-    if (dirtyDates.current.size === 0) return; // nothing local to sync (e.g. this render came from the server listener)
+    if (dirtyOf("schedules").size === 0) return; // nothing local to sync (e.g. this render came from the server listener)
     const t = setTimeout(() => {
-      if (!db || !SCHED_COL) return;
+      if (!db || !SCHED_COL) return;            // can't write yet — keep dirty keys queued
       if (!dataLoaded) {
-        // Don't clear dirtyDates: the same edit that set this flag also
-        // changed `schedules`, and dataLoaded flipping true later changes
-        // `schedules` again too (see markLoaded/schedUnsub) — either will
-        // re-run this effect and retry the same pending dates.
+        // Don't commit (commitKeyed would clear the dirty set): the same edit
+        // that set these keys also changed `schedules`, and dataLoaded
+        // flipping true later changes `schedules` again (markLoaded/schedUnsub)
+        // — either re-runs this effect and retries the pending dates.
         console.warn('[DATA PROTECTION] Delaying schedule save: waiting for Firebase to load');
         return;
       }
-
-      const pending = Array.from(dirtyDates.current);
-      dirtyDates.current.clear(); // re-queued below per-date if its transaction fails
-      const byMonth = {};
-      pending.forEach(d => { (byMonth[d.slice(0, 7)] = byMonth[d.slice(0, 7)] || []).push(d); });
-
-      Object.entries(byMonth).forEach(([m, dates]) => {
-        const docRef = doc(SCHED_COL, m);
-        runTransaction(async (transaction) => {
-          const snap = await transaction.get(docRef);
-          const serverData = snap.exists ? (snap.data().data || {}) : {};
-          const merged = {...serverData}; // start from the LIVE server doc, not local state
-          dates.forEach(d => {
-            const appts = schedules[d];
-            if (appts && appts.length > 0) merged[d] = appts;
-            else delete merged[d]; // every appointment for this date was removed locally
-          });
-          transaction.set(docRef, {data: merged});
-        }).then(() => {
-          setSync("Synced");
-        }).catch(err => {
-          console.error(`[SCHEDULE SYNC] Failed to save ${m}, will retry:`, err);
-          dates.forEach(d => dirtyDates.current.add(d));
-          setSync("Error");
-        });
-      });
+      // Write only the edited dates; each routes to its month shard.
+      commitKeyed("schedules", () => schedules, d => doc(SCHED_COL, d.slice(0, 7)));
     }, SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [schedules]);
@@ -4006,7 +4026,7 @@ function MainApp({
   // references, so no extra dates get marked dirty) purely to re-trigger
   // that effect and flush anything pending.
   useEffect(() => {
-    if (dataLoaded && dirtyDates.current.size > 0) {
+    if (dataLoaded && dirtyOf("schedules").size > 0) {
       setSchedules(prev => ({...prev}));
     }
   }, [dataLoaded]);
@@ -4940,7 +4960,8 @@ function MainApp({
         cashbox,
         balances,
         ownerFinances,
-        transactionLog: transactionLog || []
+        transactionLog: transactionLog || [],
+        recurringSchedules: recurringSchedules || []
       };
       const json = JSON.stringify(payload, null, 2);
       const blob = new Blob([json], {type: "application/json"});
