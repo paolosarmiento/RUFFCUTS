@@ -401,6 +401,22 @@ now actually fixed here, not just the guard-threshold change from June.
 
 ---
 
+### Phase 5a (Sync roadmap): Balances delta-transaction — fixes H-2
+**Status:** ✅ Deployed July 14, 2026 (commit 0ceabbf) — awaiting owner runtime confirmation
+
+Balances (money) moved off whole-object last-write-wins onto a delta-in-
+transaction sync: this tab's change (local − last-server) is applied on top of
+the LIVE server value inside a transaction. Firestore retries on contention and
+re-reads, so two devices completing payments concurrently both apply — no lost
+payment (H-2). Numeric fields use per-field deltas; deposits[] 3-way merged by
+id. No balance-mutation site changed — only the writer. Isolated from
+ownerFinances (5b) since it's money-critical. Verified 11/11 simulation incl.
+the concurrent-payment retry case (5000+500+300=5800), deposit merge/delete,
+manual set. Clean live boot. **Heightened testing needed — real money.**
+Rollback: `git revert 0ceabbf`.
+
+---
+
 ### RC-021: Firestore Database Fully Public (`allow read, write: if true`)
 **Severity:** 🔴 CRITICAL (SECURITY)  
 **Status:** ✅ Mitigated (July 14, 2026 — anonymous-auth lockdown, commit d4cb77a)  
