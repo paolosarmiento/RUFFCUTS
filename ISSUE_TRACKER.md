@@ -318,20 +318,60 @@ App completely broken - white screen. Syntax error in MonthCard component.
 
 ### RC-007: Plain Text Password Storage
 **Severity:** ⚠️ SECURITY  
-**Status:** Open (won't fix during this audit)  
+**Status:** Partially mitigated (see RC-021) — plaintext storage still open  
 
 **Description:**
-Passwords stored in plain text in Firebase Firestore.
+Passwords stored in plain text in Firebase Firestore (`ruffcuts/passwords`).
 
 **Impact:**
-- Security risk if Firebase compromised
-- No encryption
-- No hashing
+- Was world-readable while Firestore rules were public (see RC-021).
+- No encryption / no hashing.
 
-**Recommendation:**
-- Implement bcrypt/argon2 hashing
-- Migrate passwords to Firebase Authentication
-- Outside scope of current financial audit
+**Mitigation to date:** RC-021 closed the public-read hole (plaintext passwords
+are no longer readable by unauthenticated parties). Plaintext-at-rest and the
+client-side password compare remain; the real fix is migrating to Firebase
+Auth accounts (deferred, Phase 8).
+
+---
+
+### RC-021: Firestore Database Fully Public (`allow read, write: if true`)
+**Severity:** 🔴 CRITICAL (SECURITY)  
+**Status:** ✅ Mitigated (July 14, 2026 — anonymous-auth lockdown, commit d4cb77a)  
+**Discovered:** July 14, 2026 (Phase 0 verification; confirmed in Firebase Console)
+
+**Description:**
+Firestore security rules were `allow read, write: if true` for all documents
+(active since at least June 3, 2026). Combined with the Firebase config
+embedded in the public HTML, ANYONE on the internet could read, modify, or
+delete all data — customer PII, financials, schedules, and the plaintext
+passwords — with no authentication. Also exposed the Blaze-billed project to
+cost-abuse writes.
+
+**Root cause:** app has no Firebase Auth; rules were left at the public default.
+
+**Fix (commit d4cb77a + console rule change):**
+- App now loads `firebase-auth-compat` and signs in anonymously at startup;
+  initial render is gated on an `authReady` promise (always resolves — first
+  auth-state signal, sign-in failure, or 5s timeout — so a failed/slow
+  sign-in can never blank the app).
+- Firestore rule tightened to `allow read, write: if request.auth != null`.
+- Deploy order guaranteed zero downtime: auth code shipped and verified live
+  while rules were still open, THEN rules tightened.
+
+**Verified (July 14):**
+- Unauthenticated REST read → **HTTP 403 PERMISSION_DENIED** (was open).
+- App's anonymous session established (`isAnonymous: true`); authenticated
+  read succeeds; login screen reached; no permission errors.
+- Owner confirmed the live app still works on-device.
+
+**Residual risk (accepted for now):** anonymous auth blocks automated
+scanners/bots and cost-abuse (the real, present threat), but a determined
+party who reads the app's public code could still sign in anonymously and
+reach data. Closing that requires App Check (fast follow) and/or real
+per-user Firebase Auth (Phase 8). Plaintext passwords (RC-007) still to fix.
+
+**Rollback:** set rule back to `if true` in console (instant) and/or
+`git revert d4cb77a`.
 
 ---
 
