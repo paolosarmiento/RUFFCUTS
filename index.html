@@ -4185,13 +4185,46 @@ function MainApp({
     }, SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [cashAdvances]);
+  // Balances sync (H-2 fix): apply THIS tab's change as a delta on top of the
+  // live server value inside a transaction, instead of overwriting the whole
+  // balances object (last-write-wins, which lost a concurrent payment when two
+  // devices completed appointments in the same window). base =
+  // lastR.current.balances is always the last server snapshot and local
+  // balances is always derived from it, so (local - base) is exactly this
+  // tab's change. Firestore retries the transaction on contention and re-reads
+  // the current server value, so concurrent deltas from multiple devices all
+  // apply — no lost update. Numeric fields use per-field deltas; the deposits
+  // array is 3-way merged by id so concurrent deposit log entries aren't lost.
+  // No balance-mutation site changed — only the write path.
   useEffect(() => {
     const t = setTimeout(() => {
-      if (!dataLoaded) {
-        console.warn('[DATA PROTECTION] Delaying balances save: waiting for Firebase to load');
-        return;
-      }
-      sf("balances", balances, lastR.current.balances);
+      if (!db || !DOCS.balances) return;
+      if (!dataLoaded) { console.warn('[DATA PROTECTION] Delaying balances save: waiting for Firebase to load'); return; }
+      const local = balances || DEF_BAL;
+      const base = lastR.current.balances || DEF_BAL;
+      if (JSON.stringify(local) === JSON.stringify(base)) return; // no local change to sync
+      runTransaction(async (transaction) => {
+        const snap = await transaction.get(DOCS.balances);
+        const server = snap.exists ? (snap.data().data || DEF_BAL) : DEF_BAL;
+        const merged = {...server};
+        ["cashOnHand", "gcashBalance", "bankBalance"].forEach(f => {
+          const delta = Number(local[f] || 0) - Number(base[f] || 0);
+          merged[f] = Number(server[f] || 0) + delta;
+        });
+        // deposits: 3-way merge by id (apply local adds/edits/deletes vs base onto live server)
+        const baseDeps = base.deposits || [], localDeps = local.deposits || [], serverDeps = server.deposits || [];
+        const localById = new Map(localDeps.filter(d => d && d.id != null).map(d => [d.id, d]));
+        const result = new Map(serverDeps.filter(d => d && d.id != null).map(d => [d.id, d]));
+        baseDeps.forEach(d => { if (d && d.id != null && !localById.has(d.id)) result.delete(d.id); }); // deleted locally
+        localDeps.forEach(d => {
+          if (!d || d.id == null) return;
+          const b = baseDeps.find(x => x.id === d.id);
+          if (!b || JSON.stringify(b) !== JSON.stringify(d)) result.set(d.id, d); // added or edited locally
+        });
+        merged.deposits = [...result.values()];
+        transaction.set(DOCS.balances, {data: merged});
+      }).then(() => setSync("Synced"))
+        .catch(err => { console.error("[SYNC] balances save failed:", err); setSync("Error"); });
     }, SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [balances]);
