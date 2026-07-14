@@ -16,6 +16,7 @@
 <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -188,6 +189,13 @@ const {
 let db = null,
   DOCS = {},
   SCHED_COL = null;
+// SECURITY (anonymous-auth lockdown): resolves once Firebase auth state is
+// known so no Firestore access happens before an anonymous session exists
+// (Firestore rules require request.auth != null). ALWAYS resolves — never
+// rejects and has a hard timeout — so a failed or slow sign-in can never
+// leave the app on a blank screen; worst case the app renders and shows its
+// normal offline/sync-error state.
+let authReady = Promise.resolve();
 
 // Initialize Firebase immediately (using compat API from script tags)
 try {
@@ -203,6 +211,26 @@ try {
   db = firebase.firestore(app);
   // Offline persistence disabled - always fetch fresh data from server
   // Prevents stale cache causing data loss/conflicts across devices
+
+  // SECURITY: sign in anonymously so every Firestore request carries an auth
+  // token (rules require request.auth != null). Gate initial render on this
+  // so listeners never attach before the token exists. authReady resolves on
+  // the FIRST auth-state signal, on sign-in failure, and on a 5s timeout —
+  // three independent guarantees that the app always renders.
+  try {
+    const auth = firebase.auth(app);
+    authReady = new Promise(resolve => {
+      let done = false;
+      const finish = () => { if (!done) { done = true; resolve(); } };
+      auth.onAuthStateChanged(u => { if (u) finish(); });
+      auth.signInAnonymously()
+        .then(() => console.log("[Auth] Anonymous sign-in OK"))
+        .catch(e => { console.error("[Auth] Anonymous sign-in failed:", e); finish(); });
+      setTimeout(finish, 5000);
+    });
+  } catch (e) {
+    console.error("[Auth] init error:", e);
+  }
 
   ["clients","schedules","expenses","services","staffByDate","staffMembers","paymentStatus","cashbox","cashAdvances","balances","ownerFinances","passwords","transactionLog","recurringSchedules"].forEach(n=>{
     DOCS[n] = db.collection("ruffcuts").doc(n);
@@ -10733,9 +10761,12 @@ window.renderApp = function renderApp() {
   }
 }
 
-// Render immediately - Firebase is already initialized above
-console.log('[APP] Calling renderApp');
-window.renderApp();
+// Wait for the anonymous auth session before rendering, so the app's first
+// Firestore reads carry an auth token (rules require request.auth != null).
+// authReady always resolves (success, failure, or 5s timeout), so the app
+// renders regardless — this only orders auth before data, never blocks on it.
+console.log('[APP] Waiting for auth, then calling renderApp');
+authReady.then(() => window.renderApp());
 </script>
 </body>
 </html>
