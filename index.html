@@ -3755,6 +3755,16 @@ function MainApp({
   // — RC-020 class, see Phase 2). Server->local goes through the listener's
   // raw setExpenses and stays out of the dirty set.
   const updateExpenses = (updater) => updateKeyed("expenses", setExpenses, updater);
+  // Attendance (staffByDate), cashbox, and paymentStatus: keyed-map single
+  // docs (keyed by date / by settle-key). Same KSE treatment as expenses —
+  // only edited keys are written, so a stale tab can't wipe attendance,
+  // cashbox, or settled-payment records set on other devices (C-2 / H-3).
+  // staffByDate values are arrays (empty => that date's key is removed);
+  // cashbox values are numbers and paymentStatus values are objects, so
+  // those keys are always merge-set, never deleted. Listeners stay raw.
+  const updateStaffByDate = (updater) => updateKeyed("staffByDate", setStaffByDate, updater);
+  const updateCashbox = (updater) => updateKeyed("cashbox", setCashbox, updater);
+  const updatePaymentStatus = (updater) => updateKeyed("paymentStatus", setPaymentStatus, updater);
   useEffect(() => {
     if (!db || !getDoc) { setSync("Offline"); return; }
     // Migrate from legacy single document if needed
@@ -4060,12 +4070,11 @@ function MainApp({
     return () => clearTimeout(t);
   }, [services]);
   useEffect(() => {
+    if (dirtyOf("staffByDate").size === 0) return;
     const t = setTimeout(() => {
-      if (!dataLoaded) {
-        console.warn('[DATA PROTECTION] Delaying staffByDate save: waiting for Firebase to load');
-        return;
-      }
-      sf("staffByDate", staffByDate, lastR.current.staffByDate);
+      if (!db || !DOCS.staffByDate) return;
+      if (!dataLoaded) { console.warn('[DATA PROTECTION] Delaying staffByDate save: waiting for Firebase to load'); return; }
+      commitKeyed("staffByDate", () => staffByDate, () => DOCS.staffByDate);
     }, SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [staffByDate]);
@@ -4074,11 +4083,21 @@ function MainApp({
     return () => clearTimeout(t);
   }, [staffMembers]);
   useEffect(() => {
-    const t = setTimeout(() => sf("paymentStatus", paymentStatus, lastR.current.paymentStatus), SYNC_DEBOUNCE_MS);
+    if (dirtyOf("paymentStatus").size === 0) return;
+    const t = setTimeout(() => {
+      if (!db || !DOCS.paymentStatus) return;
+      if (!dataLoaded) { console.warn('[DATA PROTECTION] Delaying paymentStatus save: waiting for Firebase to load'); return; }
+      commitKeyed("paymentStatus", () => paymentStatus, () => DOCS.paymentStatus);
+    }, SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [paymentStatus]);
   useEffect(() => {
-    const t = setTimeout(() => sf("cashbox", cashbox, lastR.current.cashbox), SYNC_DEBOUNCE_MS);
+    if (dirtyOf("cashbox").size === 0) return;
+    const t = setTimeout(() => {
+      if (!db || !DOCS.cashbox) return;
+      if (!dataLoaded) { console.warn('[DATA PROTECTION] Delaying cashbox save: waiting for Firebase to load'); return; }
+      commitKeyed("cashbox", () => cashbox, () => DOCS.cashbox);
+    }, SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [cashbox]);
   useEffect(() => {
@@ -4194,7 +4213,7 @@ function MainApp({
   }, [clients, schedules]);
   const getPay = key => getPayE(paymentStatus[key]);
   const isPaid = key => getPay(key).status === "paid";
-  const togglePay = (key, amount) => setPaymentStatus(p => ({
+  const togglePay = (key, amount) => updatePaymentStatus(p => ({
     ...p,
     [key]: isPaid(key) ? {
       status: "unpaid",
@@ -4209,10 +4228,10 @@ function MainApp({
   const togStaff = sm => {
     const curr = gSt(selDate);
     const has = curr.find(s => String(s.staffId) === String(sm.id));
-    if (has) setStaffByDate(p => ({
+    if (has) updateStaffByDate(p => ({
       ...p,
       [selDate]: curr.filter(s => String(s.staffId) !== String(sm.id))
-    }));else setStaffByDate(p => ({
+    }));else updateStaffByDate(p => ({
       ...p,
       [selDate]: [...curr, {
         staffId: sm.id,
@@ -4426,11 +4445,16 @@ function MainApp({
     // Remove from staff members list
     setStaffMembers(p => p.filter(x => x.id !== staffId));
 
-    // Remove from all schedule assignments (staffByDate) - attendance history
-    setStaffByDate(prev => {
+    // Remove from all attendance (staffByDate). Only rewrite dates this staff
+    // member was actually on: keep the exact prior array reference for
+    // unchanged dates so the KSE marks only the affected dates dirty (fewer
+    // writes, and never touches other dates' attendance).
+    updateStaffByDate(prev => {
       const updated = {...prev};
-      Object.keys(updated).forEach(date => {
-        updated[date] = (updated[date] || []).filter(s => s.staffMemberId !== staffId && s.staffId !== staffId);
+      Object.keys(prev).forEach(date => {
+        const roster = prev[date] || [];
+        const next = roster.filter(s => s.staffMemberId !== staffId && s.staffId !== staffId);
+        if (next.length !== roster.length) updated[date] = next;
       });
       return updated;
     });
@@ -4466,11 +4490,13 @@ function MainApp({
     // Remove from staff members
     setStaffMembers(prev => prev.filter(s => !testNames.includes(s.name)));
 
-    // Remove from all schedule assignments
-    setStaffByDate(prev => {
+    // Remove from all attendance; only rewrite dates that actually change.
+    updateStaffByDate(prev => {
       const updated = {...prev};
-      Object.keys(updated).forEach(date => {
-        updated[date] = (updated[date] || []).filter(s => !testNames.includes(s.name));
+      Object.keys(prev).forEach(date => {
+        const roster = prev[date] || [];
+        const next = roster.filter(s => !testNames.includes(s.name));
+        if (next.length !== roster.length) updated[date] = next;
       });
       return updated;
     });
@@ -6816,7 +6842,7 @@ function MainApp({
         type: "number",
         inputMode: "decimal",
         value: cashbox[selDate] || "",
-        onChange: e => setCashbox(p => ({
+        onChange: e => updateCashbox(p => ({
           ...p,
           [selDate]: Number(e.target.value) || 0
         })),
