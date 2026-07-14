@@ -3748,6 +3748,13 @@ function MainApp({
   // mutation entry point for all 9 local schedule edits (server->local goes
   // through the listener's setSchedules and stays out of the dirty set).
   const updateSchedules = (updater) => updateKeyed("schedules", setSchedules, updater);
+  // Expenses: a keyed-map doc keyed by date, stored in the single
+  // ruffcuts/expenses doc (not sharded). All local expense edits go through
+  // this so only the edited dates are written (replaces the old whole-doc
+  // last-write-wins overwrite that let a stale tab erase other dates' expenses
+  // — RC-020 class, see Phase 2). Server->local goes through the listener's
+  // raw setExpenses and stays out of the dirty set.
+  const updateExpenses = (updater) => updateKeyed("expenses", setExpenses, updater);
   useEffect(() => {
     if (!db || !getDoc) { setSync("Offline"); return; }
     // Migrate from legacy single document if needed
@@ -3932,7 +3939,7 @@ function MainApp({
     }
 
     // CRITICAL: Use transactions for critical data to prevent race conditions
-    const useTransaction = ["balances", "staffMembers", "clients", "expenses"].includes(name);
+    const useTransaction = ["balances", "staffMembers", "clients"].includes(name);
 
     if (useTransaction) {
       runTransaction(async (transaction) => {
@@ -4030,8 +4037,16 @@ function MainApp({
       setSchedules(prev => ({...prev}));
     }
   }, [dataLoaded]);
+  // Expenses sync via KSE: write only the edited dates, all merged into the
+  // single ruffcuts/expenses doc's live server data (routeKey returns that one
+  // doc for every date key). Same guards as schedules.
   useEffect(() => {
-    const t = setTimeout(() => sf("expenses", expenses, lastR.current.expenses), SYNC_DEBOUNCE_MS);
+    if (dirtyOf("expenses").size === 0) return;
+    const t = setTimeout(() => {
+      if (!db || !DOCS.expenses) return;
+      if (!dataLoaded) { console.warn('[DATA PROTECTION] Delaying expenses save: waiting for Firebase to load'); return; }
+      commitKeyed("expenses", () => expenses, () => DOCS.expenses);
+    }, SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [expenses]);
   useEffect(() => {
@@ -5278,7 +5293,7 @@ function MainApp({
       return prev;
     });
 
-    setExpenses(prev => ({
+    updateExpenses(prev => ({
       ...prev,
       [eForm.date]: [...(prev[eForm.date] || []), {
         id: Date.now(),
@@ -7031,7 +7046,7 @@ function MainApp({
             cashbox: true
           };
 
-          setExpenses(prev => ({
+          updateExpenses(prev => ({
             ...prev,
             [selDate]: [...(prev[selDate] || []), newExp]
           }));
@@ -9958,7 +9973,7 @@ function MainApp({
           date
         }))),
         expenses: expenses,
-        setExpenses: setExpenses,
+        setExpenses: updateExpenses,
         askConfirm: askConfirm,
         setBalances: setBalances
       })));
