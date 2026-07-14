@@ -722,16 +722,84 @@ design); previously settled payouts are not retroactively adjusted.
 
 ---
 
+### RC-020: Schedules Silently Lost via Whole-Month Overwrite From Stale Tabs
+**Severity:** 🔴 CRITICAL  
+**Status:** ✅ Fixed (deployed July 14, 2026 — commit 1c5b4d0)  
+**Discovered:** July 14, 2026 (user report: "the schedules I booked for July 15 disappeared")
+
+**Description:**
+A booked appointment vanished with no user action to explain it. RC-013 (July
+12) had already fixed the `dataLoaded` race that could wipe a WHOLE month on
+initial load, but the underlying architecture — writing the entire month's
+schedules back to Firestore from local state, guarded only by an aggregate
+"don't drop >25%/>3 items across the whole month" threshold — remained. A
+single date's appointments (a handful out of dozens for the month) could be
+lost without ever tripping that month-level guard.
+
+**Root Cause:** Every browser tab's local `schedules` state only knows about
+dates its own Firestore listener has received. A tab backgrounded/put to sleep
+(iOS/Android suspend network listeners while backgrounded) that wakes and
+makes ANY schedule edit — even to a date completely unrelated to the one that
+disappeared — recomputes the whole month from its stale snapshot and
+overwrites Firestore with it, silently erasing dates booked elsewhere (another
+device, another tab) in the meantime. This is the exact mechanism behind
+RC-008 (Multi-Device Sync Conflicts, previously undocumented beyond "don't use
+multiple tabs" as a workaround).
+
+**Fix Implemented:** Commit 1c5b4d0 — full synchronization rewrite:
+- `dirtyDates` (a Set ref) tracks exactly which dates were edited locally
+- `updateSchedules()` replaces all 9 local `setSchedules` call sites and
+  detects changed dates by reference equality (every mutation site already
+  rebuilds arrays via spread/map/filter, so untouched dates keep their exact
+  prior array reference — worst case of over-detection is a harmless extra
+  write, never a missed edit)
+- The save effect now writes ONLY dirty dates, one Firestore transaction per
+  affected month: read the month doc's CURRENT server data, merge in just the
+  dirty date keys, write back. Every other date on the server — including
+  ones this tab never loaded — passes through untouched by construction. The
+  old aggregate-reduction guard and empty-month auto-delete are removed as
+  no longer needed: the transaction cannot lose unrelated data regardless of
+  how stale the local snapshot is
+- Failed transactions re-queue for retry; Firestore's built-in transaction
+  retry handles concurrent-write contention
+- A small `dataLoaded`-keyed effect flushes any dirty dates that accumulated
+  while still loading, for the edge case where `dataLoaded` flips true via a
+  different listener with no simultaneous `schedules` change
+
+No UI, calendar, notifications, financial calculations, or Firestore schema
+changes. Existing documents remain readable, no migration required.
+
+**Verified:** Isolated Node simulation of the merge logic (11 assertions,
+covering: new booking doesn't remove other dates, a stale tab waking after
+another device added data doesn't delete the unseen date, two devices editing
+different dates both land correctly, deleting the last appointment on a date
+cleanly removes that key, unrelated-date array churn from bulk operations
+never crosses into another date) — all passed. Deployed and confirmed live on
+ruffcuts.app byte-for-byte.
+
+**Remaining edge cases (accepted, not fixable in-app):**
+- If the SAME date is edited on two devices in the same debounce window,
+  Firestore's transaction retry ensures no corruption, but the second
+  transaction to commit wins for that date (last-write-wins per date, not
+  per-field) — acceptable for a small team's usage pattern
+- A transaction that keeps failing (e.g. sustained offline) leaves its dates
+  queued in memory only; closing the tab before reconnecting loses that
+  specific pending edit (not other dates) — same class of risk as any
+  client-side-only pending-write queue, inherent to not using Firestore's
+  offline persistence (disabled per RC-008's original workaround)
+
+---
+
 ## STATISTICS UPDATE
 
-**Total Issues:** 19  
-**Critical:** 5 (all fixed & verified — RC-002 fully resolved July 12 via DNS move to Netlify)  
-**High:** 3 (all fixed — RC-001 resolved July 12)  
+**Total Issues:** 20  
+**Critical:** 6 (all fixed & verified)  
+**High:** 3 (all fixed)  
 **Medium:** 6 (all fixed)  
 **Low:** 3 (2 fixed, 1 open — RC-009 memoization)  
 **Security:** 1 (documented, won't fix — RC-007 plain-text passwords)  
 
-**Fixed & Deployed (July 12):** 10 (RC-001, RC-002 both halves, RC-013 → RC-019)  
+**Fixed & Deployed:** 11 (RC-001, RC-002 both halves, RC-013 → RC-020)  
 **Awaiting User Action:** 0  
 **Open (Won't Fix):** 2
 
@@ -739,10 +807,10 @@ design); previously settled payouts are not retroactively adjusted.
 
 ## PRODUCTION STATUS: ✅ STABLE
 
-**Last Deployment:** July 12, 2026 (commit 29c7af5, verified live on ruffcuts.app)  
-**Commits This Session:** 7 (RC-013 → RC-019)  
-**Regression Tests:** Syntax-verified per commit; manual smoke test recommended
-(rapid-refresh persistence, recurring schedule survival, expense edit balance
-math, deposit delete reversal, commission attribution)  
+**Last Deployment:** July 14, 2026 (commit 1c5b4d0, verified live on ruffcuts.app)  
+**Regression Tests:** Syntax-verified per commit; RC-020 additionally verified
+via isolated logic simulation (11/11 assertions passed). Manual smoke test
+recommended: book an appointment, background the tab for a few minutes on
+mobile, edit an unrelated appointment, confirm nothing else disappears.  
 **Ready for Financial Audit:** Yes — audit trail now actually persists
 
