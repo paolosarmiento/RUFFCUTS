@@ -363,6 +363,23 @@ removal), clean live boot. Rollback: `git revert fd364b6`.
 
 ---
 
+### Phase 3 (Sync roadmap): Attendance, cashbox, paymentStatus on KSE — fixes C-2
+**Status:** ✅ Deployed July 14, 2026 (commit cfb27d2) — awaiting owner runtime confirmation
+
+Three keyed-map single docs moved off plain-setDoc whole-doc overwrite onto the
+KSE per-key transactional merge: **staffByDate** (attendance — Critical C-2,
+drives payroll), **cashbox** (per-date opening), **paymentStatus** (settled
+salary/commission). A stale tab can no longer wipe attendance/cashbox/settled
+records set on other dates or devices. Mutation sites (togStaff,
+performStaffDeletion + deleteTestStaff strips, cashbox input, togglePay) routed
+through updateStaffByDate/updateCashbox/updatePaymentStatus; strips preserve
+unchanged dates' references so only affected dates are written. Value types
+handled: attendance arrays delete-when-empty; cashbox numbers (incl. 0) and
+paymentStatus objects always merge-set. Doc shapes unchanged, no migration.
+Verified: 10/10 simulation, clean live boot. Rollback: `git revert cfb27d2`.
+
+---
+
 ### RC-021: Firestore Database Fully Public (`allow read, write: if true`)
 **Severity:** 🔴 CRITICAL (SECURITY)  
 **Status:** ✅ Mitigated (July 14, 2026 — anonymous-auth lockdown, commit d4cb77a)  
