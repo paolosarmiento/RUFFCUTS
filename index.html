@@ -3744,6 +3744,65 @@ function MainApp({
         });
     });
   };
+  // ── KSE ARRAY MODE (id-keyed list docs) ──────────────────────────────
+  // For docs stored as arrays of {id,...} items (clients, staffMembers,
+  // cashAdvances, services, recurringSchedules). Unlike keyed-maps, we track
+  // both which item ids were added/edited (dirty) AND which were removed
+  // (deleted) — so deletions are represented explicitly. This is the H-1 fix:
+  // the old union-merge kept every server item and could NEVER delete, so a
+  // removed client/staff member reappeared on the next snapshot. commitArray
+  // reads the live server array, applies dirty items by id and removes
+  // deleted ids, and writes back — untouched items (incl. ones this tab never
+  // loaded) pass through, and id-less items are preserved defensively.
+  const deleted = useRef({}); // { docName: Set<id> }
+  const deletedOf = name => (deleted.current[name] || (deleted.current[name] = new Set()));
+  // Diff runs inside the functional setState callback (like updateKeyed) so
+  // batched updates to the same array can't read a stale value and drop an edit.
+  const updateArray = (name, setState, updater) => {
+    setState(prev => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      const prevById = new Map();
+      prev.forEach(x => { if (x && x.id != null) prevById.set(x.id, x); });
+      const nextIds = new Set();
+      next.forEach(x => {
+        if (!x || x.id == null) return;
+        nextIds.add(x.id);
+        deletedOf(name).delete(x.id);                       // present again => not deleted
+        if (prevById.get(x.id) !== x) dirtyOf(name).add(x.id); // new item or edited (new ref)
+      });
+      prev.forEach(x => {
+        if (x && x.id != null && !nextIds.has(x.id)) {       // removed locally
+          deletedOf(name).add(x.id);
+          dirtyOf(name).delete(x.id);
+        }
+      });
+      return next;
+    });
+  };
+  const commitArray = (name, getState, docRef) => {
+    const dset = dirtyOf(name), xset = deletedOf(name);
+    if (dset.size === 0 && xset.size === 0) return;
+    const dirtyIds = Array.from(dset), delIds = Array.from(xset);
+    dset.clear(); xset.clear();
+    const localById = new Map();
+    getState().forEach(x => { if (x && x.id != null) localById.set(x.id, x); });
+    runTransaction(async (transaction) => {
+      const snap = await transaction.get(docRef);
+      const server = snap.exists ? (snap.data().data || []) : [];
+      const byId = new Map();
+      const idless = [];
+      server.forEach(x => { if (x && x.id != null) byId.set(x.id, x); else if (x) idless.push(x); });
+      dirtyIds.forEach(id => { const item = localById.get(id); if (item) byId.set(id, item); });
+      delIds.forEach(id => byId.delete(id));
+      transaction.set(docRef, {data: [...idless, ...byId.values()]});
+    }).then(() => setSync("Synced"))
+      .catch(err => {
+        console.error(`[SYNC] ${name} save failed, will retry:`, err);
+        dirtyIds.forEach(id => dirtyOf(name).add(id));
+        delIds.forEach(id => deletedOf(name).add(id));
+        setSync("Error");
+      });
+  };
   // Schedules: a keyed-map doc keyed by date, sharded into month docs. Public
   // mutation entry point for all 9 local schedule edits (server->local goes
   // through the listener's setSchedules and stays out of the dirty set).
@@ -3765,6 +3824,14 @@ function MainApp({
   const updateStaffByDate = (updater) => updateKeyed("staffByDate", setStaffByDate, updater);
   const updateCashbox = (updater) => updateKeyed("cashbox", setCashbox, updater);
   const updatePaymentStatus = (updater) => updateKeyed("paymentStatus", setPaymentStatus, updater);
+  // Id-array docs (KSE array mode). All local add/edit/delete of these go
+  // through these wrappers so deletions actually persist (H-1) and stale tabs
+  // can't clobber items added elsewhere. Listeners stay raw.
+  const updateClients = (updater) => updateArray("clients", setClients, updater);
+  const updateStaffMembers = (updater) => updateArray("staffMembers", setStaffMembers, updater);
+  const updateCashAdvances = (updater) => updateArray("cashAdvances", setCashAdvances, updater);
+  const updateServices = (updater) => updateArray("services", setServices, updater);
+  const updateRecurring = (updater) => updateArray("recurringSchedules", setRecurringSchedules, updater);
   useEffect(() => {
     if (!db || !getDoc) { setSync("Offline"); return; }
     // Migrate from legacy single document if needed
@@ -4009,7 +4076,12 @@ function MainApp({
     }
   };
   useEffect(() => {
-    const t = setTimeout(() => sf("clients", clients, lastR.current.clients), SYNC_DEBOUNCE_MS);
+    if (dirtyOf("clients").size === 0 && deletedOf("clients").size === 0) return;
+    const t = setTimeout(() => {
+      if (!db || !DOCS.clients) return;
+      if (!dataLoaded) { console.warn('[DATA PROTECTION] Delaying clients save: waiting for Firebase to load'); return; }
+      commitArray("clients", () => clients, DOCS.clients);
+    }, SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [clients]);
   // Schedule sync: delegates to the KSE (commitKeyed) so only the edited
@@ -4060,12 +4132,11 @@ function MainApp({
     return () => clearTimeout(t);
   }, [expenses]);
   useEffect(() => {
+    if (dirtyOf("services").size === 0 && deletedOf("services").size === 0) return;
     const t = setTimeout(() => {
-      if (!dataLoaded) {
-        console.warn('[DATA PROTECTION] Delaying services save: waiting for Firebase to load');
-        return;
-      }
-      sf("services", services, lastR.current.services);
+      if (!db || !DOCS.services) return;
+      if (!dataLoaded) { console.warn('[DATA PROTECTION] Delaying services save: waiting for Firebase to load'); return; }
+      commitArray("services", () => services, DOCS.services);
     }, SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [services]);
@@ -4079,7 +4150,12 @@ function MainApp({
     return () => clearTimeout(t);
   }, [staffByDate]);
   useEffect(() => {
-    const t = setTimeout(() => sf("staffMembers", staffMembers, lastR.current.staffMembers), SYNC_DEBOUNCE_MS);
+    if (dirtyOf("staffMembers").size === 0 && deletedOf("staffMembers").size === 0) return;
+    const t = setTimeout(() => {
+      if (!db || !DOCS.staffMembers) return;
+      if (!dataLoaded) { console.warn('[DATA PROTECTION] Delaying staffMembers save: waiting for Firebase to load'); return; }
+      commitArray("staffMembers", () => staffMembers, DOCS.staffMembers);
+    }, SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [staffMembers]);
   useEffect(() => {
@@ -4101,7 +4177,12 @@ function MainApp({
     return () => clearTimeout(t);
   }, [cashbox]);
   useEffect(() => {
-    const t = setTimeout(() => sf("cashAdvances", cashAdvances, lastR.current.cashAdvances), SYNC_DEBOUNCE_MS);
+    if (dirtyOf("cashAdvances").size === 0 && deletedOf("cashAdvances").size === 0) return;
+    const t = setTimeout(() => {
+      if (!db || !DOCS.cashAdvances) return;
+      if (!dataLoaded) { console.warn('[DATA PROTECTION] Delaying cashAdvances save: waiting for Firebase to load'); return; }
+      commitArray("cashAdvances", () => cashAdvances, DOCS.cashAdvances);
+    }, SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [cashAdvances]);
   useEffect(() => {
@@ -4119,7 +4200,12 @@ function MainApp({
     return () => clearTimeout(t);
   }, [ownerFinances]);
   useEffect(() => {
-    const t = setTimeout(() => sf("recurringSchedules", recurringSchedules, lastR.current.recurringSchedules), SYNC_DEBOUNCE_MS);
+    if (dirtyOf("recurringSchedules").size === 0 && deletedOf("recurringSchedules").size === 0) return;
+    const t = setTimeout(() => {
+      if (!db || !DOCS.recurringSchedules) return;
+      if (!dataLoaded) { console.warn('[DATA PROTECTION] Delaying recurringSchedules save: waiting for Firebase to load'); return; }
+      commitArray("recurringSchedules", () => recurringSchedules, DOCS.recurringSchedules);
+    }, SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [recurringSchedules]);
   useEffect(() => {
@@ -4362,7 +4448,7 @@ function MainApp({
     const isEdit = !!smForm.id;
     const oldStaff = isEdit ? staffMembers.find(s => s.id === smForm.id) : null;
 
-    if (smForm.id) setStaffMembers(p => p.map(s => s.id === smForm.id ? data : s));else setStaffMembers(p => [...p, {
+    if (smForm.id) updateStaffMembers(p => p.map(s => s.id === smForm.id ? data : s));else updateStaffMembers(p => [...p, {
       ...data,
       id: Date.now()
     }]);
@@ -4443,7 +4529,7 @@ function MainApp({
     );
 
     // Remove from staff members list
-    setStaffMembers(p => p.filter(x => x.id !== staffId));
+    updateStaffMembers(p => p.filter(x => x.id !== staffId));
 
     // Remove from all attendance (staffByDate). Only rewrite dates this staff
     // member was actually on: keep the exact prior array reference for
@@ -4461,7 +4547,7 @@ function MainApp({
 
     // Delete cash advance records tied to this staff member (both settled
     // and outstanding) - they only make sense while the person is on staff.
-    setCashAdvances(prev => prev.filter(a => String(a.staffId) !== String(staffId)));
+    updateCashAdvances(prev => prev.filter(a => String(a.staffId) !== String(staffId)));
 
     // Unassign (not delete) every appointment this groomer worked, past and
     // future: the appointment, its revenue, and payment record stay intact
@@ -4488,7 +4574,7 @@ function MainApp({
     const testNames = ["Rhian", "Test"];
 
     // Remove from staff members
-    setStaffMembers(prev => prev.filter(s => !testNames.includes(s.name)));
+    updateStaffMembers(prev => prev.filter(s => !testNames.includes(s.name)));
 
     // Remove from all attendance; only rewrite dates that actually change.
     updateStaffByDate(prev => {
@@ -4511,7 +4597,7 @@ function MainApp({
       `Deleted client: ${clientName} (ID: ${clientId})`
     );
 
-    setClients(prev => prev.filter(x => x.id !== clientId));
+    updateClients(prev => prev.filter(x => x.id !== clientId));
   };
 
   const saveA = () => {
@@ -4705,7 +4791,7 @@ function MainApp({
     return Math.min(pending * adv.deductionAmount, adv.remainingDebt);
   };
   const applyAdvanceDeductions = (staffId, periodEnd) => {
-    setCashAdvances(prev => prev.map(adv => {
+    updateCashAdvances(prev => prev.map(adv => {
       if (String(adv.staffId) !== String(staffId) || adv.status !== "active") return adv;
       const deduct = getAdvanceDeductionForPeriod(adv, periodEnd);
       if (deduct <= 0) return adv;
@@ -4725,7 +4811,7 @@ function MainApp({
       return;
     }
     if (editCaId) {
-      setCashAdvances(prev => prev.map(a => {
+      updateCashAdvances(prev => prev.map(a => {
         if (a.id !== editCaId) return a;
         const oldAmt = a.amount;
         const newAmt = amt;
@@ -4761,7 +4847,7 @@ function MainApp({
     const balanceBefore = {...balances};
     const staffMember = staffMembers.find(s => s.id === Number(staffId));
 
-    setCashAdvances(prev => [...prev, {
+    updateCashAdvances(prev => [...prev, {
       id: Date.now(),
       staffId: Number(staffId),
       amount: amt,
@@ -4799,8 +4885,8 @@ function MainApp({
     setEditCaId(null);
   };
 
-  const markAdvancePaid = (id) => { setCashAdvances(prev => prev.map(a => a.id === id ? {...a, remainingDebt:0, status:"paid"} : a)); showToast("Marked as fully paid ✓"); };
-  const deleteAdvance = (id) => askConfirm("Delete this cash advance record?", () => { setCashAdvances(prev => prev.filter(a => a.id !== id)); showToast("Advance deleted"); });
+  const markAdvancePaid = (id) => { updateCashAdvances(prev => prev.map(a => a.id === id ? {...a, remainingDebt:0, status:"paid"} : a)); showToast("Marked as fully paid ✓"); };
+  const deleteAdvance = (id) => askConfirm("Delete this cash advance record?", () => { updateCashAdvances(prev => prev.filter(a => a.id !== id)); showToast("Advance deleted"); });
   const startEditAdvance = (adv) => {
     setEditCaId(adv.id);
     setCaForm({
@@ -5217,7 +5303,7 @@ function MainApp({
     const appointments = generateRecurringAppointments(newSchedule, 12);
 
     // Save recurring schedule template
-    setRecurringSchedules(prev => [...prev, newSchedule]);
+    updateRecurring(prev => [...prev, newSchedule]);
 
     // Save generated appointments
     saveRecurringAppointments(appointments);
@@ -5229,7 +5315,7 @@ function MainApp({
 
   const endRecurringSchedule = (scheduleId) => {
     // Mark schedule as ended
-    setRecurringSchedules(prev => prev.map(s =>
+    updateRecurring(prev => prev.map(s =>
       s.id === scheduleId ? {...s, status: "ended", endDate: tod()} : s
     ));
 
@@ -5268,11 +5354,11 @@ function MainApp({
     const isEdit = !!editCId;
     const oldClient = isEdit ? clients.find(c => c.id === editCId) : null;
 
-    if (editCId) setClients(prev => prev.map(c => c.id === editCId ? {
+    if (editCId) updateClients(prev => prev.map(c => c.id === editCId ? {
       ...c,
       ...cForm,
       pets
-    } : c));else setClients(prev => [...prev, {
+    } : c));else updateClients(prev => [...prev, {
       id: Date.now(),
       ...cForm,
       pets
@@ -5350,12 +5436,12 @@ function MainApp({
   const saveSv = () => {
     if (!svForm.name.trim() || isSaving) return;
     setIsSaving(true);
-    if (editSvId) setServices(prev => prev.map(sv => sv.id === editSvId ? {
+    if (editSvId) updateServices(prev => prev.map(sv => sv.id === editSvId ? {
       ...sv,
       name: svForm.name,
       price: Number(svForm.price),
       category: svForm.category || sv.category || ""
-    } : sv));else setServices(prev => [...prev, {
+    } : sv));else updateServices(prev => [...prev, {
       id: Date.now(),
       name: svForm.name,
       price: Number(svForm.price),
@@ -8302,7 +8388,7 @@ function MainApp({
       }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", null, "Services"), /*#__PURE__*/React.createElement("p", null, "Pricing menu")), /*#__PURE__*/React.createElement("div", {className:"phdr-r"},
         isOwner && /*#__PURE__*/React.createElement(Btn, {
           v: "sec", sm: true,
-          onClick: () => askConfirm("Reset all services to the latest default list?", () => setServices(DEF_SVC), "Services reset ✓")
+          onClick: () => askConfirm("Reset all services to the latest default list?", () => updateServices(DEF_SVC), "Services reset ✓")
         }, "Reset"),
         /*#__PURE__*/React.createElement(Btn, {
           onClick: () => {setShowSvForm(true); setEditSvId(null); setSvForm({name:"", price:"", category:""});}
@@ -8381,7 +8467,7 @@ function MainApp({
                   /*#__PURE__*/React.createElement("div", {style: {display:"flex", gap:8, alignItems:"center"}},
                     /*#__PURE__*/React.createElement("span", {style: {fontWeight:700, color: sv.price>0?A.ok:A.g3, fontSize:14}}, sv.price>0?fmt(sv.price):"-"),
                     /*#__PURE__*/React.createElement(Btn, {sm:true, v:"sec", onClick: ()=>{setEditSvId(sv.id); setSvForm({name:sv.name, price:sv.price, category:sv.category||getCat(sv)}); setShowSvForm(true);}}, "Edit"),
-                    /*#__PURE__*/React.createElement(Btn, {sm:true, v:"gho", onClick: ()=>askConfirm("Delete \""+sv.name+"\"?", ()=>setServices(p=>p.filter(x=>x.id!==sv.id)), "Service deleted")}, "Del")
+                    /*#__PURE__*/React.createElement(Btn, {sm:true, v:"gho", onClick: ()=>askConfirm("Delete \""+sv.name+"\"?", ()=>updateServices(p=>p.filter(x=>x.id!==sv.id)), "Service deleted")}, "Del")
                   )
                 )
               )
